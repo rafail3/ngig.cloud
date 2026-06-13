@@ -31,7 +31,7 @@ export default async function Home() {
         <span className="font-semibold tracking-tight">
           ngig<span className="text-indigo-400">.cloud</span>
         </span>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-4 text-base">
           <span className="text-zinc-400">
             {username}
             {role === "admin" && (
@@ -53,7 +53,7 @@ export default async function Home() {
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6 flex items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Fișierele mele
           </h1>
           <UploadButton />
@@ -61,7 +61,7 @@ export default async function Home() {
 
         {/* storage usage */}
         <div className="mb-8">
-          <div className="mb-1.5 flex justify-between text-xs text-zinc-400">
+          <div className="mb-1.5 flex justify-between text-sm text-zinc-400">
             <span>Spațiu folosit</span>
             <span>
               {formatBytes(used)} / {formatBytes(quota)} ({pct}%)

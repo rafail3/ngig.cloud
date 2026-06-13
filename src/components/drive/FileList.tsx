@@ -35,7 +35,7 @@ export function FileList({ files }: { files: FileItem[] }) {
 
   if (files.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-800 px-6 py-16 text-center text-sm text-zinc-500">
+      <div className="rounded-xl border border-dashed border-zinc-800 px-6 py-16 text-center text-base text-zinc-500">
         Niciun fișier încă. Apasă <span className="text-zinc-300">Upload</span> ca să adaugi.
       </div>
     );
@@ -49,8 +49,8 @@ export function FileList({ files }: { files: FileItem[] }) {
           className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-zinc-900/40"
         >
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-zinc-100">{f.name}</p>
-            <p className="text-xs text-zinc-500">
+            <p className="truncate text-base font-medium text-zinc-100">{f.name}</p>
+            <p className="text-sm text-zinc-500">
               {formatBytes(f.size)} · {new Date(f.createdAt).toLocaleDateString("ro-RO")}
             </p>
           </div>
@@ -58,7 +58,7 @@ export function FileList({ files }: { files: FileItem[] }) {
             <button
               type="button"
               onClick={() => download(f.id)}
-              className="rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
+              className="rounded-md border border-zinc-800 px-3 py-1.5 text-sm text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
             >
               Download
             </button>
@@ -66,7 +66,7 @@ export function FileList({ files }: { files: FileItem[] }) {
               type="button"
               onClick={() => remove(f.id)}
               disabled={pendingId === f.id}
-              className="rounded-md border border-red-900/60 px-3 py-1.5 text-xs text-red-400 transition-colors hover:bg-red-950/40 disabled:opacity-50"
+              className="rounded-md border border-red-900/60 px-3 py-1.5 text-sm text-red-400 transition-colors hover:bg-red-950/40 disabled:opacity-50"
             >
               {pendingId === f.id ? "…" : "Șterge"}
             </button>
