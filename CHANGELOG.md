@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.0](https://github.com/rafail3/ngig.cloud/compare/v1.1.0...v1.2.0) (2026-06-13)
+
+
+### Features
+
+* file storage with Cloudflare R2 (upload, download, delete) ([80d1abc](https://github.com/rafail3/ngig.cloud/commit/80d1abcd1fe3ec0214c36b9927dc531c4ad33f76))
+* file storage with Cloudflare R2 (upload, download, delete) ([2bef60a](https://github.com/rafail3/ngig.cloud/commit/2bef60a851dff9819282c1403744034dcdd0b012))
+* file storage with Cloudflare R2 (upload, download, delete) ([17a2b04](https://github.com/rafail3/ngig.cloud/commit/17a2b04c235253ea049d49978136175063f19bfc))
+
 ## [1.1.0](https://github.com/rafail3/ngig.cloud/compare/v1.0.0...v1.1.0) (2026-06-13)
 
 
