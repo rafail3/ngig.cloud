@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
+import { listMyFiles, usage } from "@/server/files/service";
+import { formatBytes } from "@/lib/format";
+import { UploadButton } from "@/components/drive/UploadButton";
+import { FileList } from "@/components/drive/FileList";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -17,6 +21,9 @@ export default async function Home() {
     username = profile?.username ?? "";
     role = profile?.role ?? "";
   }
+
+  const [files, { used, quota }] = await Promise.all([listMyFiles(), usage()]);
+  const pct = Math.min(100, Math.round((used / quota) * 100));
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
@@ -44,19 +51,39 @@ export default async function Home() {
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <div className="flex max-w-xl flex-col items-center gap-6">
-          <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs font-medium tracking-wide text-zinc-400">
-            v0 · private beta
-          </span>
-          <h1 className="text-5xl font-semibold tracking-tight">
-            ngig<span className="text-indigo-400">.cloud</span>
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+            Fișierele mele
           </h1>
-          <p className="text-lg leading-8 text-zinc-400">
-            Cloud personal, pe invitație. Stocare, acces securizat și control
-            total asupra fișierelor tale.
-          </p>
+          <UploadButton />
         </div>
+
+        {/* storage usage */}
+        <div className="mb-8">
+          <div className="mb-1.5 flex justify-between text-xs text-zinc-400">
+            <span>Spațiu folosit</span>
+            <span>
+              {formatBytes(used)} / {formatBytes(quota)} ({pct}%)
+            </span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-900">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+
+        <FileList
+          files={files.map((f) => ({
+            id: f.id,
+            name: f.name,
+            size: f.size,
+            mimeType: f.mime_type,
+            createdAt: f.created_at,
+          }))}
+        />
       </main>
     </div>
   );

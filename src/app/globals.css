@@ -4,3 +4,16 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
+
+@layer base {
+  /* Geist everywhere, with a system fallback. */
+  html {
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Tailwind v4 no longer sets pointer on buttons — restore it globally. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
