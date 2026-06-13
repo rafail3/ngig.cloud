@@ -1,6 +1,19 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-manrope, ui-sans-serif);
+  --font-mono: var(--font-geist-mono, ui-monospace);
+}
+
+@layer base {
+  /* Manrope everywhere; in-var fallback so a missing font never falls to serif. */
+  html {
+    font-family: var(--font-manrope, ui-sans-serif), system-ui, sans-serif;
+  }
+
+  /* Tailwind v4 no longer sets pointer on buttons — restore it globally. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
 }
