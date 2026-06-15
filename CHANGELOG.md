@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1](https://github.com/rafail3/ngig.cloud/compare/v1.4.0...v1.4.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* **storage:** verify uploads against B2, not client-reported size ([aeddf65](https://github.com/rafail3/ngig.cloud/commit/aeddf65f89d9a9fda65acbef94e7e7d35cb8d741))
+* **storage:** verify uploads against B2, not client-reported size ([11fc8c6](https://github.com/rafail3/ngig.cloud/commit/11fc8c687b4d7aebeef4e8795a156560b076d49d))
+
 ## [1.4.0](https://github.com/rafail3/ngig.cloud/compare/v1.3.0...v1.4.0) (2026-06-15)
 
 
