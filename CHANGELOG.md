@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/rafail3/ngig.cloud/compare/v1.3.0...v1.4.0) (2026-06-15)
+
+
+### Features
+
+* **auth:** întărire securitate — Turnstile, headere, politică parole ([c20ae25](https://github.com/rafail3/ngig.cloud/commit/c20ae254a0f40db89847640bf9f6c08d2857096e))
+* **auth:** security hardening — Turnstile, security headers, password policy ([ad12a22](https://github.com/rafail3/ngig.cloud/commit/ad12a2240b39f2518a4c6596a555002a54567f72))
+
 ## [1.3.0](https://github.com/rafail3/ngig.cloud/compare/v1.2.1...v1.3.0) (2026-06-15)
 
 
