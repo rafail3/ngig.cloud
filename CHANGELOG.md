@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.7.0](https://github.com/rafail3/ngig.cloud/compare/v1.6.0...v1.7.0) (2026-06-15)
+
+
+### Features
+
+* **dashboard:** global storage settings + overview charts ([297517c](https://github.com/rafail3/ngig.cloud/commit/297517c1ff0fd6f445d766c759fddce53bae9792))
+* **dashboard:** user management — limits, block & forced sign-out ([2ce8d64](https://github.com/rafail3/ngig.cloud/commit/2ce8d64edd58d993417bcad836560d3dcdb61722))
+* **dashboard:** user management, global settings & overview ([3d51e1b](https://github.com/rafail3/ngig.cloud/commit/3d51e1b69c3a2cf30f33ca92bda07cea5db59888))
+
 ## [1.6.0](https://github.com/rafail3/ngig.cloud/compare/v1.5.0...v1.6.0) (2026-06-15)
 
 
