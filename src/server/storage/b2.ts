@@ -5,6 +5,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   ListObjectVersionsCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -57,6 +58,25 @@ export function presignView(key: string, expiresIn = 600) {
 // B2 keeps every version, so a plain S3 delete only adds a "hide" marker and
 // the bytes linger (still billed). Delete every version of the key (the upload
 // plus any hide markers) so removal is immediate and complete.
+// Read an object's true size + content-type straight from B2. Used to verify
+// an upload after the fact instead of trusting client-reported values.
+// Returns null if the object doesn't exist.
+export async function statObject(
+  key: string,
+): Promise<{ size: number; contentType: string | null } | null> {
+  try {
+    const head = await client.send(
+      new HeadObjectCommand({ Bucket: bucket, Key: key }),
+    );
+    return {
+      size: head.ContentLength ?? 0,
+      contentType: head.ContentType ?? null,
+    };
+  } catch {
+    return null; // not found / not accessible
+  }
+}
+
 export async function deleteObject(key: string) {
   const listed = await client.send(
     new ListObjectVersionsCommand({ Bucket: bucket, Prefix: key }),
