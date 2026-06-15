@@ -42,6 +42,34 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Block + forced-sign-out enforcement: kick the user on their next request
+  // even if their access token is still valid. account_gate reports the block
+  // state and whether the session still exists (sign-out/block delete it).
+  //
+  // GET only: navigations get redirected here. Server actions are POSTs —
+  // redirecting them returns HTML to a fetch caller ("unexpected response"), so
+  // those are enforced inside the action (requireActiveUser) instead, which
+  // returns a flag the client uses to navigate.
+  const userId = data?.claims?.sub as string | undefined;
+  if (userId && request.method === "GET") {
+    const { data: rows } = await supabase.rpc("account_gate");
+    const gate = (Array.isArray(rows) ? rows[0] : rows) as
+      | { blocked_until: string | null; session_active: boolean }
+      | undefined;
+
+    const blocked =
+      !!gate?.blocked_until && new Date(gate.blocked_until).getTime() > Date.now();
+    const signedOut = gate?.session_active === false;
+
+    if (blocked || signedOut) {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "";
+      return copyCookies(NextResponse.redirect(url), supabaseResponse);
+    }
+  }
+
   // ---- Dashboard subdomain --------------------------------------------------
   // Cookies are host-only, so the dashboard host has its own session, separate
   // from the main site. Admin-gating happens at login + in the panel layout.

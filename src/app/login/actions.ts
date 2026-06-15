@@ -5,6 +5,8 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { recordLogin } from "@/server/admin/audit";
+import { blockMessage } from "@/lib/block-message";
 import type { LoginState } from "@/lib/auth-state";
 
 export async function login(
@@ -53,5 +55,17 @@ export async function login(
     return { error: "Username sau parolă greșite.", ...keep };
   }
 
+  // Password is correct — only now is it safe to reveal a block (to the owner).
+  const { data: blk } = await admin
+    .from("profiles")
+    .select("blocked_until")
+    .eq("id", profile.id)
+    .maybeSingle();
+  if (blk?.blocked_until && new Date(blk.blocked_until) > new Date()) {
+    await supabase.auth.signOut();
+    return { error: blockMessage(blk.blocked_until), ...keep };
+  }
+
+  await recordLogin(profile.id, await headers());
   redirect("/");
 }
