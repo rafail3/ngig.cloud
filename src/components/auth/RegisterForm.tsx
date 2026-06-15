@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { registerWithInvite } from "@/app/register/actions";
 import type { RegisterState } from "@/lib/auth-state";
 import { PasswordInput } from "./PasswordInput";
+import { Turnstile } from "./Turnstile";
 
 const initial: RegisterState = {};
 
@@ -65,7 +66,7 @@ export function RegisterForm() {
   const blocked = u !== "" && (!USERNAME_RE.test(u) || fresh === "taken");
 
   return (
-    <form action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
+    <form noValidate action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
       {state.error && (
         <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
           {state.error}
@@ -125,11 +126,15 @@ export function RegisterForm() {
         <PasswordInput
           name="password"
           autoComplete="new-password"
-          minLength={8}
+          minLength={10}
           defaultValue={state.values?.password}
         />
-        <p className="mt-1.5 text-xs text-zinc-600">Minim 8 caractere.</p>
+        <p className="mt-1.5 text-xs text-zinc-600">
+          Minim 10 caractere, cu literă mare, literă mică, cifră și simbol.
+        </p>
       </div>
+
+      <Turnstile resetSignal={state} />
 
       <button
         type="submit"

@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { login } from "@/app/login/actions";
 import type { LoginState } from "@/lib/auth-state";
 import { PasswordInput } from "./PasswordInput";
+import { Turnstile } from "./Turnstile";
 
 const initial: LoginState = {};
 
@@ -15,7 +16,7 @@ export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, initial);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
+    <form noValidate action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
       {state.error && (
         <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
           {state.error}
@@ -47,6 +48,8 @@ export function LoginForm() {
           defaultValue={state.password}
         />
       </div>
+
+      <Turnstile resetSignal={state} />
 
       <button
         type="submit"

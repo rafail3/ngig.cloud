@@ -1,4 +1,9 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
+import { Montserrat } from "next/font/google";
+
+// Montserrat ExtraBold — used only for the wordmark on the auth card.
+const montserrat = Montserrat({ subsets: ["latin"], weight: "800" });
 
 export function AuthCard({
   subtitle,
@@ -22,22 +27,19 @@ export function AuthCard({
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
         <div className="mb-5 flex flex-col items-center text-center sm:mb-6">
-          <div className="mb-3.5 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-2xl border border-white/30 bg-white/20 shadow-lg shadow-black/20 ring-1 ring-inset ring-white/30 backdrop-blur-xl">
-            <svg
-              width="36"
-              height="36"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-white drop-shadow"
-            >
-              <path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.34 9.4 4 4 0 0 0 7 17h10.5Z" />
-            </svg>
+          <div className="mb-4 flex h-28 w-28 items-center justify-center rounded-3xl border border-white/30 bg-white/20 shadow-lg shadow-black/20 ring-1 ring-inset ring-white/30 backdrop-blur-xl sm:h-32 sm:w-32">
+            <Image
+              src="/ngig-mark.png"
+              alt="ngig.cloud"
+              width={256}
+              height={256}
+              priority
+              className="h-24 w-24 drop-shadow sm:h-28 sm:w-28"
+            />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          <h1
+            className={`${montserrat.className} text-2xl font-extrabold tracking-tight text-white sm:text-3xl`}
+          >
             ngig<span className="text-indigo-400">.cloud</span>
           </h1>
           <p className="mt-1.5 text-sm text-zinc-400">{subtitle}</p>
