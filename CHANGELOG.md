@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/rafail3/ngig.cloud/compare/v1.2.0...v1.2.1) (2026-06-15)
+
+
+### Performance Improvements
+
+* run functions in Frankfurt (fra1), parallelize home queries ([7a5460f](https://github.com/rafail3/ngig.cloud/commit/7a5460fd650e0442025e3c52c5550e14284c8b43))
+* run functions in Frankfurt (fra1), parallelize home queries ([77aca94](https://github.com/rafail3/ngig.cloud/commit/77aca943c699bc3489860a22f6d243614186fc94))
+
 ## [1.2.0](https://github.com/rafail3/ngig.cloud/compare/v1.1.0...v1.2.0) (2026-06-13)
 
 
