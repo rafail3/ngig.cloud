@@ -1,4 +1,4 @@
-import { listMyFiles, USER_QUOTA } from "@/server/files/service";
+import { listMyFiles, myUsage } from "@/server/files/service";
 import { formatBytes } from "@/lib/format";
 import { UploadButton } from "@/components/drive/UploadButton";
 import { FileList } from "@/components/drive/FileList";
@@ -6,10 +6,9 @@ import { FileList } from "@/components/drive/FileList";
 export default async function Home() {
   const files = await listMyFiles();
 
-  // Derive usage from the files we already loaded — no extra query.
-  const used = files.reduce((sum, f) => sum + Number(f.size), 0);
-  const quota = USER_QUOTA;
-  const pct = Math.min(100, Math.round((used / quota) * 100));
+  // Effective quota (null = unlimited, until an admin sets a per-user cap).
+  const { used, quota } = await myUsage();
+  const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
@@ -25,13 +24,15 @@ export default async function Home() {
         <div className="mb-1.5 flex justify-between text-sm text-zinc-400">
           <span>Spațiu folosit</span>
           <span>
-            {formatBytes(used)} / {formatBytes(quota)} ({pct}%)
+            {quota
+              ? `${formatBytes(used)} / ${formatBytes(quota)} (${pct}%)`
+              : `${formatBytes(used)} folosiți`}
           </span>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-900">
           <div
             className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all"
-            style={{ width: `${pct}%` }}
+            style={{ width: `${quota ? pct : 100}%`, opacity: quota ? 1 : 0.3 }}
           />
         </div>
       </div>

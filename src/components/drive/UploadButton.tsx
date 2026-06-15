@@ -19,11 +19,16 @@ export function UploadButton() {
       const contentType = file.type || "application/octet-stream";
 
       // 1. ask the server for a presigned PUT URL
-      const { url, key } = await createUploadAction({
+      const created = await createUploadAction({
         name: file.name,
         size: file.size,
         contentType,
       });
+      if ("revoked" in created) {
+        window.location.assign("/login");
+        return;
+      }
+      const { url, key } = created;
 
       // 2. upload bytes straight to B2
       const res = await fetch(url, {
@@ -34,7 +39,16 @@ export function UploadButton() {
       if (!res.ok) throw new Error("Upload eșuat.");
 
       // 3. persist metadata
-      await confirmUploadAction({ name: file.name, size: file.size, contentType, key });
+      const confirmed = await confirmUploadAction({
+        name: file.name,
+        size: file.size,
+        contentType,
+        key,
+      });
+      if (confirmed && "revoked" in confirmed) {
+        window.location.assign("/login");
+        return;
+      }
 
       router.refresh();
     } catch (err) {

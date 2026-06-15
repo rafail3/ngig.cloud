@@ -32,8 +32,8 @@ type NavItem = {
 const NAV: NavItem[] = [
   { href: "/", label: "Overview", icon: <LayoutDashboard className="h-5 w-5" /> },
   { href: "/invites", label: "Invite codes", icon: <Ticket className="h-5 w-5" /> },
-  { href: "/users", label: "Useri", icon: <Users className="h-5 w-5" />, soon: true },
-  { href: "/settings", label: "Setări", icon: <Settings className="h-5 w-5" />, soon: true },
+  { href: "/users", label: "Useri", icon: <Users className="h-5 w-5" /> },
+  { href: "/settings", label: "Setări", icon: <Settings className="h-5 w-5" /> },
 ];
 
 export function DashboardShell({

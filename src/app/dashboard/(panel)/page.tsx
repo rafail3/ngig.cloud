@@ -1,22 +1,61 @@
-import { LayoutDashboard } from "lucide-react";
+import { Files, HardDrive, Users, Activity } from "lucide-react";
+import { getOverview, getFileTypes, getUploadsDaily } from "@/server/admin/stats";
+import { formatBytes } from "@/lib/format";
+import { FileTypesChart, UploadsChart } from "@/components/dashboard/OverviewCharts";
 
 export const metadata = { title: "Dashboard — Overview" };
+export const dynamic = "force-dynamic";
 
-export default function DashboardOverviewPage() {
+function Kpi({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <div className="mb-6">
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+      <div className="flex items-center gap-2 text-zinc-400">
+        {icon}
+        <span className="text-xs uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="mt-2 text-2xl font-semibold text-zinc-50">{value}</p>
+    </div>
+  );
+}
+
+export default async function DashboardOverviewPage() {
+  const [overview, fileTypes, uploads] = await Promise.all([
+    getOverview(),
+    getFileTypes(),
+    getUploadsDaily(30),
+  ]);
+
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+      <header>
         <h1 className="text-xl font-semibold text-zinc-50 sm:text-2xl">Overview</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Statistici generale ale platformei.
-        </p>
+        <p className="mt-1 text-sm text-zinc-400">Statistici generale ale platformei.</p>
+      </header>
+
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <Kpi icon={<Files className="h-4 w-4" />} label="Fișiere" value={String(overview.fileCount)} />
+        <Kpi icon={<HardDrive className="h-4 w-4" />} label="Spațiu total" value={formatBytes(overview.totalSize)} />
+        <Kpi icon={<Users className="h-4 w-4" />} label="Useri" value={String(overview.userCount)} />
+        <Kpi icon={<Activity className="h-4 w-4" />} label="Online" value={String(overview.onlineCount)} />
       </div>
 
-      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center">
-        <LayoutDashboard className="h-8 w-8 text-zinc-600" />
-        <p className="text-sm text-zinc-500">
-          Graficele și KPI-urile apar aici (Faza 4).
-        </p>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-200">Tipuri de fișiere</h2>
+          <FileTypesChart data={fileTypes} />
+        </section>
+        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-200">Uploads (30 zile)</h2>
+          <UploadsChart data={uploads} />
+        </section>
       </div>
     </div>
   );
