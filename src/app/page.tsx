@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
-import { listMyFiles, usage } from "@/server/files/service";
+import { listMyFiles, USER_QUOTA } from "@/server/files/service";
 import { formatBytes } from "@/lib/format";
 import { UploadButton } from "@/components/drive/UploadButton";
 import { FileList } from "@/components/drive/FileList";
@@ -10,19 +10,18 @@ export default async function Home() {
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims?.sub as string | undefined;
 
-  let username = "";
-  let role = "";
-  if (userId) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username, role")
-      .eq("id", userId)
-      .single();
-    username = profile?.username ?? "";
-    role = profile?.role ?? "";
-  }
+  // Fetch profile and files in parallel (one round trip each, not sequential).
+  const profilePromise = userId
+    ? supabase.from("profiles").select("username, role").eq("id", userId).single()
+    : null;
+  const [profileRes, files] = await Promise.all([profilePromise, listMyFiles()]);
 
-  const [files, { used, quota }] = await Promise.all([listMyFiles(), usage()]);
+  const username = profileRes?.data?.username ?? "";
+  const role = profileRes?.data?.role ?? "";
+
+  // Derive usage from the files we already loaded — no extra query.
+  const used = files.reduce((sum, f) => sum + Number(f.size), 0);
+  const quota = USER_QUOTA;
   const pct = Math.min(100, Math.round((used / quota) * 100));
 
   return (
