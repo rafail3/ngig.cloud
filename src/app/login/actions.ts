@@ -1,8 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyTurnstile } from "@/lib/turnstile";
 import type { LoginState } from "@/lib/auth-state";
 
 export async function login(
@@ -14,6 +16,13 @@ export async function login(
 
   // Keep what the user typed so the form can repopulate on error.
   const keep = { username, password };
+
+  // Anti-bot gate before any auth work.
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim();
+  const token = String(formData.get("cf-turnstile-response") ?? "");
+  if (!(await verifyTurnstile(token, ip))) {
+    return { error: "Verificare anti-bot eșuată. Reîncearcă.", ...keep };
+  }
 
   if (!username || !password) {
     return { error: "Completează username și parolă.", ...keep };

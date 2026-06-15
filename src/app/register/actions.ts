@@ -1,12 +1,15 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { verifyTurnstile } from "@/lib/turnstile";
 import type { RegisterState } from "@/lib/auth-state";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD = 10;
 
 export async function registerWithInvite(
   _prev: RegisterState,
@@ -21,6 +24,14 @@ export async function registerWithInvite(
 
   const values = { code, username, email, password };
 
+  // Anti-bot gate before any account work. createUser uses the admin API which
+  // bypasses Supabase's own captcha, so we verify the token ourselves here.
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim();
+  const token = String(formData.get("cf-turnstile-response") ?? "");
+  if (!(await verifyTurnstile(token, ip))) {
+    return { error: "Verificare anti-bot eșuată. Reîncearcă.", values };
+  }
+
   if (!code || !username || !email) {
     return { error: "Completează toate câmpurile.", values };
   }
@@ -30,8 +41,20 @@ export async function registerWithInvite(
   if (!EMAIL_RE.test(email)) {
     return { error: "Adresă de email invalidă.", values };
   }
-  if (password.length < 8) {
-    return { error: "Parola trebuie să aibă minim 8 caractere.", values };
+  if (password.length < MIN_PASSWORD) {
+    return { error: `Parola trebuie să aibă minim ${MIN_PASSWORD} caractere.`, values };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { error: "Parola trebuie să conțină o literă mare.", values };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { error: "Parola trebuie să conțină o literă mică.", values };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { error: "Parola trebuie să conțină o cifră.", values };
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return { error: "Parola trebuie să conțină un simbol.", values };
   }
 
   const admin = createAdminClient();
@@ -74,7 +97,13 @@ export async function registerWithInvite(
   });
 
   if (createErr || !created?.user) {
-    return { error: createErr?.message ?? "Eroare la crearea contului.", values };
+    // Map Supabase's English errors to our own copy — never surface raw internals.
+    const m = createErr?.message?.toLowerCase() ?? "";
+    const msg =
+      m.includes("already") || m.includes("registered") || m.includes("exists")
+        ? "Există deja un cont cu acest email."
+        : "Nu am putut crea contul. Reîncearcă.";
+    return { error: msg, values };
   }
 
   // 4. Consume the invite code (single-use).
