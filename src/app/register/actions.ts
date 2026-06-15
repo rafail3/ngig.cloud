@@ -59,12 +59,13 @@ export async function registerWithInvite(
 
   const admin = createAdminClient();
 
-  // 1. Invite code: exists, unused, not expired, email matches (if bound).
+  // 1. Invite code: exists, unused, not revoked, not expired, email matches (if bound).
   const { data: invite } = await admin
     .from("invite_codes")
     .select("*")
     .eq("code", code)
     .is("used_at", null)
+    .is("revoked_at", null)
     .maybeSingle();
 
   if (!invite) {
