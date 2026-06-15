@@ -10,9 +10,8 @@ import {
   resetUserLimitsAction,
 } from "@/app/dashboard/(panel)/users/actions";
 import { isBlocked, isPermanentBlock, type UserActionState } from "@/lib/user-presence";
+import { splitUnit } from "@/lib/bytes";
 
-const MB = 1024 * 1024;
-const GB = 1024 * MB;
 const fieldCls =
   "w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:bg-white/10 focus:ring-1 focus:ring-indigo-400/40";
 const labelCls = "mb-1.5 block text-sm font-medium text-zinc-300";
@@ -25,13 +24,6 @@ const DURATION_OPTIONS = [
   { value: "720h", label: "30 zile" },
   { value: "permanent", label: "Permanent" },
 ];
-
-// Prefill: show GB for ≥1GB values, otherwise MB, with the matching unit.
-function splitUnit(bytes: number | null): { value: string; unit: "MB" | "GB" } {
-  if (bytes == null) return { value: "", unit: "GB" };
-  if (bytes >= GB) return { value: String(Math.round((bytes / GB) * 100) / 100), unit: "GB" };
-  return { value: String(Math.round((bytes / MB) * 100) / 100), unit: "MB" };
-}
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";

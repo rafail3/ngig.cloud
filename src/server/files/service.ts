@@ -2,6 +2,8 @@ import "server-only";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveUser } from "@/server/auth/active-user";
+import { getSettings } from "@/server/admin/settings";
+import { platformUsage } from "@/server/admin/stats";
 import * as repo from "./repository";
 import {
   presignUpload,
@@ -36,6 +38,41 @@ async function effectiveLimits(
   };
 }
 
+function minNonNull(a: number | null, b: number | null): number | null {
+  if (a == null) return b;
+  if (b == null) return a;
+  return Math.min(a, b);
+}
+
+// Enforce the effective limits for an upload of `size` bytes:
+//  - per file:  smallest of the per-user override and the global cap
+//  - per user:  per-user override, else the global default quota
+//  - platform:  total bytes across everyone must stay under the global cap
+async function enforceQuota(
+  userId: string,
+  size: number,
+  userMaxFile: number | null,
+  userMaxTotal: number | null,
+): Promise<void> {
+  const s = await getSettings();
+
+  const perFile = minNonNull(userMaxFile, s.globalMaxFileSize);
+  if (perFile != null && size > perFile) throw new Error("Fișier prea mare.");
+
+  const quota = userMaxTotal ?? s.defaultUserQuota ?? null;
+  if (quota != null) {
+    const used = await repo.totalUsage(userId);
+    if (used + size > quota) throw new Error("Spațiu insuficient.");
+  }
+
+  if (s.globalMaxTotal != null) {
+    const platform = await platformUsage();
+    if (platform + size > s.globalMaxTotal) {
+      throw new Error("Spațiu insuficient pe platformă.");
+    }
+  }
+}
+
 export async function listMyFiles() {
   await requireUserId();
   return repo.listFiles();
@@ -46,7 +83,8 @@ export async function myUsage(): Promise<{ used: number; quota: number | null }>
   const userId = await requireUserId();
   const used = await repo.totalUsage(userId);
   const { maxTotal } = await effectiveLimits(userId);
-  return { used, quota: maxTotal };
+  const { defaultUserQuota } = await getSettings();
+  return { used, quota: maxTotal ?? defaultUserQuota ?? null };
 }
 
 // Step 1 of upload: validate + return a presigned PUT URL.
@@ -59,11 +97,7 @@ export async function createUpload(input: {
   const { id: userId, maxFile, maxTotal } = await requireActiveUser();
   if (input.size <= 0) throw new Error("Fișier gol.");
 
-  if (maxFile != null && input.size > maxFile) throw new Error("Fișier prea mare.");
-  if (maxTotal != null) {
-    const used = await repo.totalUsage(userId);
-    if (used + input.size > maxTotal) throw new Error("Spațiu insuficient.");
-  }
+  await enforceQuota(userId, input.size, maxFile, maxTotal);
 
   const key = `${userId}/${randomUUID()}`;
   const url = await presignUpload(key, input.contentType);
@@ -89,16 +123,11 @@ export async function confirmUpload(input: {
     throw new Error("Fișier gol.");
   }
 
-  if (maxFile != null && stat.size > maxFile) {
+  try {
+    await enforceQuota(userId, stat.size, maxFile, maxTotal);
+  } catch (e) {
     await deleteObject(input.key); // roll back the orphaned object
-    throw new Error("Fișier prea mare.");
-  }
-  if (maxTotal != null) {
-    const used = await repo.totalUsage(userId);
-    if (used + stat.size > maxTotal) {
-      await deleteObject(input.key);
-      throw new Error("Spațiu insuficient.");
-    }
+    throw e;
   }
 
   return repo.insertFile({

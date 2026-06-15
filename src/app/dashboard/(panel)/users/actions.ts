@@ -10,10 +10,9 @@ import {
   type BlockDuration,
 } from "@/server/admin/users";
 import type { UserActionState } from "@/lib/user-presence";
+import { toBytes } from "@/lib/bytes";
 
 const DURATIONS: BlockDuration[] = ["1h", "24h", "72h", "168h", "720h", "permanent"];
-const MB = 1024 * 1024;
-const GB = 1024 * MB;
 
 function refresh(id: string) {
   revalidatePath("/dashboard/users");
@@ -98,23 +97,14 @@ export async function setUserLimitsAction(
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "User invalid." };
 
-  const parse = (raw: string, unit: string): number | null => {
-    const v = raw.trim();
-    if (v === "") return null; // empty = unlimited
-    const n = Number(v);
-    if (!Number.isFinite(n) || n < 0) throw new Error("invalid");
-    const mult = unit === "MB" ? MB : GB;
-    return Math.round(n * mult);
-  };
-
   let max_file_size: number | null;
   let max_total_size: number | null;
   try {
-    max_file_size = parse(
+    max_file_size = toBytes(
       String(formData.get("maxFile") ?? ""),
       String(formData.get("maxFileUnit") ?? "GB"),
     );
-    max_total_size = parse(
+    max_total_size = toBytes(
       String(formData.get("maxTotal") ?? ""),
       String(formData.get("maxTotalUnit") ?? "GB"),
     );
