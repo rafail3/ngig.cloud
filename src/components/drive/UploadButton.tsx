@@ -25,7 +25,7 @@ export function UploadButton() {
         contentType,
       });
 
-      // 2. upload bytes straight to R2
+      // 2. upload bytes straight to B2
       const res = await fetch(url, {
         method: "PUT",
         body: file,

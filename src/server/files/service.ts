@@ -6,7 +6,7 @@ import {
   presignUpload,
   presignDownload,
   deleteObject,
-} from "@/server/storage/r2";
+} from "@/server/storage/b2";
 
 // Per-file and per-user limits (tune later / make per-role).
 export const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB
@@ -62,7 +62,7 @@ export async function confirmUpload(input: {
     name: input.name,
     size: input.size,
     mime_type: input.contentType || null,
-    r2_key: input.key,
+    storage_key: input.key,
   });
 }
 
@@ -70,13 +70,13 @@ export async function getDownloadUrl(id: string) {
   await requireUserId();
   const file = await repo.getFileById(id); // RLS → only owner's rows
   if (!file) throw new Error("Fișier inexistent.");
-  return presignDownload(file.r2_key, file.name);
+  return presignDownload(file.storage_key, file.name);
 }
 
 export async function deleteFile(id: string) {
   await requireUserId();
   const file = await repo.getFileById(id);
   if (!file) throw new Error("Fișier inexistent.");
-  await deleteObject(file.r2_key);
+  await deleteObject(file.storage_key);
   await repo.deleteFileRow(id);
 }

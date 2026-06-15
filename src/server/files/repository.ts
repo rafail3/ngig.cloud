@@ -7,7 +7,7 @@ export type FileRow = {
   name: string;
   size: number;
   mime_type: string | null;
-  r2_key: string;
+  storage_key: string;
   created_at: string;
 };
 
@@ -35,7 +35,7 @@ export async function insertFile(row: {
   name: string;
   size: number;
   mime_type: string | null;
-  r2_key: string;
+  storage_key: string;
 }): Promise<FileRow> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("files").insert(row).select().single();
