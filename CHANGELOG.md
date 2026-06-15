@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.0](https://github.com/rafail3/ngig.cloud/compare/v1.5.0...v1.6.0) (2026-06-15)
+
+
+### Features
+
+* **dashboard:** invite code management ([3bc8278](https://github.com/rafail3/ngig.cloud/commit/3bc82782946ba362e21a64c6b6558f5bf019ceb7))
+* **dashboard:** invite code management ([e7294e6](https://github.com/rafail3/ngig.cloud/commit/e7294e6626101698d1eb93fa6886b30a4bed40c6))
+
 ## [1.5.0](https://github.com/rafail3/ngig.cloud/compare/v1.4.1...v1.5.0) (2026-06-15)
 
 
