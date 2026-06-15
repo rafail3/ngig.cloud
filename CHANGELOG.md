@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/rafail3/ngig.cloud/compare/v1.4.1...v1.5.0) (2026-06-15)
+
+
+### Features
+
+* **dashboard:** admin-only auth on dashboard subdomain ([785a7e2](https://github.com/rafail3/ngig.cloud/commit/785a7e2a7bed0913472ac797ffca0660ca5ef9e3))
+* **dashboard:** admin-only auth on dashboard subdomain ([8992f7f](https://github.com/rafail3/ngig.cloud/commit/8992f7f86a0a0a81fc524edb7e6bacf216ba1f6e))
+
 ## [1.4.1](https://github.com/rafail3/ngig.cloud/compare/v1.4.0...v1.4.1) (2026-06-15)
 
 
