@@ -4,32 +4,39 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck } from "lucide-react";
-import { signOut } from "@/app/actions";
+import {
+  LayoutDashboard,
+  Ticket,
+  Users,
+  Settings,
+  LogOut,
+  Menu,
+  ChevronDown,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
+import { dashboardSignOut } from "@/app/dashboard/actions";
 
-type ShellUser = { username: string; role: string; email: string };
+type ShellUser = { username: string; email: string };
 
-// Nav items. `soon` renders a disabled "coming soon" entry; `adminOnly` hides
-// it from non-admins. New sections (Foldere, Preview) get added here as we build.
+// Nav items use CLEAN paths — on the dashboard host the proxy rewrites them
+// into the /dashboard tree, so the browser URL stays prefix-free.
+// `soon` marks sections built in later phases.
 type NavItem = {
   href: string;
   label: string;
   icon: React.ReactNode;
-  adminOnly?: boolean;
   soon?: boolean;
 };
 
 const NAV: NavItem[] = [
-  { href: "/", label: "Fișierele mele", icon: <Folder className="h-5 w-5" /> },
-  {
-    href: "https://dashboard.ngig.cloud",
-    label: "Dashboard",
-    icon: <LayoutDashboard className="h-5 w-5" />,
-    adminOnly: true,
-  },
+  { href: "/", label: "Overview", icon: <LayoutDashboard className="h-5 w-5" /> },
+  { href: "/invites", label: "Invite codes", icon: <Ticket className="h-5 w-5" />, soon: true },
+  { href: "/users", label: "Useri", icon: <Users className="h-5 w-5" />, soon: true },
+  { href: "/settings", label: "Setări", icon: <Settings className="h-5 w-5" />, soon: true },
 ];
 
-export function AppShell({
+export function DashboardShell({
   user,
   children,
 }: {
@@ -39,13 +46,11 @@ export function AppShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  const items = NAV.filter((i) => !i.adminOnly || user.role === "admin");
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
-      {/* ===== Top navbar (always visible, full width) ===== */}
+      {/* ===== Top navbar ===== */}
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/95 px-3 backdrop-blur sm:px-5">
-        {/* left: hamburger (mobile) + logo */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -63,6 +68,9 @@ export function AppShell({
             priority
             className="h-9 w-auto sm:h-10"
           />
+          <span className="ml-1 hidden rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300 sm:inline">
+            admin
+          </span>
         </div>
 
         {/* right: user menu + logout */}
@@ -74,17 +82,11 @@ export function AppShell({
               className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-50"
             >
               <span className="max-w-[120px] truncate font-medium">{user.username}</span>
-              {user.role === "admin" && (
-                <span className="rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] uppercase text-indigo-300">
-                  admin
-                </span>
-              )}
               <ChevronDown className={`h-4 w-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
             </button>
 
             {menuOpen && (
               <>
-                {/* click-away backdrop */}
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                 <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
                   <div className="border-b border-zinc-800 px-4 py-3">
@@ -99,7 +101,7 @@ export function AppShell({
                       <span className="flex items-center gap-1.5 text-zinc-400">
                         <ShieldCheck className="h-4 w-4" /> Rol
                       </span>
-                      <span className="font-medium capitalize text-zinc-200">{user.role || "user"}</span>
+                      <span className="font-medium text-zinc-200">admin</span>
                     </div>
                   </div>
                 </div>
@@ -107,7 +109,7 @@ export function AppShell({
             )}
           </div>
 
-          <form action={signOut}>
+          <form action={dashboardSignOut}>
             <button
               type="submit"
               className="flex items-center gap-2 rounded-md border border-zinc-800 px-2.5 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
@@ -121,14 +123,13 @@ export function AppShell({
 
       {/* ===== Body: sidebar + content ===== */}
       <div className="flex flex-1">
-        {/* Sidebar */}
         <aside
           className={`fixed inset-y-0 left-0 top-16 z-40 flex w-64 flex-col border-r border-zinc-900 bg-zinc-950 transition-transform md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
           <nav className="flex-1 space-y-1 px-3 py-4">
-            {items.map((item) => {
+            {NAV.map((item) => {
               const active = item.href === pathname;
               if (item.soon) {
                 return (
@@ -164,7 +165,6 @@ export function AppShell({
           </nav>
         </aside>
 
-        {/* Mobile sidebar overlay */}
         {sidebarOpen && (
           <div
             className="fixed inset-0 top-16 z-30 bg-black/60 md:hidden"
