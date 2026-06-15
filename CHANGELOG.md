@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.0](https://github.com/rafail3/ngig.cloud/compare/v1.2.1...v1.3.0) (2026-06-15)
+
+
+### Features
+
+* **shell:** app shell with sidebar + top navbar ([3dc3206](https://github.com/rafail3/ngig.cloud/commit/3dc320615824f0cb315d1d3b2f993d909ef9c4c6))
+* **shell:** app shell with sidebar + top navbar ([b10f85f](https://github.com/rafail3/ngig.cloud/commit/b10f85fa388488cf6fdaac06dfaa5a20337ff803))
+* **storage:** migrate object storage from Cloudflare R2 to Backblaze B2 ([cd484c1](https://github.com/rafail3/ngig.cloud/commit/cd484c1f6d5ba82e29407cfe7e218effa4bd135e))
+* **storage:** migrate object storage from Cloudflare R2 to Backblaze B2 ([617b2c7](https://github.com/rafail3/ngig.cloud/commit/617b2c788965aefc54add5eb812ae1eccf2eaa15))
+
 ## [1.2.1](https://github.com/rafail3/ngig.cloud/compare/v1.2.0...v1.2.1) (2026-06-15)
 
 
