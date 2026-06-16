@@ -2,20 +2,10 @@ import { Mail, ShieldCheck, CalendarClock, LogIn } from "lucide-react";
 import { getMyProfile } from "@/server/account/profile";
 import { AccountForms } from "@/components/account/AccountForms";
 import { ProfileSessions } from "@/components/account/ProfileSessions";
+import { formatDateTime as fmt } from "@/lib/format-date";
 
 export const metadata = { title: "Profilul meu" };
 export const dynamic = "force-dynamic";
-
-function fmt(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("ro-RO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (

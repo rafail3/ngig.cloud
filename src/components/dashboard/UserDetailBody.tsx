@@ -1,18 +1,8 @@
 import { formatBytes } from "@/lib/format";
+import { formatDateTime as fmt } from "@/lib/format-date";
 import { isOnline, isBlocked } from "@/lib/user-presence";
 import { UserActions } from "@/components/dashboard/UserActions";
 import type { AdminUser } from "@/server/admin/users";
-
-function fmt(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("ro-RO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (

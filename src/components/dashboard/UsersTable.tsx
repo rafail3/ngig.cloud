@@ -4,19 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ShieldAlert } from "lucide-react";
 import { formatBytes } from "@/lib/format";
+import { formatDateTime as fmt } from "@/lib/format-date";
 import { isOnline, isBlocked } from "@/lib/user-presence";
 import type { AdminUser } from "@/server/admin/users";
-
-function fmt(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("ro-RO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function OnlineDot({ online }: { online: boolean }) {
   return (
