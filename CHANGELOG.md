@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.10.0](https://github.com/rafail3/ngig.cloud/compare/v1.9.0...v1.10.0) (2026-06-16)
+
+
+### Features
+
+* profile self-service + email flows (invite request, password reset) ([9065aaa](https://github.com/rafail3/ngig.cloud/commit/9065aaa917484859b13502cbaedb593f51fc6162))
+
+
+### Bug Fixes
+
+* dates shown in Romania timezone ([30fe950](https://github.com/rafail3/ngig.cloud/commit/30fe950890d0ab5bce050bf7ed15bae9aa6f91a6))
+
 ## [1.9.0](https://github.com/rafail3/ngig.cloud/compare/v1.8.0...v1.9.0) (2026-06-16)
 
 
