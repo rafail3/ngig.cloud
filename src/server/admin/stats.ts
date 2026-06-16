@@ -10,6 +10,7 @@ export type Overview = {
 
 export type FileType = { category: string; count: number; size: number };
 export type UploadDay = { day: string; count: number; size: number };
+export type LoginDay = { day: string; count: number };
 
 export async function getOverview(): Promise<Overview> {
   const admin = createAdminClient();
@@ -40,6 +41,15 @@ export async function getUploadsDaily(days = 30): Promise<UploadDay[]> {
     day: r.day,
     count: Number(r.count),
     size: Number(r.size),
+  }));
+}
+
+export async function getLoginsDaily(days = 30): Promise<LoginDay[]> {
+  const admin = createAdminClient();
+  const { data } = await admin.rpc("admin_logins_daily", { days });
+  return (data ?? []).map((r: { day: string; count: number }) => ({
+    day: r.day,
+    count: Number(r.count),
   }));
 }
 

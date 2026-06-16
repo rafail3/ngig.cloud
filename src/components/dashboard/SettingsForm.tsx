@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { HardDrive } from "lucide-react";
-import { saveSettingsAction } from "@/app/dashboard/(panel)/settings/actions";
+import { saveSettingsAction, resetSettingsAction } from "@/app/dashboard/(panel)/settings/actions";
 import { splitUnit } from "@/lib/bytes";
 import type { SettingsState } from "@/lib/settings-state";
 import type { GlobalSettings } from "@/server/admin/settings";
@@ -83,13 +83,22 @@ export function SettingsForm({ settings }: { settings: GlobalSettings }) {
         {state.error && <p className="text-sm text-red-300">{state.error}</p>}
         {state.ok && <p className="text-sm text-emerald-300">{state.ok}</p>}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="self-start rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
-        >
-          {pending ? "Se salvează…" : "Salvează setări"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
+          >
+            {pending ? "Se salvează…" : "Salvează setări"}
+          </button>
+          <button
+            type="submit"
+            formAction={resetSettingsAction}
+            className="rounded-xl border border-zinc-800 px-5 py-2.5 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+          >
+            Reset
+          </button>
+        </div>
       </form>
     </div>
   );

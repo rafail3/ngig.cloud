@@ -5,6 +5,16 @@
   --font-mono: var(--font-geist-mono, ui-monospace);
 }
 
+/* Overlay/modal entrance animations (used by the user-detail intercept). */
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+
 @layer base {
   /* Manrope everywhere; in-var fallback so a missing font never falls to serif. */
   html {
