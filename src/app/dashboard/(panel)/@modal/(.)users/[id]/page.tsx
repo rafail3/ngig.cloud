@@ -1,13 +1,14 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/server/admin/users";
 import { UserDetailBody } from "@/components/dashboard/UserDetailBody";
+import { UserDetailModal } from "@/components/dashboard/UserDetailModal";
 
 export const dynamic = "force-dynamic";
 
-export default async function UserDetailPage({
+// Intercepts /users/[id] when navigated from within the dashboard → renders the
+// detail as an overlay over the users list. A hard load hits the full page.
+export default async function InterceptedUserDetail({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -21,16 +22,8 @@ export default async function UserDetailPage({
   const isSelf = (data?.claims?.sub as string | undefined) === id;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-      <div>
-        <Link
-          href="/users"
-          className="inline-flex items-center gap-1.5 text-sm text-zinc-400 transition hover:text-zinc-200"
-        >
-          <ArrowLeft className="h-4 w-4" /> Înapoi la useri
-        </Link>
-      </div>
+    <UserDetailModal>
       <UserDetailBody user={user} isSelf={isSelf} />
-    </div>
+    </UserDetailModal>
   );
 }

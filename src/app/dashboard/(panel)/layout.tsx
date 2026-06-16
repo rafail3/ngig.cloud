@@ -8,8 +8,10 @@ import { Forbidden } from "@/components/shell/Forbidden";
 // a logged-in non-admin gets a Forbidden screen (with sign-out), never the panel.
 export default async function DashboardPanelLayout({
   children,
+  modal,
 }: {
   children: React.ReactNode;
+  modal: React.ReactNode;
 }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
@@ -32,6 +34,7 @@ export default async function DashboardPanelLayout({
   return (
     <DashboardShell user={{ username: profile.username ?? "", email }}>
       {children}
+      {modal}
     </DashboardShell>
   );
 }

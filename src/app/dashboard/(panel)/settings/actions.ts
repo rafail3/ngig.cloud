@@ -6,6 +6,17 @@ import { updateSettings } from "@/server/admin/settings";
 import { toBytes } from "@/lib/bytes";
 import type { SettingsState } from "@/lib/settings-state";
 
+export async function resetSettingsAction(): Promise<void> {
+  await requireAdmin();
+  await updateSettings({
+    globalMaxFileSize: null,
+    defaultUserQuota: null,
+    globalMaxTotal: null,
+  });
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard");
+}
+
 export async function saveSettingsAction(
   _prev: SettingsState,
   formData: FormData,

@@ -54,7 +54,7 @@ export function DashboardShell({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setSidebarOpen(true)}
+            onClick={() => setSidebarOpen((v) => !v)}
             aria-label="Meniu"
             className="rounded-md p-2 text-zinc-300 hover:bg-zinc-900 md:hidden"
           >

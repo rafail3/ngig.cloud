@@ -1,7 +1,16 @@
 import { Files, HardDrive, Users, Activity } from "lucide-react";
-import { getOverview, getFileTypes, getUploadsDaily } from "@/server/admin/stats";
+import {
+  getOverview,
+  getFileTypes,
+  getUploadsDaily,
+  getLoginsDaily,
+} from "@/server/admin/stats";
 import { formatBytes } from "@/lib/format";
-import { FileTypesChart, UploadsChart } from "@/components/dashboard/OverviewCharts";
+import {
+  FileTypesChart,
+  UploadsChart,
+  LoginsChart,
+} from "@/components/dashboard/OverviewCharts";
 
 export const metadata = { title: "Dashboard — Overview" };
 export const dynamic = "force-dynamic";
@@ -27,10 +36,11 @@ function Kpi({
 }
 
 export default async function DashboardOverviewPage() {
-  const [overview, fileTypes, uploads] = await Promise.all([
+  const [overview, fileTypes, uploads, logins] = await Promise.all([
     getOverview(),
     getFileTypes(),
     getUploadsDaily(30),
+    getLoginsDaily(30),
   ]);
 
   return (
@@ -57,6 +67,11 @@ export default async function DashboardOverviewPage() {
           <UploadsChart data={uploads} />
         </section>
       </div>
+
+      <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-200">Accesări useri (30 zile)</h2>
+        <LoginsChart data={logins} />
+      </section>
     </div>
   );
 }
