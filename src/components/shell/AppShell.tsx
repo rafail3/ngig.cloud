@@ -4,8 +4,9 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck } from "lucide-react";
+import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { signOut } from "@/app/actions";
+import { dashboardOrigin } from "@/lib/dashboard";
 
 type ShellUser = { username: string; role: string; email: string };
 
@@ -21,8 +22,9 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { href: "/", label: "Fișierele mele", icon: <Folder className="h-5 w-5" /> },
+  { href: "/profil", label: "Profil", icon: <UserRound className="h-5 w-5" /> },
   {
-    href: "https://dashboard.ngig.cloud",
+    href: dashboardOrigin(),
     label: "Dashboard",
     icon: <LayoutDashboard className="h-5 w-5" />,
     adminOnly: true,
@@ -73,9 +75,9 @@ export function AppShell({
               onClick={() => setMenuOpen((v) => !v)}
               className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-50"
             >
-              <span className="max-w-[120px] truncate font-medium">{user.username}</span>
+              <span className="max-w-[88px] truncate font-medium sm:max-w-[140px]">{user.username}</span>
               {user.role === "admin" && (
-                <span className="rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] uppercase text-indigo-300">
+                <span className="hidden rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] uppercase text-indigo-300 sm:inline">
                   admin
                 </span>
               )}
@@ -94,6 +96,13 @@ export function AppShell({
                       <span className="truncate">{user.email}</span>
                     </p>
                   </div>
+                  <Link
+                    href="/profil"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 border-b border-zinc-800 px-4 py-3 text-sm text-zinc-200 transition-colors hover:bg-zinc-800/60"
+                  >
+                    <UserRound className="h-4 w-4 text-zinc-400" /> Profil
+                  </Link>
                   <div className="px-4 py-3 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 text-zinc-400">

@@ -6,7 +6,12 @@ export const metadata = { title: "Dashboard — Invite codes" };
 // Always reflect the latest codes (expiry/used state changes over time).
 export const dynamic = "force-dynamic";
 
-export default async function InvitesPage() {
+export default async function InvitesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ email?: string }>;
+}) {
+  const { email } = await searchParams;
   const invites = await listInvites();
 
   return (
@@ -18,7 +23,7 @@ export default async function InvitesPage() {
         </p>
       </header>
 
-      <InviteGenerator />
+      <InviteGenerator prefillEmail={email} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">

@@ -5,8 +5,15 @@ export const DASHBOARD_HOST =
   process.env.NEXT_PUBLIC_DASHBOARD_HOST ?? "dashboard.ngig.cloud";
 
 // True when the request's Host header targets the dashboard subdomain.
-// Strips an optional :port (local dev / preview).
+// Compares hostname only (strips :port on BOTH sides — DASHBOARD_HOST may
+// include a port locally, e.g. dashboard.localhost:3002).
 export function isDashboardHost(host: string | null | undefined): boolean {
   if (!host) return false;
-  return host.split(":")[0].toLowerCase() === DASHBOARD_HOST.toLowerCase();
+  return host.split(":")[0].toLowerCase() === DASHBOARD_HOST.split(":")[0].toLowerCase();
+}
+
+// Absolute origin of the dashboard (with port locally). Used for links to it.
+export function dashboardOrigin(): string {
+  const proto = DASHBOARD_HOST.includes("localhost") ? "http" : "https";
+  return `${proto}://${DASHBOARD_HOST}`;
 }

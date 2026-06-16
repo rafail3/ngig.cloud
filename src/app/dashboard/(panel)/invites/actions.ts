@@ -8,9 +8,10 @@ import {
   deleteInvite,
   type ExpiryOption,
 } from "@/server/invites/service";
-import type { GenerateState } from "@/lib/invite-status";
+import { sendInviteCode } from "@/server/email/resend";
+import type { GenerateState, SendCodeState } from "@/lib/invite-status";
 
-const EXPIRY: ExpiryOption[] = ["never", "1h", "1d", "3d", "1w", "1mo"];
+const EXPIRY: ExpiryOption[] = ["never", "1h", "3h", "1d", "3d", "1w", "1mo"];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function createInviteAction(
@@ -38,9 +39,33 @@ export async function createInviteAction(
   try {
     const invite = await createInvite({ expiry, role, email, label, createdBy: adminId });
     revalidatePath("/dashboard/invites");
-    return { code: invite.code };
+    return { code: invite.code, email: invite.email ?? undefined };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la generarea codului." };
+  }
+}
+
+const EMAIL_RE2 = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function sendInviteCodeAction(
+  _prev: SendCodeState,
+  formData: FormData,
+): Promise<SendCodeState> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "Acces interzis." };
+  }
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const code = String(formData.get("code") ?? "").trim();
+  if (!EMAIL_RE2.test(email)) return { error: "Email invalid." };
+  if (!code) return { error: "Cod lipsă." };
+
+  try {
+    await sendInviteCode({ email, code });
+    return { ok: `Cod trimis pe ${email}.` };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la trimitere." };
   }
 }
 

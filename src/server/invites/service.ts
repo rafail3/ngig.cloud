@@ -2,7 +2,7 @@ import "server-only";
 import { randomInt } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type ExpiryOption = "never" | "1h" | "1d" | "3d" | "1w" | "1mo";
+export type ExpiryOption = "never" | "1h" | "3h" | "1d" | "3d" | "1w" | "1mo";
 
 export type InviteRow = {
   id: string;
@@ -36,6 +36,7 @@ export function generateCode(): string {
 
 const EXPIRY_MS: Record<Exclude<ExpiryOption, "never">, number> = {
   "1h": 3_600_000,
+  "3h": 3 * 3_600_000,
   "1d": 86_400_000,
   "3d": 3 * 86_400_000,
   "1w": 7 * 86_400_000,

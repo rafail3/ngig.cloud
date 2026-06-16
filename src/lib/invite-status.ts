@@ -14,7 +14,11 @@ export function inviteStatus(r: {
 
 // Result state for the invite-generation form action. Kept here (not in the
 // "use server" actions file, which may only export async functions).
-export type GenerateState = { error?: string; code?: string };
+// `email` echoes the bound email so the UI can offer "send code by email".
+export type GenerateState = { error?: string; code?: string; email?: string };
+
+// Result state for sending a generated code to its associated email.
+export type SendCodeState = { error?: string; ok?: string };
 
 export const INVITE_STATUS_LABEL: Record<InviteStatus, string> = {
   active: "Activ",
