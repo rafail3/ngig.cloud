@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { DASHBOARD_HOST, isDashboardHost } from "@/lib/dashboard";
 
 // Public routes reachable without a session (main site).
-const PUBLIC_PATHS = ["/login", "/register"];
+const PUBLIC_PATHS = ["/login", "/register", "/reset", "/cere-invitatie"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -39,6 +39,12 @@ export async function updateSession(request: NextRequest) {
   // API routes manage their own auth — never redirect them (a redirect would
   // return HTML and break fetch/JSON callers like the username check).
   if (path.startsWith("/api")) {
+    return supabaseResponse;
+  }
+
+  // Auth callback (recovery / email link) exchanges a code for a session — it
+  // must run even without a prior session, so never redirect it.
+  if (path.startsWith("/auth")) {
     return supabaseResponse;
   }
 

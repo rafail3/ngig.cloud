@@ -2,10 +2,11 @@
 
 import { useActionState, useState } from "react";
 import { Check, Copy, Ticket } from "lucide-react";
-import { createInviteAction } from "@/app/dashboard/(panel)/invites/actions";
-import type { GenerateState } from "@/lib/invite-status";
+import { createInviteAction, sendInviteCodeAction } from "@/app/dashboard/(panel)/invites/actions";
+import type { GenerateState, SendCodeState } from "@/lib/invite-status";
 
 const initial: GenerateState = {};
+const sendInitial: SendCodeState = {};
 
 const labelCls = "mb-1.5 block text-sm font-medium text-zinc-300";
 const fieldCls =
@@ -14,14 +15,16 @@ const fieldCls =
 const EXPIRY_OPTIONS = [
   { value: "never", label: "Niciodată" },
   { value: "1h", label: "1 oră" },
+  { value: "3h", label: "3 ore" },
   { value: "1d", label: "1 zi" },
   { value: "3d", label: "3 zile" },
   { value: "1w", label: "1 săptămână" },
   { value: "1mo", label: "1 lună" },
 ];
 
-export function InviteGenerator() {
+export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
   const [state, formAction, pending] = useActionState(createInviteAction, initial);
+  const [sendState, sendAction, sendPending] = useActionState(sendInviteCodeAction, sendInitial);
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -63,7 +66,7 @@ export function InviteGenerator() {
             <label htmlFor="email" className={labelCls}>
               Email <span className="text-zinc-500">(opțional — leagă codul de un email)</span>
             </label>
-            <input id="email" name="email" type="email" placeholder="nume@exemplu.com" className={fieldCls} />
+            <input id="email" name="email" type="email" defaultValue={prefillEmail} placeholder="nume@exemplu.com" className={fieldCls} />
           </div>
 
           <div>
@@ -90,21 +93,44 @@ export function InviteGenerator() {
       </form>
 
       {state.code && (
-        <div className="mt-4 flex flex-col gap-2 rounded-xl border border-emerald-900/50 bg-emerald-950/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wide text-emerald-400/80">Cod nou</p>
-            <p className="mt-0.5 font-mono text-lg font-semibold tracking-wider text-emerald-200">
-              {state.code}
-            </p>
+        <div className="mt-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-2 rounded-xl border border-emerald-900/50 bg-emerald-950/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs uppercase tracking-wide text-emerald-400/80">Cod nou</p>
+              <p className="mt-0.5 overflow-x-auto whitespace-nowrap font-mono text-sm font-semibold text-emerald-200 sm:text-base">
+                {state.code}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={copy}
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-emerald-800/60 px-3 py-2 text-sm text-emerald-200 transition hover:bg-emerald-900/40"
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? "Copiat" : "Copiază"}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={copy}
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-emerald-800/60 px-3 py-2 text-sm text-emerald-200 transition hover:bg-emerald-900/40"
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copiat" : "Copiază"}
-          </button>
+
+          {state.email && (
+            <form action={sendAction} className="flex flex-col gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+              <input type="hidden" name="code" value={state.code} />
+              <input type="hidden" name="email" value={state.email} />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-zinc-400">
+                  Trimite codul pe <span className="text-zinc-200">{state.email}</span>
+                </p>
+                <button
+                  type="submit"
+                  disabled={sendPending}
+                  className="shrink-0 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
+                >
+                  {sendPending ? "Se trimite…" : "Trimite codul pe email"}
+                </button>
+              </div>
+              {sendState.error && <p className="text-sm text-red-300">{sendState.error}</p>}
+              {sendState.ok && <p className="text-sm text-emerald-300">{sendState.ok}</p>}
+            </form>
+          )}
         </div>
       )}
     </div>

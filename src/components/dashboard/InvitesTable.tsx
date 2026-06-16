@@ -52,13 +52,13 @@ function CodeCell({ code }: { code: string }) {
         setTimeout(() => setCopied(false), 1500);
       }}
       title="Copiază"
-      className="group flex w-full items-start gap-2 text-left font-mono text-xs text-zinc-100 transition hover:text-white"
+      className="group flex w-full items-center gap-2 text-left font-mono text-xs text-zinc-100 transition hover:text-white"
     >
-      <span className="min-w-0 break-all">{code}</span>
+      <span className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap">{code}</span>
       {copied ? (
-        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
       ) : (
-        <Copy className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-300" />
+        <Copy className="h-3.5 w-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-300" />
       )}
     </button>
   );
@@ -210,6 +210,11 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
                         <p className="truncate text-xs text-zinc-500">{inv.used_by_email}</p>
                         <p className="mt-0.5 text-xs text-zinc-600">{fmt(inv.used_at)}</p>
                       </div>
+                    ) : inv.email ? (
+                      <div className="min-w-0">
+                        <p className="text-xs text-zinc-500">Asociat cu</p>
+                        <p className="truncate text-zinc-300">{inv.email}</p>
+                      </div>
                     ) : (
                       <span className="text-zinc-600">—</span>
                     )}
@@ -258,7 +263,7 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
                   <dt className="text-zinc-500">Folosit la</dt>
                   <dd className="text-zinc-300">{fmt(inv.used_at)}</dd>
                 </div>
-                {inv.used_by_username && (
+                {inv.used_by_username ? (
                   <div className="col-span-2">
                     <dt className="text-zinc-500">Folosit de</dt>
                     <dd className="break-words text-zinc-300">
@@ -266,7 +271,12 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
                       <span className="text-zinc-500">({inv.used_by_email})</span>
                     </dd>
                   </div>
-                )}
+                ) : inv.email ? (
+                  <div className="col-span-2">
+                    <dt className="text-zinc-500">Email asociat</dt>
+                    <dd className="break-words text-zinc-300">{inv.email}</dd>
+                  </div>
+                ) : null}
               </dl>
 
               <div className="mt-4 flex items-center gap-2">
