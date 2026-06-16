@@ -14,6 +14,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { FileType, UploadDay, LoginDay } from "@/server/admin/stats";
+import { formatDateShort as shortDay } from "@/lib/format-date";
 
 const COLORS = ["#6366f1", "#8b5cf6", "#d946ef", "#22d3ee", "#34d399", "#f59e0b", "#f43f5e"];
 
@@ -36,10 +37,6 @@ const tooltipStyle = {
 
 function label(cat: string): string {
   return CATEGORY_LABEL[cat] ?? cat;
-}
-
-function shortDay(iso: string): string {
-  return new Date(iso).toLocaleDateString("ro-RO", { day: "2-digit", month: "2-digit" });
 }
 
 // Render only after mount so the chart draws its entrance animation on every

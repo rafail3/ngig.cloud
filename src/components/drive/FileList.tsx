@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { getDownloadUrlAction, deleteFileAction } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
+import { formatDateShort } from "@/lib/format-date";
 
 type FileItem = {
   id: string;
@@ -64,7 +65,7 @@ export function FileList({ files }: { files: FileItem[] }) {
             <div className="min-w-0">
               <p className="truncate text-base font-medium text-zinc-100">{f.name}</p>
               <p className="text-sm text-zinc-500">
-                {formatBytes(f.size)} · {new Date(f.createdAt).toLocaleDateString("ro-RO")}
+                {formatBytes(f.size)} · {formatDateShort(f.createdAt)}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">

@@ -11,6 +11,7 @@ import {
 } from "@/app/dashboard/(panel)/users/actions";
 import { isBlocked, isPermanentBlock, type UserActionState } from "@/lib/user-presence";
 import { splitUnit } from "@/lib/bytes";
+import { formatDateTime as fmt } from "@/lib/format-date";
 
 const fieldCls =
   "w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:bg-white/10 focus:ring-1 focus:ring-indigo-400/40";
@@ -24,17 +25,6 @@ const DURATION_OPTIONS = [
   { value: "720h", label: "30 zile" },
   { value: "permanent", label: "Permanent" },
 ];
-
-function fmt(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("ro-RO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 const initial: UserActionState = {};
 

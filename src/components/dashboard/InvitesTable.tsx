@@ -12,6 +12,7 @@ import {
   type InviteStatus,
 } from "@/lib/invite-status";
 import type { InviteRow } from "@/server/invites/service";
+import { formatDateTime as fmt } from "@/lib/format-date";
 
 const STATUS_BADGE: Record<InviteStatus, string> = {
   active: "border-emerald-800/60 bg-emerald-950/40 text-emerald-300",
@@ -19,17 +20,6 @@ const STATUS_BADGE: Record<InviteStatus, string> = {
   expired: "border-amber-800/60 bg-amber-950/40 text-amber-300",
   revoked: "border-red-900/60 bg-red-950/40 text-red-300",
 };
-
-function fmt(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("ro-RO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 // A used (or revoked) code can no longer be redeemed → show it as no longer
 // valid in the expiry column, regardless of its original expiry time.
