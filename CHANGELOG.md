@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.0](https://github.com/rafail3/ngig.cloud/compare/v1.7.0...v1.8.0) (2026-06-16)
+
+
+### Features
+
+* **dashboard:** overview charts polish, logins chart, detail overlay & UX fixes ([276cdf2](https://github.com/rafail3/ngig.cloud/commit/276cdf2f7e4709be5b780c68b8a8bfb50723071c))
+* **dashboard:** overview charts, logins analytics & UI polish ([8f68e95](https://github.com/rafail3/ngig.cloud/commit/8f68e9563f3a3c11b704fca2c3314967bbe10990))
+
 ## [1.7.0](https://github.com/rafail3/ngig.cloud/compare/v1.6.0...v1.7.0) (2026-06-15)
 
 
