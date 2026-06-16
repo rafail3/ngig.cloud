@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0](https://github.com/rafail3/ngig.cloud/compare/v1.8.0...v1.9.0) (2026-06-16)
+
+
+### Features
+
+* profile self-service + email flows (invite request, password reset) ([6b8311e](https://github.com/rafail3/ngig.cloud/commit/6b8311e36a85e3dc2d293c29324be5cc8209bae8))
+* profile, account self-service & email flows ([c338df8](https://github.com/rafail3/ngig.cloud/commit/c338df8dbfea687f89a49b1075bf5b1bb09c3b6c))
+
 ## [1.8.0](https://github.com/rafail3/ngig.cloud/compare/v1.7.0...v1.8.0) (2026-06-16)
 
 
