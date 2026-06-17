@@ -2,10 +2,52 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { getDownloadUrlAction, deleteFileAction } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateShort } from "@/lib/format-date";
+import { useUploads, type UploadJob } from "./UploadProvider";
+
+function speedLabel(bytesPerSec: number): string {
+  if (!bytesPerSec || bytesPerSec < 1) return "—";
+  return `${formatBytes(bytesPerSec)}/s`;
+}
+
+function etaLabel(sec: number | null): string {
+  if (sec == null || !isFinite(sec)) return "—";
+  const s = Math.max(0, Math.round(sec));
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
+// A row for a file that is still uploading, shown in-place above the real files.
+function UploadingRow({ job }: { job: UploadJob }) {
+  const pct = job.size > 0 ? Math.min(100, Math.round((job.sent / job.size) * 100)) : 0;
+  return (
+    <li className="px-4 py-3 opacity-55">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-indigo-400" />
+          <p className="truncate text-base font-medium text-zinc-200">{job.name}</p>
+        </div>
+        <span className="shrink-0 text-sm text-zinc-500">
+          {job.status === "queued"
+            ? "În așteptare"
+            : `${speedLabel(job.speed)} · ${etaLabel(job.etaSec)}`}
+        </span>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-[width] duration-200"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="mt-1 text-sm text-zinc-500">
+        {pct}% · {formatBytes(job.sent)} / {formatBytes(job.size)}
+      </p>
+    </li>
+  );
+}
 
 type FileItem = {
   id: string;
@@ -17,8 +59,14 @@ type FileItem = {
 
 export function FileList({ files }: { files: FileItem[] }) {
   const router = useRouter();
+  const { jobs } = useUploads();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<FileItem | null>(null);
+
+  // Files still in flight — rendered as live rows above the stored files.
+  const uploading = jobs.filter(
+    (j) => j.status === "uploading" || j.status === "queued",
+  );
 
   async function download(id: string) {
     const res = await getDownloadUrlAction(id);
@@ -46,7 +94,7 @@ export function FileList({ files }: { files: FileItem[] }) {
     }
   }
 
-  if (files.length === 0) {
+  if (files.length === 0 && uploading.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-zinc-800 px-6 py-16 text-center text-base text-zinc-500">
         Niciun fișier încă. Apasă <span className="text-zinc-300">Upload</span> ca să adaugi.
@@ -57,6 +105,9 @@ export function FileList({ files }: { files: FileItem[] }) {
   return (
     <>
       <ul className="divide-y divide-zinc-900 overflow-hidden rounded-xl border border-zinc-900">
+        {uploading.map((job) => (
+          <UploadingRow key={job.id} job={job} />
+        ))}
         {files.map((f) => (
           <li
             key={f.id}
