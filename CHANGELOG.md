@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.15.0](https://github.com/rafail3/ngig.cloud/compare/v1.14.0...v1.15.0) (2026-06-17)
+
+
+### Features
+
+* **upload:** resume interrupted uploads after refresh ([377f2cf](https://github.com/rafail3/ngig.cloud/commit/377f2cfffd462cdcc4ba65e25761a1f43085e827))
+* **upload:** resume interrupted uploads after refresh ([ad8481a](https://github.com/rafail3/ngig.cloud/commit/ad8481ae64c513e3121542c9e8e99c6f2022a6b7))
+
 ## [1.14.0](https://github.com/rafail3/ngig.cloud/compare/v1.13.2...v1.14.0) (2026-06-17)
 
 
