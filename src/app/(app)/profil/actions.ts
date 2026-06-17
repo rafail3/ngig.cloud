@@ -1,7 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { changeUsername, changePassword } from "@/server/account/profile";
+import {
+  changeUsername,
+  changePassword,
+  revokeMySession,
+  revokeMyOtherSessions,
+} from "@/server/account/profile";
 import type { AccountState } from "@/lib/account-state";
 
 export async function changeUsernameAction(
@@ -32,4 +37,16 @@ export async function changePasswordAction(
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare.", oldPassword, newPassword };
   }
+}
+
+// Disconnect a single other session by id.
+export async function revokeSessionAction(id: string): Promise<void> {
+  await revokeMySession(id);
+  revalidatePath("/profil");
+}
+
+// Disconnect every session except the current one.
+export async function revokeOtherSessionsAction(): Promise<void> {
+  await revokeMyOtherSessions();
+  revalidatePath("/profil");
 }

@@ -66,6 +66,10 @@ export async function login(
     return { error: blockMessage(blk.blocked_until), ...keep };
   }
 
-  await recordLogin(profile.id, await headers());
+  // Stamp the new session's id on the login record so the profile page can show
+  // this session with its real device/IP/geo.
+  const { data: claims } = await supabase.auth.getClaims();
+  const sessionId = (claims?.claims?.session_id as string | undefined) ?? null;
+  await recordLogin(profile.id, await headers(), sessionId);
   redirect("/");
 }

@@ -6,12 +6,17 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
 const MIN_PASSWORD = 10;
 
-export type LoginDevice = {
+// A real, revocable auth session (one per device login), enriched with the
+// browser UA + geo from login_audit. `is_current` marks the caller's own session.
+export type ActiveSession = {
+  id: string;
+  created_at: string;
+  last_seen: string;
   user_agent: string | null;
   ip: string | null;
   city: string | null;
   country: string | null;
-  last_seen: string;
+  is_current: boolean;
 };
 
 export type MyProfile = {
@@ -21,7 +26,6 @@ export type MyProfile = {
   role: string;
   created_at: string;
   lastSignIn: string | null;
-  devices: LoginDevice[];
 };
 
 async function currentUser() {
@@ -44,7 +48,6 @@ export async function getMyProfile(): Promise<MyProfile> {
 
   const admin = createAdminClient();
   const { data: u } = await admin.auth.admin.getUserById(id);
-  const { data: devices } = await supabase.rpc("my_login_devices");
 
   return {
     id,
@@ -53,8 +56,31 @@ export async function getMyProfile(): Promise<MyProfile> {
     role: profile?.role ?? "user",
     created_at: profile?.created_at ?? "",
     lastSignIn: u?.user?.last_sign_in_at ?? null,
-    devices: (devices ?? []) as LoginDevice[],
   };
+}
+
+// Real active sessions for the caller (revocable). Uses the user's own client
+// so auth.uid() / the session_id JWT claim resolve to them.
+export async function listMySessions(): Promise<ActiveSession[]> {
+  const { supabase } = await currentUser();
+  const { data, error } = await supabase.rpc("my_sessions");
+  if (error) throw error;
+  return (data ?? []) as ActiveSession[];
+}
+
+// Revoke one other session by id (the SQL guards against killing the current
+// one and against touching other users' sessions).
+export async function revokeMySession(id: string): Promise<void> {
+  const { supabase } = await currentUser();
+  const { error } = await supabase.rpc("revoke_my_session", { sid: id });
+  if (error) throw error;
+}
+
+// Revoke every session except the caller's current one.
+export async function revokeMyOtherSessions(): Promise<void> {
+  const { supabase } = await currentUser();
+  const { error } = await supabase.rpc("revoke_my_other_sessions");
+  if (error) throw error;
 }
 
 // Verify a password without touching the user's session — a throwaway client
