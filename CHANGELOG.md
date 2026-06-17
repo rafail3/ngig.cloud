@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.1](https://github.com/rafail3/ngig.cloud/compare/v1.13.0...v1.13.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **files:** reconcile DB with B2 on list, resilient delete ([e1ad931](https://github.com/rafail3/ngig.cloud/commit/e1ad931a6322a4fdb53c42894c2987d6cc2aa9b6))
+* **files:** reconcile DB with B2 on list, resilient delete ([d6f8287](https://github.com/rafail3/ngig.cloud/commit/d6f8287fecdb27ec49bde39ec1655383825416e8))
+
 ## [1.13.0](https://github.com/rafail3/ngig.cloud/compare/v1.12.0...v1.13.0) (2026-06-17)
 
 
