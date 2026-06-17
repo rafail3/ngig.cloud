@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14.0](https://github.com/rafail3/ngig.cloud/compare/v1.13.2...v1.14.0) (2026-06-17)
+
+
+### Features
+
+* **upload:** progress UI with multi-file queue, speed and ETA ([157a254](https://github.com/rafail3/ngig.cloud/commit/157a254eb4a0e065c9f0e2306b276dddf01b24a9))
+* **upload:** progress UI with multi-file queue, speed and ETA ([33a084d](https://github.com/rafail3/ngig.cloud/commit/33a084d13bae0dc5e025a08b85dcb7da1161b5ff))
+
 ## [1.13.2](https://github.com/rafail3/ngig.cloud/compare/v1.13.1...v1.13.2) (2026-06-17)
 
 
