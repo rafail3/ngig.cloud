@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { LoginForm } from "@/components/auth/LoginForm";
 
+export const metadata = { title: "Autentificare" };
+
 export default function LoginPage() {
   return (
     <AuthCard

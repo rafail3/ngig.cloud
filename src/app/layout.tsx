@@ -13,8 +13,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ngig.cloud",
-  description: "Cloud personal, pe invitație — stocare și acces securizat.",
+  metadataBase: new URL("https://ngig.cloud"),
+  title: {
+    default: "ngig Cloud",
+    template: "%s — ngig Cloud",
+  },
+  description:
+    "ngig Cloud — serviciul tău profesional de cloud, 100% rapid și sigur.",
+  applicationName: "ngig Cloud",
+  openGraph: {
+    type: "website",
+    siteName: "ngig Cloud",
+    title: "ngig Cloud",
+    description:
+      "ngig Cloud — serviciul tău profesional de cloud, 100% rapid și sigur.",
+    url: "https://ngig.cloud",
+    locale: "ro_RO",
+    images: [{ url: "/ngig-logo.png", alt: "ngig Cloud" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ngig Cloud",
+    description:
+      "ngig Cloud — serviciul tău profesional de cloud, 100% rapid și sigur.",
+    images: ["/ngig-logo.png"],
+  },
 };
 
 export default function RootLayout({

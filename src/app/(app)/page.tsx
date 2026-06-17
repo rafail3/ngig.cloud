@@ -3,6 +3,8 @@ import { formatBytes } from "@/lib/format";
 import { UploadButton } from "@/components/drive/UploadButton";
 import { FileList } from "@/components/drive/FileList";
 
+export const metadata = { title: "Fișierele mele" };
+
 export default async function Home() {
   const files = await listMyFiles();
 
