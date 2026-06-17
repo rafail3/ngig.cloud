@@ -9,7 +9,7 @@ import type { GlobalSettings } from "@/server/admin/settings";
 
 const initial: SettingsState = {};
 const fieldCls =
-  "w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:bg-white/10 focus:ring-1 focus:ring-indigo-400/40";
+  "w-full rounded-xl border border-zinc-50/10 bg-zinc-50/5 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:bg-zinc-50/10 focus:ring-1 focus:ring-indigo-400/40";
 const labelCls = "mb-1.5 block text-sm font-medium text-zinc-300";
 
 function Field({

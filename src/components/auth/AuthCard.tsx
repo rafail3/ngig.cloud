@@ -22,12 +22,12 @@ export function AuthCard({
       <div className="pointer-events-none absolute left-1/2 top-1/3 h-[24rem] w-[24rem] -translate-x-1/2 rounded-full bg-fuchsia-600/10 blur-[120px]" />
 
       {/* glass card */}
-      <div className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-md sm:p-7">
+      <div className="relative w-full max-w-sm rounded-3xl border border-zinc-50/10 bg-zinc-50/5 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-md sm:p-7">
         {/* subtle top highlight */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-50/25 to-transparent" />
 
         <div className="mb-5 flex flex-col items-center text-center sm:mb-6">
-          <div className="mb-4 flex h-28 w-28 items-center justify-center rounded-3xl border border-white/30 bg-white/20 shadow-lg shadow-black/20 ring-1 ring-inset ring-white/30 backdrop-blur-xl sm:h-32 sm:w-32">
+          <div className="mb-4 flex h-28 w-28 items-center justify-center rounded-3xl border border-zinc-50/30 bg-zinc-50/20 shadow-lg shadow-black/20 ring-1 ring-inset ring-zinc-50/30 backdrop-blur-xl sm:h-32 sm:w-32">
             <Image
               src="/ngig-mark.png"
               alt="ngig.cloud"
@@ -38,7 +38,7 @@ export function AuthCard({
             />
           </div>
           <h1
-            className={`${montserrat.className} text-2xl font-extrabold tracking-tight text-white sm:text-3xl`}
+            className={`${montserrat.className} text-2xl font-extrabold tracking-tight text-zinc-50 sm:text-3xl`}
           >
             ngig<span className="text-indigo-400">.cloud</span>
           </h1>
