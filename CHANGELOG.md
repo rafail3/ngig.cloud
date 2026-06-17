@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.2](https://github.com/rafail3/ngig.cloud/compare/v1.13.1...v1.13.2) (2026-06-17)
+
+
+### Performance Improvements
+
+* **upload:** parallel multipart upload, faster drive load ([8e21f80](https://github.com/rafail3/ngig.cloud/commit/8e21f800a53fef333f8034af24408d5ebe9f94b2))
+* **upload:** parallel multipart upload, faster drive load ([2095bc0](https://github.com/rafail3/ngig.cloud/commit/2095bc0250a723998a33d5801d3eeab427920681))
+
 ## [1.13.1](https://github.com/rafail3/ngig.cloud/compare/v1.13.0...v1.13.1) (2026-06-17)
 
 
