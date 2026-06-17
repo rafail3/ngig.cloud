@@ -144,9 +144,9 @@ export async function startUpload(
         });
         if (done && "revoked" in done) return { ok: false, revoked: true };
       } catch (e) {
-        if (!isAbort(e)) {
-          await abortUploadAction({ key: plan.key, uploadId: plan.uploadId });
-        }
+        // Abort the multipart on ANY failure or cancel, so no unfinished large
+        // file lingers in B2.
+        await abortUploadAction({ key: plan.key, uploadId: plan.uploadId });
         throw e;
       }
     }
@@ -195,9 +195,9 @@ export async function resumeUpload(
       });
       if (done && "revoked" in done) return { ok: false, revoked: true };
     } catch (e) {
-      if (!isAbort(e)) {
-        await abortUploadAction({ key: meta.key, uploadId: meta.uploadId });
-      }
+      // Abort the multipart on ANY failure or cancel, so no unfinished large
+      // file lingers in B2.
+      await abortUploadAction({ key: meta.key, uploadId: meta.uploadId });
       throw e;
     }
   } catch (e) {
