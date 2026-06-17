@@ -8,6 +8,8 @@ import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck, 
 import { signOut } from "@/app/actions";
 import { dashboardOrigin } from "@/lib/dashboard";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { UploadProvider } from "@/components/drive/UploadProvider";
+import { UploadPanel } from "@/components/drive/UploadPanel";
 
 type ShellUser = { username: string; role: string; email: string };
 
@@ -45,6 +47,7 @@ export function AppShell({
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin");
 
   return (
+    <UploadProvider>
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
       {/* ===== Top navbar (always visible, full width) ===== */}
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/95 px-3 backdrop-blur sm:px-5">
@@ -195,6 +198,10 @@ export function AppShell({
 
         <main className="min-w-0 flex-1">{children}</main>
       </div>
+
+      {/* Floating upload progress panel (visible across all app pages) */}
+      <UploadPanel />
     </div>
+    </UploadProvider>
   );
 }
