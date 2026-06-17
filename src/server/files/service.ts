@@ -10,6 +10,7 @@ import {
   presignDownload,
   deleteObject,
   statObject,
+  listKeys,
 } from "@/server/storage/b2";
 
 async function requireUserId(): Promise<string> {
@@ -74,8 +75,24 @@ async function enforceQuota(
 }
 
 export async function listMyFiles() {
-  await requireUserId();
-  return repo.listFiles();
+  const userId = await requireUserId();
+  const rows = await repo.listFiles();
+
+  // Reconcile against B2: a file removed straight from the bucket leaves a
+  // dangling DB row that would otherwise show as a phantom file. One ListObjects
+  // call per user prunes those rows so the drive reflects what's actually stored.
+  try {
+    const existing = await listKeys(`${userId}/`);
+    const missing = rows.filter((r) => !existing.has(r.storage_key));
+    if (missing.length > 0) {
+      await repo.deleteFileRowsByKeys(missing.map((r) => r.storage_key));
+      return rows.filter((r) => existing.has(r.storage_key));
+    }
+  } catch {
+    // B2 listing failed (transient) — fall back to the DB rows as-is.
+  }
+
+  return rows;
 }
 
 // Used by the drive page for the usage bar. quota null = unlimited.
@@ -158,6 +175,12 @@ export async function deleteFile(id: string) {
   await requireActiveUser();
   const file = await repo.getFileById(id);
   if (!file) throw new Error("Fișier inexistent.");
-  await deleteObject(file.storage_key);
+  try {
+    await deleteObject(file.storage_key);
+  } catch {
+    // Object may already be gone from B2 (e.g. deleted straight from the bucket)
+    // or a transient B2 error — either way, remove the DB row so the drive stays
+    // consistent and the user never sees a delete error.
+  }
   await repo.deleteFileRow(id);
 }

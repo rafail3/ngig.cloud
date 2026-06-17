@@ -5,6 +5,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   ListObjectVersionsCommand,
+  ListObjectsV2Command,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -75,6 +76,26 @@ export async function statObject(
   } catch {
     return null; // not found / not accessible
   }
+}
+
+// All object keys currently stored under a prefix (e.g. a user's `${userId}/`).
+// One paginated ListObjects call — used to reconcile the DB against the bucket
+// (a file deleted straight from B2 leaves a dangling DB row).
+export async function listKeys(prefix: string): Promise<Set<string>> {
+  const keys = new Set<string>();
+  let token: string | undefined;
+  do {
+    const res = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    for (const o of res.Contents ?? []) if (o.Key) keys.add(o.Key);
+    token = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
 }
 
 export async function deleteObject(key: string) {
