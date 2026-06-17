@@ -1,5 +1,6 @@
 import "server-only";
 import { randomUUID } from "crypto";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveUser } from "@/server/auth/active-user";
 import { getSettings } from "@/server/admin/settings";
@@ -11,7 +12,17 @@ import {
   deleteObject,
   statObject,
   listKeys,
+  createMultipart,
+  presignUploadPart,
+  completeMultipart,
+  abortMultipart,
 } from "@/server/storage/b2";
+
+// Files at or below this size upload in one PUT; larger ones upload as parts in
+// parallel. 16 MB parts are well above B2's 5 MB minimum and keep the part count
+// reasonable even for multi-GB files.
+const MULTIPART_THRESHOLD = 16 * 1024 * 1024;
+const PART_SIZE = 16 * 1024 * 1024;
 
 async function requireUserId(): Promise<string> {
   const supabase = await createClient();
@@ -61,16 +72,19 @@ async function enforceQuota(
   if (perFile != null && size > perFile) throw new Error("Fișier prea mare.");
 
   const quota = userMaxTotal ?? s.defaultUserQuota ?? null;
-  if (quota != null) {
-    const used = await repo.totalUsage(userId);
-    if (used + size > quota) throw new Error("Spațiu insuficient.");
-  }
+  const needPlatform = s.globalMaxTotal != null;
 
-  if (s.globalMaxTotal != null) {
-    const platform = await platformUsage();
-    if (platform + size > s.globalMaxTotal) {
-      throw new Error("Spațiu insuficient pe platformă.");
-    }
+  // Run the two independent usage reads in parallel (only when actually needed).
+  const [used, platform] = await Promise.all([
+    quota != null ? repo.totalUsage(userId) : Promise.resolve(0),
+    needPlatform ? platformUsage() : Promise.resolve(0),
+  ]);
+
+  if (quota != null && used + size > quota) {
+    throw new Error("Spațiu insuficient.");
+  }
+  if (needPlatform && platform + size > s.globalMaxTotal!) {
+    throw new Error("Spațiu insuficient pe platformă.");
   }
 }
 
@@ -78,38 +92,52 @@ export async function listMyFiles() {
   const userId = await requireUserId();
   const rows = await repo.listFiles();
 
-  // Reconcile against B2: a file removed straight from the bucket leaves a
-  // dangling DB row that would otherwise show as a phantom file. One ListObjects
-  // call per user prunes those rows so the drive reflects what's actually stored.
-  try {
-    const existing = await listKeys(`${userId}/`);
-    const missing = rows.filter((r) => !existing.has(r.storage_key));
-    if (missing.length > 0) {
-      await repo.deleteFileRowsByKeys(missing.map((r) => r.storage_key));
-      return rows.filter((r) => existing.has(r.storage_key));
+  // Reconcile against B2 AFTER the response is sent, so the drive renders
+  // immediately instead of waiting on a ListObjects round-trip. A file removed
+  // straight from the bucket leaves a dangling DB row; pruning it post-response
+  // means it disappears on the next load (eventually consistent, but fast).
+  after(async () => {
+    try {
+      const existing = await listKeys(`${userId}/`);
+      const missing = rows.filter((r) => !existing.has(r.storage_key));
+      if (missing.length > 0) {
+        await repo.deleteFileRowsByKeys(missing.map((r) => r.storage_key));
+      }
+    } catch {
+      // B2 listing failed (transient) — skip this round of reconciliation.
     }
-  } catch {
-    // B2 listing failed (transient) — fall back to the DB rows as-is.
-  }
+  });
 
   return rows;
 }
 
-// Used by the drive page for the usage bar. quota null = unlimited.
-export async function myUsage(): Promise<{ used: number; quota: number | null }> {
+// Quota for the drive's usage bar (null = unlimited). `used` is summed from the
+// already-fetched file rows on the page, so this avoids a second DB scan.
+export async function myQuota(): Promise<number | null> {
   const userId = await requireUserId();
-  const used = await repo.totalUsage(userId);
   const { maxTotal } = await effectiveLimits(userId);
   const { defaultUserQuota } = await getSettings();
-  return { used, quota: maxTotal ?? defaultUserQuota ?? null };
+  return maxTotal ?? defaultUserQuota ?? null;
 }
 
-// Step 1 of upload: validate + return a presigned PUT URL.
+// An upload plan: a small file gets one presigned PUT; a large file gets a
+// multipart upload with one presigned URL per part (uploaded in parallel).
+export type UploadPlan =
+  | { mode: "single"; key: string; url: string }
+  | {
+      mode: "multipart";
+      key: string;
+      uploadId: string;
+      partSize: number;
+      partUrls: string[];
+    };
+
+// Step 1 of upload: validate quota, then hand the client a plan to upload with.
 export async function createUpload(input: {
   name: string;
   size: number;
   contentType: string;
-}) {
+}): Promise<UploadPlan> {
   // requireActiveUser re-checks block / forced sign-out and returns fresh limits.
   const { id: userId, maxFile, maxTotal } = await requireActiveUser();
   if (input.size <= 0) throw new Error("Fișier gol.");
@@ -117,8 +145,42 @@ export async function createUpload(input: {
   await enforceQuota(userId, input.size, maxFile, maxTotal);
 
   const key = `${userId}/${randomUUID()}`;
-  const url = await presignUpload(key, input.contentType);
-  return { url, key };
+
+  if (input.size <= MULTIPART_THRESHOLD) {
+    const url = await presignUpload(key, input.contentType);
+    return { mode: "single", key, url };
+  }
+
+  // Large file: open a multipart upload and presign every part up front so the
+  // browser can fire them in parallel without further round-trips.
+  const uploadId = await createMultipart(key, input.contentType);
+  const partCount = Math.ceil(input.size / PART_SIZE);
+  const partUrls = await Promise.all(
+    Array.from({ length: partCount }, (_, i) =>
+      presignUploadPart(key, uploadId, i + 1),
+    ),
+  );
+  return { mode: "multipart", key, uploadId, partSize: PART_SIZE, partUrls };
+}
+
+// Finish a multipart upload (after all parts are PUT). Completed server-side.
+export async function completeUpload(input: {
+  key: string;
+  uploadId: string;
+}): Promise<void> {
+  const { id: userId } = await requireActiveUser();
+  if (!input.key.startsWith(`${userId}/`)) throw new Error("Cheie invalidă.");
+  await completeMultipart(input.key, input.uploadId);
+}
+
+// Cancel a multipart upload that failed mid-way, so no orphan parts linger.
+export async function abortUpload(input: {
+  key: string;
+  uploadId: string;
+}): Promise<void> {
+  const { id: userId } = await requireActiveUser();
+  if (!input.key.startsWith(`${userId}/`)) throw new Error("Cheie invalidă.");
+  await abortMultipart(input.key, input.uploadId);
 }
 
 // Step 2 of upload: after the browser PUTs to B2, persist metadata.

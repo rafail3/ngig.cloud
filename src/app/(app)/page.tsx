@@ -1,4 +1,4 @@
-import { listMyFiles, myUsage } from "@/server/files/service";
+import { listMyFiles, myQuota } from "@/server/files/service";
 import { formatBytes } from "@/lib/format";
 import { UploadButton } from "@/components/drive/UploadButton";
 import { FileList } from "@/components/drive/FileList";
@@ -6,10 +6,11 @@ import { FileList } from "@/components/drive/FileList";
 export const metadata = { title: "Fișierele mele" };
 
 export default async function Home() {
-  const files = await listMyFiles();
+  // Fetch the file list and the quota in parallel.
+  const [files, quota] = await Promise.all([listMyFiles(), myQuota()]);
 
-  // Effective quota (null = unlimited, until an admin sets a per-user cap).
-  const { used, quota } = await myUsage();
+  // `used` is summed from the rows we already have (no extra DB scan).
+  const used = files.reduce((sum, f) => sum + Number(f.size), 0);
   const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
 
   return (
