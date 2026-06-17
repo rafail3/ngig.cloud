@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.15.1](https://github.com/rafail3/ngig.cloud/compare/v1.15.0...v1.15.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **storage:** remove B2 orphans on delete and via cleanup sweep ([bb6bb11](https://github.com/rafail3/ngig.cloud/commit/bb6bb11bcfb03be2b6cd7c22473e4795ea31090b))
+* **storage:** remove B2 orphans on delete and via cleanup sweep ([d3208ec](https://github.com/rafail3/ngig.cloud/commit/d3208ec55168219d57f1e9e5d09bab6623746aeb))
+
 ## [1.15.0](https://github.com/rafail3/ngig.cloud/compare/v1.14.0...v1.15.0) (2026-06-17)
 
 
