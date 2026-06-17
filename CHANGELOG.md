@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.0](https://github.com/rafail3/ngig.cloud/compare/v1.11.0...v1.12.0) (2026-06-17)
+
+
+### Features
+
+* **theme:** dark/light mode toggle with system option and themed logo ([13619ea](https://github.com/rafail3/ngig.cloud/commit/13619ea2a36a5fde85e2f5dd3e2e96bd03006278))
+* **theme:** dark/light mode toggle with system option and themed logo ([3b5fb04](https://github.com/rafail3/ngig.cloud/commit/3b5fb049a4273ca5689c278331e81fbc9eb8ba2d))
+
 ## [1.11.0](https://github.com/rafail3/ngig.cloud/compare/v1.10.0...v1.11.0) (2026-06-17)
 
 
