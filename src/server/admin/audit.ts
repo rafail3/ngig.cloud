@@ -3,7 +3,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 // Records a login event (IP + approximate location from Vercel geo headers) and
 // bumps last_seen_at. Best-effort: never block the login on a logging failure.
-export async function recordLogin(userId: string, h: Headers): Promise<void> {
+export async function recordLogin(
+  userId: string,
+  h: Headers,
+  sessionId: string | null = null,
+): Promise<void> {
   try {
     const admin = createAdminClient();
     const ip =
@@ -20,6 +24,7 @@ export async function recordLogin(userId: string, h: Headers): Promise<void> {
       country,
       region,
       user_agent: userAgent,
+      session_id: sessionId,
     });
     await admin
       .from("profiles")

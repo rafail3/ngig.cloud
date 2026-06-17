@@ -1,7 +1,7 @@
 import { Mail, ShieldCheck, CalendarClock, LogIn } from "lucide-react";
-import { getMyProfile } from "@/server/account/profile";
+import { getMyProfile, listMySessions } from "@/server/account/profile";
 import { AccountForms } from "@/components/account/AccountForms";
-import { ProfileSessions } from "@/components/account/ProfileSessions";
+import { ActiveSessions } from "@/components/account/ActiveSessions";
 import { formatDateTime as fmt } from "@/lib/format-date";
 
 export const metadata = { title: "Profilul meu" };
@@ -20,7 +20,7 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
 }
 
 export default async function ProfilePage() {
-  const me = await getMyProfile();
+  const [me, sessions] = await Promise.all([getMyProfile(), listMySessions()]);
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
@@ -40,7 +40,7 @@ export default async function ProfilePage() {
 
       <AccountForms currentUsername={me.username} />
 
-      <ProfileSessions devices={me.devices} />
+      <ActiveSessions sessions={sessions} />
     </div>
   );
 }

@@ -75,7 +75,9 @@ export async function dashboardLogin(
     return { error: blockMessage(blk.blocked_until), ...keep };
   }
 
-  await recordLogin(profile.id, await headers());
+  const { data: claims } = await supabase.auth.getClaims();
+  const sessionId = (claims?.claims?.session_id as string | undefined) ?? null;
+  await recordLogin(profile.id, await headers(), sessionId);
   // Clean path on the dashboard host; the proxy rewrites "/" → "/dashboard".
   redirect("/");
 }
