@@ -33,7 +33,9 @@ function UploadingRow({ job }: { job: UploadJob }) {
         <span className="shrink-0 text-sm text-zinc-500">
           {job.status === "queued"
             ? "În așteptare"
-            : `${speedLabel(job.speed)} · ${etaLabel(job.etaSec)}`}
+            : job.status === "done"
+              ? "Finalizare…"
+              : `${speedLabel(job.speed)} · ${etaLabel(job.etaSec)}`}
         </span>
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
@@ -63,9 +65,15 @@ export function FileList({ files }: { files: FileItem[] }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<FileItem | null>(null);
 
-  // Files still in flight — rendered as live rows above the stored files.
+  // Rows shown above the stored files: in-flight uploads, plus just-finished
+  // ones whose real row hasn't arrived yet (bridges the brief gap until
+  // router.refresh lands, so the ghost doesn't flicker out for a moment).
   const uploading = jobs.filter(
-    (j) => j.status === "uploading" || j.status === "queued",
+    (j) =>
+      j.status === "uploading" ||
+      j.status === "queued" ||
+      (j.status === "done" &&
+        !files.some((f) => f.name === j.name && f.size === j.size)),
   );
 
   async function download(id: string) {

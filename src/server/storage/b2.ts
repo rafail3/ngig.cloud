@@ -105,6 +105,20 @@ export async function completeMultipart(
   );
 }
 
+// Which parts of a multipart upload are already on B2 (for resuming after a
+// page refresh). Returns the 1-based part numbers and their sizes.
+export async function listUploadedParts(
+  key: string,
+  uploadId: string,
+): Promise<{ partNumber: number; size: number }[]> {
+  const listed = await client.send(
+    new ListPartsCommand({ Bucket: bucket, Key: key, UploadId: uploadId }),
+  );
+  return (listed.Parts ?? [])
+    .filter((p) => p.PartNumber != null)
+    .map((p) => ({ partNumber: p.PartNumber as number, size: p.Size ?? 0 }));
+}
+
 // Cancel an in-flight multipart upload (on client error) so no orphan parts are
 // left being billed.
 export async function abortMultipart(

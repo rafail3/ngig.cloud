@@ -8,7 +8,8 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { uploadFile } from "@/lib/upload/uploader";
+import { startUpload, resumeUpload } from "@/lib/upload/uploader";
+import { idbPut, idbUpdate, idbDelete, idbGetAll } from "@/lib/upload/store";
 
 export type UploadStatus =
   | "queued"
@@ -33,6 +34,8 @@ type InternalJob = UploadJob & {
   controller: AbortController;
   lastTime: number;
   lastBytes: number;
+  // Present when the job is resuming a multipart upload after a refresh.
+  resumeMeta?: { key: string; uploadId: string; size: number };
 };
 
 type UploadContextValue = {
@@ -71,6 +74,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const queueRef = useRef<string[]>([]);
   const runningRef = useRef(0);
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const hydratedRef = useRef(false);
   const [jobs, setJobs] = useState<UploadJob[]>([]);
 
   // Push the latest job state to React. (React Compiler handles memoization, so
@@ -95,6 +99,43 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       if (active) setJobs(toPublic(jobsRef.current));
     }, 250);
     return () => clearInterval(id);
+  }, []);
+
+  // On mount, resume any uploads that a refresh/close interrupted.
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+    void idbGetAll().then((recs) => {
+      if (recs.length === 0) return;
+      for (const rec of recs) {
+        const file =
+          rec.file instanceof File
+            ? rec.file
+            : new File([rec.file], rec.name, { type: rec.type });
+        const resumeMeta =
+          rec.mode === "multipart" && rec.key && rec.uploadId
+            ? { key: rec.key, uploadId: rec.uploadId, size: rec.size }
+            : undefined;
+        jobsRef.current.set(rec.id, {
+          id: rec.id,
+          name: rec.name,
+          size: rec.size,
+          sent: 0,
+          status: "queued",
+          speed: 0,
+          etaSec: null,
+          file,
+          controller: new AbortController(),
+          lastTime: 0,
+          lastBytes: 0,
+          resumeMeta,
+        });
+        queueRef.current.push(rec.id);
+      }
+      snapshot();
+      pump();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Remove a finished card automatically after a short grace period.
@@ -130,6 +171,21 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     job.sent = bytes;
   }
 
+  // Persist the server's plan so a refresh mid-upload can resume it.
+  function persistPlan(id: string, meta: {
+    mode: "single" | "multipart";
+    key: string;
+    uploadId?: string;
+    partSize?: number;
+  }) {
+    void idbUpdate(id, {
+      mode: meta.mode,
+      key: meta.key,
+      uploadId: meta.uploadId,
+      partSize: meta.partSize,
+    });
+  }
+
   async function start(id: string) {
     const job = jobsRef.current.get(id);
     if (!job) return;
@@ -139,31 +195,44 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     job.lastBytes = 0;
     snapshot();
 
+    const report = (bytes: number) => onProgress(job, bytes);
+
     try {
-      const res = await uploadFile(
-        job.file,
-        (bytes) => onProgress(job, bytes),
-        job.controller.signal,
-      );
+      let res;
+      if (job.resumeMeta) {
+        try {
+          res = await resumeUpload(job.file, job.resumeMeta, report, job.controller.signal);
+        } catch {
+          // The interrupted multipart upload is gone — start over from scratch.
+          job.resumeMeta = undefined;
+          res = await startUpload(job.file, report, job.controller.signal, (m) =>
+            persistPlan(id, m),
+          );
+        }
+      } else {
+        res = await startUpload(job.file, report, job.controller.signal, (m) =>
+          persistPlan(id, m),
+        );
+      }
+
       if (res.revoked) {
         window.location.assign("/login");
         return;
       }
       if (res.canceled) {
         job.status = "canceled";
-        scheduleAutoDismiss(id);
       } else if (res.ok) {
         job.sent = job.size;
         job.etaSec = 0;
         job.status = "done";
-        scheduleAutoDismiss(id);
         router.refresh(); // reflect the new file in the drive list
       }
     } catch (e) {
       job.status = "error";
       job.error = e instanceof Error ? e.message : "Eroare la upload.";
-      scheduleAutoDismiss(id);
     } finally {
+      void idbDelete(id); // upload is no longer in flight
+      scheduleAutoDismiss(id);
       runningRef.current -= 1;
       snapshot();
       pump();
@@ -195,6 +264,14 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         lastBytes: 0,
       });
       queueRef.current.push(id);
+      // Persist so the upload can resume after a refresh.
+      void idbPut({
+        id,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        file,
+      });
     }
     snapshot();
     pump();

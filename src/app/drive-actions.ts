@@ -43,6 +43,21 @@ export async function completeUploadAction(input: {
   }
 }
 
+export async function resumeUploadAction(input: {
+  key: string;
+  uploadId: string;
+  size: number;
+}): Promise<
+  { partSize: number; partUrls: string[]; doneParts: number[] } | Revoked
+> {
+  try {
+    return await files.resumeUpload(input);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
 export async function abortUploadAction(input: {
   key: string;
   uploadId: string;
