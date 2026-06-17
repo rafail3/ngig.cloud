@@ -12,6 +12,7 @@ import {
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
   ListPartsCommand,
+  ListMultipartUploadsCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -152,9 +153,6 @@ export function presignView(key: string, expiresIn = 600) {
   );
 }
 
-// B2 keeps every version, so a plain S3 delete only adds a "hide" marker and
-// the bytes linger (still billed). Delete every version of the key (the upload
-// plus any hide markers) so removal is immediate and complete.
 // Read an object's true size + content-type straight from B2. Used to verify
 // an upload after the fact instead of trusting client-reported values.
 // Returns null if the object doesn't exist.
@@ -194,26 +192,109 @@ export async function listKeys(prefix: string): Promise<Set<string>> {
   return keys;
 }
 
+// Completely remove a key: every version AND every hide/delete marker, by
+// versionId. We deliberately do NOT fall back to a plain DeleteObject — on a
+// versioned bucket that just adds another hide marker (a 0-byte orphan), which
+// is exactly what we're cleaning up. If nothing is listed, there's nothing to do.
 export async function deleteObject(key: string) {
-  const listed = await client.send(
-    new ListObjectVersionsCommand({ Bucket: bucket, Prefix: key }),
-  );
-  const versions = [
-    ...(listed.Versions ?? []),
-    ...(listed.DeleteMarkers ?? []),
-  ].filter((v) => v.Key === key && v.VersionId);
+  let keyMarker: string | undefined;
+  let versionIdMarker: string | undefined;
+  do {
+    const listed = await client.send(
+      new ListObjectVersionsCommand({
+        Bucket: bucket,
+        Prefix: key,
+        KeyMarker: keyMarker,
+        VersionIdMarker: versionIdMarker,
+      }),
+    );
+    const versions = [
+      ...(listed.Versions ?? []),
+      ...(listed.DeleteMarkers ?? []),
+    ].filter((v) => v.Key === key && v.VersionId);
 
-  if (versions.length === 0) {
-    // Nothing versioned (e.g. versioning off): fall back to a direct delete.
-    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-    return;
-  }
-
-  await Promise.all(
-    versions.map((v) =>
-      client.send(
-        new DeleteObjectCommand({ Bucket: bucket, Key: key, VersionId: v.VersionId }),
+    await Promise.all(
+      versions.map((v) =>
+        client.send(
+          new DeleteObjectCommand({ Bucket: bucket, Key: key, VersionId: v.VersionId }),
+        ),
       ),
-    ),
-  );
+    );
+
+    keyMarker = listed.IsTruncated ? listed.NextKeyMarker : undefined;
+    versionIdMarker = listed.IsTruncated ? listed.NextVersionIdMarker : undefined;
+  } while (keyMarker);
+}
+
+// Sweep a prefix clean of leftovers, regardless of how they appeared (deleting
+// from the B2 console, an interrupted upload, etc.):
+//  - every hide/delete marker (0-byte orphans that "hide" an object)
+//  - incomplete multipart uploads older than `abortOlderThanMs` (abandoned, but
+//    still billed). The age cutoff avoids killing an upload that's mid-flight or
+//    being resumed.
+export async function cleanupPrefix(
+  prefix: string,
+  abortOlderThanMs = 24 * 60 * 60 * 1000,
+): Promise<void> {
+  // 1) Delete markers.
+  let keyMarker: string | undefined;
+  let versionIdMarker: string | undefined;
+  do {
+    const listed = await client.send(
+      new ListObjectVersionsCommand({
+        Bucket: bucket,
+        Prefix: prefix,
+        KeyMarker: keyMarker,
+        VersionIdMarker: versionIdMarker,
+      }),
+    );
+    const markers = (listed.DeleteMarkers ?? []).filter((m) => m.Key && m.VersionId);
+    await Promise.all(
+      markers.map((m) =>
+        client.send(
+          new DeleteObjectCommand({
+            Bucket: bucket,
+            Key: m.Key!,
+            VersionId: m.VersionId,
+          }),
+        ),
+      ),
+    );
+    keyMarker = listed.IsTruncated ? listed.NextKeyMarker : undefined;
+    versionIdMarker = listed.IsTruncated ? listed.NextVersionIdMarker : undefined;
+  } while (keyMarker);
+
+  // 2) Abandoned multipart uploads.
+  const cutoff = Date.now() - abortOlderThanMs;
+  let uploadIdMarker: string | undefined;
+  let mpKeyMarker: string | undefined;
+  do {
+    const listed = await client.send(
+      new ListMultipartUploadsCommand({
+        Bucket: bucket,
+        Prefix: prefix,
+        KeyMarker: mpKeyMarker,
+        UploadIdMarker: uploadIdMarker,
+      }),
+    );
+    const stale = (listed.Uploads ?? []).filter(
+      (u) =>
+        u.Key &&
+        u.UploadId &&
+        (!u.Initiated || u.Initiated.getTime() < cutoff),
+    );
+    await Promise.all(
+      stale.map((u) =>
+        client.send(
+          new AbortMultipartUploadCommand({
+            Bucket: bucket,
+            Key: u.Key!,
+            UploadId: u.UploadId!,
+          }),
+        ),
+      ),
+    );
+    mpKeyMarker = listed.IsTruncated ? listed.NextKeyMarker : undefined;
+    uploadIdMarker = listed.IsTruncated ? listed.NextUploadIdMarker : undefined;
+  } while (mpKeyMarker);
 }

@@ -12,6 +12,7 @@ import {
   deleteObject,
   statObject,
   listKeys,
+  cleanupPrefix,
   createMultipart,
   presignUploadPart,
   completeMultipart,
@@ -91,25 +92,43 @@ async function enforceQuota(
 
 export async function listMyFiles() {
   const userId = await requireUserId();
-  const rows = await repo.listFiles();
+  const prefix = `${userId}/`;
 
-  // Reconcile against B2 AFTER the response is sent, so the drive renders
-  // immediately instead of waiting on a ListObjects round-trip. A file removed
-  // straight from the bucket leaves a dangling DB row; pruning it post-response
-  // means it disappears on the next load (eventually consistent, but fast).
+  // DB rows and the bucket's keys in parallel, so the B2 round-trip doesn't add
+  // latency. `existing` is null if B2 listing failed (then we trust the DB).
+  const [rows, existing] = await Promise.all([
+    repo.listFiles(),
+    listKeys(prefix).catch(() => null),
+  ]);
+
+  // Only show files that still exist in B2 (one deleted straight from the bucket
+  // disappears on this same load), and prune the dangling rows afterwards.
+  const visible = existing
+    ? rows.filter((r) => existing.has(r.storage_key))
+    : rows;
+  const missing = existing
+    ? rows.filter((r) => !existing.has(r.storage_key))
+    : [];
+
+  // Heavier housekeeping runs AFTER the response so it never blocks the render.
   after(async () => {
     try {
-      const existing = await listKeys(`${userId}/`);
-      const missing = rows.filter((r) => !existing.has(r.storage_key));
       if (missing.length > 0) {
         await repo.deleteFileRowsByKeys(missing.map((r) => r.storage_key));
       }
     } catch {
-      // B2 listing failed (transient) — skip this round of reconciliation.
+      // best-effort prune
+    }
+    try {
+      // Sweep B2 of orphans (hide markers from console deletes, abandoned
+      // multipart uploads) so nothing lingers no matter how it got there.
+      await cleanupPrefix(prefix);
+    } catch {
+      // best-effort cleanup
     }
   });
 
-  return rows;
+  return visible;
 }
 
 // Quota for the drive's usage bar (null = unlimited). `used` is summed from the
