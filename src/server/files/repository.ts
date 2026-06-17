@@ -49,6 +49,15 @@ export async function deleteFileRow(id: string) {
   if (error) throw error;
 }
 
+// Prune rows by storage key (RLS keeps it to the caller's own files). Used to
+// drop DB rows whose backing object no longer exists in B2.
+export async function deleteFileRowsByKeys(keys: string[]) {
+  if (keys.length === 0) return;
+  const supabase = await createClient();
+  const { error } = await supabase.from("files").delete().in("storage_key", keys);
+  if (error) throw error;
+}
+
 export async function totalUsage(ownerId: string): Promise<number> {
   const supabase = await createClient();
   const { data } = await supabase.from("files").select("size").eq("owner_id", ownerId);
