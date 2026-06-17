@@ -16,6 +16,7 @@ import {
   presignUploadPart,
   completeMultipart,
   abortMultipart,
+  listUploadedParts,
 } from "@/server/storage/b2";
 
 // Files at or below this size upload in one PUT; larger ones upload as parts in
@@ -161,6 +162,38 @@ export async function createUpload(input: {
     ),
   );
   return { mode: "multipart", key, uploadId, partSize: PART_SIZE, partUrls };
+}
+
+// Resume a multipart upload after a page refresh: re-presign every part (the
+// original URLs may have expired) and report which parts B2 already has so the
+// client only re-uploads the missing ones.
+export async function resumeUpload(input: {
+  key: string;
+  uploadId: string;
+  size: number;
+}): Promise<{
+  partSize: number;
+  partUrls: string[];
+  doneParts: number[];
+}> {
+  const { id: userId } = await requireActiveUser();
+  if (!input.key.startsWith(`${userId}/`)) throw new Error("Cheie invalidă.");
+
+  const partCount = Math.ceil(input.size / PART_SIZE);
+  const [partUrls, uploaded] = await Promise.all([
+    Promise.all(
+      Array.from({ length: partCount }, (_, i) =>
+        presignUploadPart(input.key, input.uploadId, i + 1),
+      ),
+    ),
+    listUploadedParts(input.key, input.uploadId),
+  ]);
+
+  return {
+    partSize: PART_SIZE,
+    partUrls,
+    doneParts: uploaded.map((p) => p.partNumber),
+  };
 }
 
 // Finish a multipart upload (after all parts are PUT). Completed server-side.
