@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.0](https://github.com/rafail3/ngig.cloud/compare/v1.10.0...v1.11.0) (2026-06-17)
+
+
+### Features
+
+* **seo:** site title, description and Open Graph metadata ([944d29e](https://github.com/rafail3/ngig.cloud/commit/944d29eafaa1817a717d64531d06fee0c20c721d))
+* **seo:** site title, description and Open Graph metadata ([3e022fc](https://github.com/rafail3/ngig.cloud/commit/3e022fc2e0f7a30a3e1e8276b6382f58405e5624))
+
 ## [1.10.0](https://github.com/rafail3/ngig.cloud/compare/v1.9.0...v1.10.0) (2026-06-16)
 
 
