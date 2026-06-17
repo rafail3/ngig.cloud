@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { dashboardOrigin } from "@/lib/dashboard";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 type ShellUser = { username: string; role: string; email: string };
 
@@ -57,18 +58,29 @@ export function AppShell({
           >
             <Menu className="h-5 w-5" />
           </button>
+          {/* White-wordmark logo for dark mode, black-wordmark for light. CSS
+              swap (not JS) so it never flashes the wrong one. */}
           <Image
             src="/ngig-logo.png"
             alt="ngig.cloud"
             width={352}
             height={96}
             priority
-            className="h-9 w-auto sm:h-10"
+            className="hidden h-9 w-auto dark:block sm:h-10"
+          />
+          <Image
+            src="/ngig-logo-light.png"
+            alt="ngig.cloud"
+            width={352}
+            height={96}
+            priority
+            className="block h-9 w-auto dark:hidden sm:h-10"
           />
         </div>
 
-        {/* right: user menu + logout */}
+        {/* right: theme toggle + user menu + logout */}
         <div className="flex items-center gap-3 sm:gap-4">
+          <ThemeToggle />
           <div className="relative">
             <button
               type="button"

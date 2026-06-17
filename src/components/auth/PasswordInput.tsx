@@ -29,7 +29,7 @@ export function PasswordInput({
         autoComplete={autoComplete}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pr-12 text-base text-white outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:bg-white/10 focus:ring-1 focus:ring-indigo-400/40 sm:py-3"
+        className="w-full rounded-xl border border-zinc-50/10 bg-zinc-50/5 px-4 py-2.5 pr-12 text-base text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:bg-zinc-50/10 focus:ring-1 focus:ring-indigo-400/40 sm:py-3"
       />
       <button
         type="button"

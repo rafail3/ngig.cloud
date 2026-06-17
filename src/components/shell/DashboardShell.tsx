@@ -16,6 +16,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { dashboardSignOut } from "@/app/dashboard/actions";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 type ShellUser = { username: string; email: string };
 
@@ -60,21 +61,31 @@ export function DashboardShell({
           >
             <Menu className="h-5 w-5" />
           </button>
+          {/* White-wordmark logo for dark mode, black-wordmark for light. */}
           <Image
             src="/ngig-logo.png"
             alt="ngig.cloud"
             width={352}
             height={96}
             priority
-            className="h-9 w-auto sm:h-10"
+            className="hidden h-9 w-auto dark:block sm:h-10"
+          />
+          <Image
+            src="/ngig-logo-light.png"
+            alt="ngig.cloud"
+            width={352}
+            height={96}
+            priority
+            className="block h-9 w-auto dark:hidden sm:h-10"
           />
           <span className="ml-1 hidden rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300 sm:inline">
             admin
           </span>
         </div>
 
-        {/* right: user menu + logout */}
+        {/* right: theme toggle + user menu + logout */}
         <div className="flex items-center gap-3 sm:gap-4">
+          <ThemeToggle />
           <div className="relative">
             <button
               type="button"

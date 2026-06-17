@@ -42,7 +42,7 @@ function CodeCell({ code }: { code: string }) {
         setTimeout(() => setCopied(false), 1500);
       }}
       title="Copiază"
-      className="group flex w-full items-center gap-2 text-left font-mono text-xs text-zinc-100 transition hover:text-white"
+      className="group flex w-full items-center gap-2 text-left font-mono text-xs text-zinc-100 transition hover:text-zinc-50"
     >
       <span className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap">{code}</span>
       {copied ? (
@@ -142,7 +142,7 @@ function ConfirmDeleteModal({
             <input type="hidden" name="id" value={id} />
             <button
               type="submit"
-              className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-red-500"
+              className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
             >
               Șterge
             </button>
