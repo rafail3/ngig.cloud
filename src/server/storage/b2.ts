@@ -7,6 +7,11 @@ import {
   ListObjectVersionsCommand,
   ListObjectsV2Command,
   HeadObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+  ListPartsCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -31,6 +36,83 @@ export function presignUpload(key: string, contentType: string, expiresIn = 600)
     client,
     new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType }),
     { expiresIn },
+  );
+}
+
+// ---- Multipart upload -----------------------------------------------------
+// Large files upload as many parts in PARALLEL (much faster + resilient). The
+// browser PUTs each part to a presigned URL; we never proxy the bytes. We
+// complete server-side via ListParts so the client never needs to read the
+// cross-origin ETag header (which would require extra B2 CORS config).
+
+// Start a multipart upload; returns the uploadId that ties the parts together.
+export async function createMultipart(
+  key: string,
+  contentType: string,
+): Promise<string> {
+  const res = await client.send(
+    new CreateMultipartUploadCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: contentType,
+    }),
+  );
+  if (!res.UploadId) throw new Error("Nu am putut iniția upload-ul.");
+  return res.UploadId;
+}
+
+// Presigned PUT URL for one part (parts are numbered from 1).
+export function presignUploadPart(
+  key: string,
+  uploadId: string,
+  partNumber: number,
+  expiresIn = 3600,
+) {
+  return getSignedUrl(
+    client,
+    new UploadPartCommand({
+      Bucket: bucket,
+      Key: key,
+      UploadId: uploadId,
+      PartNumber: partNumber,
+    }),
+    { expiresIn },
+  );
+}
+
+// Finish the upload. We read the uploaded parts (and their ETags) from B2 with
+// ListParts, so the client doesn't have to report them.
+export async function completeMultipart(
+  key: string,
+  uploadId: string,
+): Promise<void> {
+  const listed = await client.send(
+    new ListPartsCommand({ Bucket: bucket, Key: key, UploadId: uploadId }),
+  );
+  const parts = (listed.Parts ?? [])
+    .filter((p) => p.PartNumber != null && p.ETag)
+    .sort((a, b) => (a.PartNumber ?? 0) - (b.PartNumber ?? 0))
+    .map((p) => ({ PartNumber: p.PartNumber, ETag: p.ETag }));
+  if (parts.length === 0) throw new Error("Niciun fragment încărcat.");
+
+  await client.send(
+    new CompleteMultipartUploadCommand({
+      Bucket: bucket,
+      Key: key,
+      UploadId: uploadId,
+      MultipartUpload: { Parts: parts },
+    }),
+  );
+}
+
+// Cancel an in-flight multipart upload (on client error) so no orphan parts are
+// left being billed.
+export async function abortMultipart(
+  key: string,
+  uploadId: string,
+): Promise<void> {
+  await client.send(
+    new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }),
   );
 }
 

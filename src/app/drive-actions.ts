@@ -1,6 +1,7 @@
 "use server";
 
 import * as files from "@/server/files/service";
+import type { UploadPlan } from "@/server/files/service";
 import { SESSION_REVOKED } from "@/server/auth/active-user";
 
 // Thin server-action wrappers over the files service (the actual logic lives
@@ -21,12 +22,36 @@ export async function createUploadAction(input: {
   name: string;
   size: number;
   contentType: string;
-}): Promise<{ url: string; key: string } | Revoked> {
+}): Promise<UploadPlan | Revoked> {
   try {
     return await files.createUpload(input);
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     throw e;
+  }
+}
+
+export async function completeUploadAction(input: {
+  key: string;
+  uploadId: string;
+}): Promise<Revoked | void> {
+  try {
+    await files.completeUpload(input);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function abortUploadAction(input: {
+  key: string;
+  uploadId: string;
+}): Promise<void> {
+  // Best-effort cleanup; ignore errors (the upload already failed).
+  try {
+    await files.abortUpload(input);
+  } catch {
+    // swallow
   }
 }
 
