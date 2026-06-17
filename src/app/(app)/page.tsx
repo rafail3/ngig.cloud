@@ -1,29 +1,49 @@
-import { listMyFiles, myQuota } from "@/server/files/service";
+import { listFolder, myUsage } from "@/server/files/service";
 import { formatBytes } from "@/lib/format";
-import { UploadButton } from "@/components/drive/UploadButton";
+import { UploadArea } from "@/components/drive/UploadArea";
+import { Breadcrumb } from "@/components/drive/Breadcrumb";
+import { FolderList } from "@/components/drive/FolderList";
 import { FileList } from "@/components/drive/FileList";
+import { DriveEmpty } from "@/components/drive/DriveEmpty";
+import { FolderInfoButton } from "@/components/drive/FolderInfoButton";
 
 export const metadata = { title: "Fișierele mele" };
 
-export default async function Home() {
-  // Fetch the file list and the quota in parallel.
-  const [files, quota] = await Promise.all([listMyFiles(), myQuota()]);
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ folder?: string }>;
+}) {
+  const { folder } = await searchParams;
+  const folderId = folder ?? null;
 
-  // `used` is summed from the rows we already have (no extra DB scan).
-  const used = files.reduce((sum, f) => sum + Number(f.size), 0);
+  const [{ folders, files, breadcrumb }, { used, quota }] = await Promise.all([
+    listFolder(folderId),
+    myUsage(),
+  ]);
+
   const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
+  const title =
+    breadcrumb.length > 0
+      ? breadcrumb[breadcrumb.length - 1].name
+      : "Fișierele mele";
+  const empty = folders.length === 0 && files.length === 0;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Fișierele mele
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
+          {title}
         </h1>
-        <UploadButton />
+        {folderId && <FolderInfoButton folderId={folderId} name={title} />}
+      </div>
+
+      <div className="mb-4">
+        <Breadcrumb crumbs={breadcrumb} />
       </div>
 
       {/* storage usage */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="mb-1.5 flex justify-between text-sm text-zinc-400">
           <span>Spațiu folosit</span>
           <span>
@@ -40,15 +60,24 @@ export default async function Home() {
         </div>
       </div>
 
-      <FileList
-        files={files.map((f) => ({
-          id: f.id,
-          name: f.name,
-          size: f.size,
-          mimeType: f.mime_type,
-          createdAt: f.created_at,
-        }))}
-      />
+      <div className="mb-6">
+        <UploadArea folderId={folderId} />
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <FolderList folders={folders.map((f) => ({ id: f.id, name: f.name }))} />
+        <FileList
+          folderId={folderId}
+          files={files.map((f) => ({
+            id: f.id,
+            name: f.name,
+            size: f.size,
+            mimeType: f.mime_type,
+            createdAt: f.created_at,
+          }))}
+        />
+        {empty && <DriveEmpty folderId={folderId} />}
+      </div>
     </div>
   );
 }

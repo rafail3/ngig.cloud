@@ -26,21 +26,31 @@ export type UploadJob = {
   status: UploadStatus;
   speed: number; // bytes/sec (smoothed)
   etaSec: number | null;
+  folderId: string | null; // which folder it lands in
   error?: string;
 };
 
 type InternalJob = UploadJob & {
   file: File;
+  folderId: string | null;
   controller: AbortController;
   lastTime: number;
   lastBytes: number;
   // Present when the job is resuming a multipart upload after a refresh.
-  resumeMeta?: { key: string; uploadId: string; size: number };
+  resumeMeta?: {
+    key: string;
+    uploadId: string;
+    size: number;
+    folderId: string | null;
+  };
 };
+
+// An item to upload: the file and the folder it lands in.
+export type UploadItem = { file: File; folderId: string | null };
 
 type UploadContextValue = {
   jobs: UploadJob[];
-  enqueue: (files: File[]) => void;
+  enqueue: (items: UploadItem[]) => void;
   cancel: (id: string) => void;
   dismiss: (id: string) => void;
   clearFinished: () => void;
@@ -64,6 +74,7 @@ function toPublic(map: Map<string, InternalJob>): UploadJob[] {
     status: j.status,
     speed: j.speed,
     etaSec: j.etaSec,
+    folderId: j.folderId,
     error: j.error,
   }));
 }
@@ -114,7 +125,12 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
             : new File([rec.file], rec.name, { type: rec.type });
         const resumeMeta =
           rec.mode === "multipart" && rec.key && rec.uploadId
-            ? { key: rec.key, uploadId: rec.uploadId, size: rec.size }
+            ? {
+                key: rec.key,
+                uploadId: rec.uploadId,
+                size: rec.size,
+                folderId: rec.folderId,
+              }
             : undefined;
         jobsRef.current.set(rec.id, {
           id: rec.id,
@@ -125,6 +141,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
           speed: 0,
           etaSec: null,
           file,
+          folderId: rec.folderId,
           controller: new AbortController(),
           lastTime: 0,
           lastBytes: 0,
@@ -205,12 +222,12 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         } catch {
           // The interrupted multipart upload is gone — start over from scratch.
           job.resumeMeta = undefined;
-          res = await startUpload(job.file, report, job.controller.signal, (m) =>
+          res = await startUpload(job.file, job.folderId, report, job.controller.signal, (m) =>
             persistPlan(id, m),
           );
         }
       } else {
-        res = await startUpload(job.file, report, job.controller.signal, (m) =>
+        res = await startUpload(job.file, job.folderId, report, job.controller.signal, (m) =>
           persistPlan(id, m),
         );
       }
@@ -247,8 +264,8 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  function enqueue(files: File[]) {
-    for (const file of files) {
+  function enqueue(items: UploadItem[]) {
+    for (const { file, folderId } of items) {
       const id = crypto.randomUUID();
       jobsRef.current.set(id, {
         id,
@@ -259,6 +276,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         speed: 0,
         etaSec: null,
         file,
+        folderId,
         controller: new AbortController(),
         lastTime: 0,
         lastBytes: 0,
@@ -271,6 +289,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         size: file.size,
         type: file.type,
         file,
+        folderId,
       });
     }
     snapshot();

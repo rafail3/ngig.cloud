@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, Info, Download } from "lucide-react";
 import { getDownloadUrlAction, deleteFileAction } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
-import { formatDateShort } from "@/lib/format-date";
+import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { useUploads, type UploadJob } from "./UploadProvider";
+import { PreviewModal } from "./PreviewModal";
+import { InfoModal } from "./InfoModal";
 
 function speedLabel(bytesPerSec: number): string {
   if (!bytesPerSec || bytesPerSec < 1) return "—";
@@ -59,21 +61,30 @@ type FileItem = {
   createdAt: string;
 };
 
-export function FileList({ files }: { files: FileItem[] }) {
+export function FileList({
+  files,
+  folderId,
+}: {
+  files: FileItem[];
+  folderId: string | null;
+}) {
   const router = useRouter();
   const { jobs } = useUploads();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<FileItem | null>(null);
+  const [preview, setPreview] = useState<FileItem | null>(null);
+  const [info, setInfo] = useState<FileItem | null>(null);
 
-  // Rows shown above the stored files: in-flight uploads, plus just-finished
-  // ones whose real row hasn't arrived yet (bridges the brief gap until
-  // router.refresh lands, so the ghost doesn't flicker out for a moment).
+  // Rows shown above the stored files: in-flight uploads INTO THIS FOLDER, plus
+  // just-finished ones whose real row hasn't arrived yet (bridges the brief gap
+  // until router.refresh lands, so the ghost doesn't flicker out for a moment).
   const uploading = jobs.filter(
     (j) =>
-      j.status === "uploading" ||
-      j.status === "queued" ||
-      (j.status === "done" &&
-        !files.some((f) => f.name === j.name && f.size === j.size)),
+      j.folderId === folderId &&
+      (j.status === "uploading" ||
+        j.status === "queued" ||
+        (j.status === "done" &&
+          !files.some((f) => f.name === j.name && f.size === j.size))),
   );
 
   async function download(id: string) {
@@ -102,13 +113,7 @@ export function FileList({ files }: { files: FileItem[] }) {
     }
   }
 
-  if (files.length === 0 && uploading.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-zinc-800 px-6 py-16 text-center text-base text-zinc-500">
-        Niciun fișier încă. Apasă <span className="text-zinc-300">Upload</span> ca să adaugi.
-      </div>
-    );
-  }
+  if (files.length === 0 && uploading.length === 0) return null;
 
   return (
     <>
@@ -119,29 +124,47 @@ export function FileList({ files }: { files: FileItem[] }) {
         {files.map((f) => (
           <li
             key={f.id}
-            className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-zinc-900/40"
+            className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-zinc-900/40"
           >
-            <div className="min-w-0">
+            <button
+              type="button"
+              onClick={() => setPreview(f)}
+              className="min-w-0 flex-1 text-left"
+            >
               <p className="truncate text-base font-medium text-zinc-100">{f.name}</p>
               <p className="text-sm text-zinc-500">
                 {formatBytes(f.size)} · {formatDateShort(f.createdAt)}
               </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
+            </button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setInfo(f)}
+                aria-label="Detalii"
+                className="rounded-md border border-zinc-800 p-2 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-50"
+              >
+                <Info className="h-4 w-4" />
+              </button>
               <button
                 type="button"
                 onClick={() => download(f.id)}
-                className="rounded-md border border-zinc-800 px-3 py-1.5 text-sm text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
+                aria-label="Descarcă"
+                className="rounded-md border border-zinc-800 p-2 text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
               >
-                Download
+                <Download className="h-4 w-4" />
               </button>
               <button
                 type="button"
                 onClick={() => setToDelete(f)}
                 disabled={pendingId === f.id}
-                className="rounded-md border border-red-900/60 px-3 py-1.5 text-sm text-red-400 transition-colors hover:bg-red-950/40 disabled:opacity-50"
+                aria-label="Șterge"
+                className="rounded-md border border-red-900/60 p-2 text-red-400 transition-colors hover:bg-red-950/40 disabled:opacity-50"
               >
-                {pendingId === f.id ? "…" : "Șterge"}
+                {pendingId === f.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
               </button>
             </div>
           </li>
@@ -153,6 +176,26 @@ export function FileList({ files }: { files: FileItem[] }) {
           name={toDelete.name}
           onCancel={() => setToDelete(null)}
           onConfirm={confirmDelete}
+        />
+      )}
+
+      {preview && (
+        <PreviewModal
+          file={preview}
+          onClose={() => setPreview(null)}
+          onDownload={() => download(preview.id)}
+        />
+      )}
+
+      {info && (
+        <InfoModal
+          title={info.name}
+          onClose={() => setInfo(null)}
+          rows={[
+            { label: "Dimensiune", value: formatBytes(info.size) },
+            { label: "Tip", value: info.mimeType ?? "necunoscut" },
+            { label: "Încărcat", value: formatDateTime(info.createdAt) },
+          ]}
         />
       )}
     </>

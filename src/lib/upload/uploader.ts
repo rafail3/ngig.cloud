@@ -108,6 +108,7 @@ async function runParts(
 // persist the key/uploadId for resuming.
 export async function startUpload(
   file: File,
+  folderId: string | null,
   onProgress: (bytesSent: number) => void,
   signal: AbortSignal,
   onPlan: (meta: PlanMeta) => void,
@@ -160,6 +161,7 @@ export async function startUpload(
     size: file.size,
     contentType,
     key: plan.key,
+    folderId,
   });
   if (confirmed && "revoked" in confirmed) return { ok: false, revoked: true };
 
@@ -171,7 +173,7 @@ export async function startUpload(
 // longer exists on B2 (the caller then restarts fresh).
 export async function resumeUpload(
   file: File,
-  meta: { key: string; uploadId: string; size: number },
+  meta: { key: string; uploadId: string; size: number; folderId: string | null },
   onProgress: (bytesSent: number) => void,
   signal: AbortSignal,
 ): Promise<UploadResult> {
@@ -210,6 +212,7 @@ export async function resumeUpload(
     size: file.size,
     contentType,
     key: meta.key,
+    folderId: meta.folderId,
   });
   if (confirmed && "revoked" in confirmed) return { ok: false, revoked: true };
 

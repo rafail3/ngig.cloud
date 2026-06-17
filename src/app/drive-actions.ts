@@ -75,9 +75,78 @@ export async function confirmUploadAction(input: {
   size: number;
   contentType: string;
   key: string;
+  folderId: string | null;
 }): Promise<Revoked | void> {
   try {
     await files.confirmUpload(input);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function createFolderAction(
+  name: string,
+  parentId: string | null,
+): Promise<{ error?: string }> {
+  try {
+    await files.createFolder(name, parentId);
+    return {};
+  } catch (e) {
+    if (isRevoked(e)) return { error: "Sesiune expirată." };
+    return { error: e instanceof Error ? e.message : "Eroare." };
+  }
+}
+
+// Find-or-create a folder; returns its id (used when uploading a folder tree).
+export async function ensureFolderAction(
+  name: string,
+  parentId: string | null,
+): Promise<{ id: string } | Revoked> {
+  try {
+    return { id: await files.ensureFolder(name, parentId) };
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function deleteFolderAction(id: string): Promise<Revoked | void> {
+  try {
+    await files.deleteFolder(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function folderStatsAction(
+  id: string,
+): Promise<{ size: number; count: number } | Revoked> {
+  try {
+    return await files.folderStats(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function getViewUrlAction(
+  id: string,
+): Promise<{ url: string; name: string; mime: string | null } | Revoked> {
+  try {
+    return await files.getViewUrl(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function getTextPreviewAction(
+  id: string,
+): Promise<{ text: string } | Revoked> {
+  try {
+    return { text: await files.getTextPreview(id) };
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     throw e;

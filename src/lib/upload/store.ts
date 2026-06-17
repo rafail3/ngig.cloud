@@ -11,6 +11,7 @@ export type StoredUpload = {
   size: number;
   type: string;
   file: Blob;
+  folderId: string | null; // target folder (resolved at enqueue)
   // Set once the server hands back an upload plan; lets us resume.
   mode?: "single" | "multipart";
   key?: string;

@@ -9,6 +9,7 @@ import * as repo from "./repository";
 import {
   presignUpload,
   presignDownload,
+  presignView,
   deleteObject,
   statObject,
   listKeys,
@@ -90,54 +91,162 @@ async function enforceQuota(
   }
 }
 
-export async function listMyFiles() {
+export type Crumb = { id: string; name: string };
+
+// Ancestor chain root→current, for the breadcrumb.
+async function breadcrumb(folderId: string | null): Promise<Crumb[]> {
+  const crumbs: Crumb[] = [];
+  let id = folderId;
+  // Bounded walk up the tree (guard against cycles / very deep nesting).
+  for (let i = 0; id && i < 64; i++) {
+    const f = await repo.getFolder(id);
+    if (!f) break;
+    crumbs.unshift({ id: f.id, name: f.name });
+    id = f.parent_id;
+  }
+  return crumbs;
+}
+
+// Contents of a folder (null = root): subfolders + files, plus the breadcrumb.
+// Files missing from B2 are hidden on this same load; pruning + the orphan
+// sweep run after the response so they never block the render.
+export async function listFolder(folderId: string | null) {
   const userId = await requireUserId();
   const prefix = `${userId}/`;
 
-  // DB rows and the bucket's keys in parallel, so the B2 round-trip doesn't add
-  // latency. `existing` is null if B2 listing failed (then we trust the DB).
-  const [rows, existing] = await Promise.all([
-    repo.listFiles(),
+  const [folders, files, existing, crumbs] = await Promise.all([
+    repo.listFoldersIn(folderId),
+    repo.listFilesIn(folderId),
     listKeys(prefix).catch(() => null),
+    breadcrumb(folderId),
   ]);
 
-  // Only show files that still exist in B2 (one deleted straight from the bucket
-  // disappears on this same load), and prune the dangling rows afterwards.
-  const visible = existing
-    ? rows.filter((r) => existing.has(r.storage_key))
-    : rows;
-  const missing = existing
-    ? rows.filter((r) => !existing.has(r.storage_key))
-    : [];
+  const visibleFiles = existing
+    ? files.filter((f) => existing.has(f.storage_key))
+    : files;
 
-  // Heavier housekeeping runs AFTER the response so it never blocks the render.
   after(async () => {
     try {
-      if (missing.length > 0) {
-        await repo.deleteFileRowsByKeys(missing.map((r) => r.storage_key));
+      if (existing) {
+        const all = await repo.listAllFiles();
+        const missing = all.filter((r) => !existing.has(r.storage_key));
+        if (missing.length > 0) {
+          await repo.deleteFileRowsByKeys(missing.map((r) => r.storage_key));
+        }
       }
     } catch {
       // best-effort prune
     }
     try {
-      // Sweep B2 of orphans (hide markers from console deletes, abandoned
-      // multipart uploads) so nothing lingers no matter how it got there.
       await cleanupPrefix(prefix);
     } catch {
       // best-effort cleanup
     }
   });
 
-  return visible;
+  return { folders, files: visibleFiles, breadcrumb: crumbs };
 }
 
-// Quota for the drive's usage bar (null = unlimited). `used` is summed from the
-// already-fetched file rows on the page, so this avoids a second DB scan.
-export async function myQuota(): Promise<number | null> {
+// ---- Folder operations ----------------------------------------------------
+
+const FOLDER_NAME_RE = /^[^/\\]{1,255}$/;
+
+export async function createFolder(
+  name: string,
+  parentId: string | null,
+): Promise<void> {
+  const { id: userId } = await requireActiveUser();
+  const clean = name.trim();
+  if (!FOLDER_NAME_RE.test(clean)) throw new Error("Nume de folder invalid.");
+  const existing = await repo.findFolderByName(clean, parentId);
+  if (existing) throw new Error("Există deja un folder cu acest nume.");
+  await repo.insertFolder({ owner_id: userId, name: clean, parent_id: parentId });
+}
+
+// Find-or-create a folder by name (used when uploading a folder tree). Safe
+// against the unique constraint if two files race to create the same folder.
+export async function ensureFolder(
+  name: string,
+  parentId: string | null,
+): Promise<string> {
+  const { id: userId } = await requireActiveUser();
+  const clean = name.trim();
+  if (!FOLDER_NAME_RE.test(clean)) throw new Error("Nume de folder invalid.");
+  const existing = await repo.findFolderByName(clean, parentId);
+  if (existing) return existing.id;
+  try {
+    const created = await repo.insertFolder({
+      owner_id: userId,
+      name: clean,
+      parent_id: parentId,
+    });
+    return created.id;
+  } catch {
+    // Lost a race — the folder now exists.
+    const f = await repo.findFolderByName(clean, parentId);
+    if (f) return f.id;
+    throw new Error("Nu am putut crea folderul.");
+  }
+}
+
+// Delete a folder and everything inside it: remove the B2 objects of every file
+// in the subtree, then drop the folder row (DB cascade removes subfolders/files).
+export async function deleteFolder(id: string): Promise<void> {
+  await requireActiveUser();
+  const keys = await repo.descendantFileKeys(id);
+  await Promise.all(keys.map((k) => deleteObject(k).catch(() => {})));
+  await repo.deleteFolderRow(id);
+}
+
+// Recursive size + file count of a folder (for the info box).
+export async function folderStats(
+  id: string,
+): Promise<{ size: number; count: number }> {
+  await requireUserId();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("folder_stats", { fid: id });
+  if (error) throw error;
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { total_size: number; file_count: number }
+    | undefined;
+  return {
+    size: Number(row?.total_size ?? 0),
+    count: Number(row?.file_count ?? 0),
+  };
+}
+
+// A presigned inline-view URL for previewing a file in the browser.
+export async function getViewUrl(
+  id: string,
+): Promise<{ url: string; name: string; mime: string | null }> {
+  await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+  const url = await presignView(file.storage_key);
+  return { url, name: file.name, mime: file.mime_type };
+}
+
+// First chunk of a text file, read server-side (no browser CORS needed). Capped
+// so previewing a huge file doesn't pull the whole thing.
+export async function getTextPreview(id: string): Promise<string> {
+  await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+  const url = await presignView(file.storage_key);
+  const res = await fetch(url, { headers: { Range: "bytes=0-100000" } });
+  return res.text();
+}
+
+// Total usage + quota for the drive's usage bar (null quota = unlimited). Usage
+// is the sum across ALL the user's files, not just the current folder.
+export async function myUsage(): Promise<{ used: number; quota: number | null }> {
   const userId = await requireUserId();
-  const { maxTotal } = await effectiveLimits(userId);
-  const { defaultUserQuota } = await getSettings();
-  return maxTotal ?? defaultUserQuota ?? null;
+  const [used, { maxTotal }, { defaultUserQuota }] = await Promise.all([
+    repo.totalUsage(userId),
+    effectiveLimits(userId),
+    getSettings(),
+  ]);
+  return { used, quota: maxTotal ?? defaultUserQuota ?? null };
 }
 
 // An upload plan: a small file gets one presigned PUT; a large file gets a
@@ -241,6 +350,7 @@ export async function confirmUpload(input: {
   size: number; // client-reported; NOT trusted — we read the real size from B2
   contentType: string;
   key: string;
+  folderId: string | null;
 }) {
   const { id: userId, maxFile, maxTotal } = await requireActiveUser();
   if (!input.key.startsWith(`${userId}/`)) throw new Error("Cheie invalidă.");
@@ -267,6 +377,7 @@ export async function confirmUpload(input: {
     size: stat.size,
     mime_type: stat.contentType ?? input.contentType ?? null,
     storage_key: input.key,
+    folder_id: input.folderId,
   });
 }
 
