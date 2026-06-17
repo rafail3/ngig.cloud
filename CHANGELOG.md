@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.0](https://github.com/rafail3/ngig.cloud/compare/v1.12.0...v1.13.0) (2026-06-17)
+
+
+### Features
+
+* **account:** per-session logout with instant revocation ([a1c03a4](https://github.com/rafail3/ngig.cloud/commit/a1c03a4a9e8015a4f3c8ff062d2da8e18a8ad690))
+* **account:** per-session logout with instant revocation ([b5139bd](https://github.com/rafail3/ngig.cloud/commit/b5139bd914d87063774435c832780c918a5da61f))
+
 ## [1.12.0](https://github.com/rafail3/ngig.cloud/compare/v1.11.0...v1.12.0) (2026-06-17)
 
 
