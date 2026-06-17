@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.16.0](https://github.com/rafail3/ngig.cloud/compare/v1.15.1...v1.16.0) (2026-06-17)
+
+
+### Features
+
+* **drive:** navigable folders, file preview and custom media players ([4affeb0](https://github.com/rafail3/ngig.cloud/commit/4affeb0f1c93c163e8886cb4fb9453f1534f66af))
+* **drive:** navigable folders, file preview and custom media players ([ebfdb7c](https://github.com/rafail3/ngig.cloud/commit/ebfdb7cc3dc619312ad718e4bd4fb4c5cf6138ee))
+
 ## [1.15.1](https://github.com/rafail3/ngig.cloud/compare/v1.15.0...v1.15.1) (2026-06-17)
 
 
