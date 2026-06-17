@@ -8,13 +8,23 @@ export type FileRow = {
   size: number;
   mime_type: string | null;
   storage_key: string;
+  folder_id: string | null;
+  created_at: string;
+};
+
+export type FolderRow = {
+  id: string;
+  owner_id: string;
+  name: string;
+  parent_id: string | null;
   created_at: string;
 };
 
 // All queries run through the user-scoped Supabase client, so RLS enforces
 // owner-only access at the data layer.
 
-export async function listFiles(): Promise<FileRow[]> {
+// Every file of the caller (used by the global B2 reconciliation).
+export async function listAllFiles(): Promise<FileRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("files")
@@ -22,6 +32,85 @@ export async function listFiles(): Promise<FileRow[]> {
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as FileRow[];
+}
+
+// Files directly inside a folder (null = root).
+export async function listFilesIn(folderId: string | null): Promise<FileRow[]> {
+  const supabase = await createClient();
+  const base = supabase
+    .from("files")
+    .select("*")
+    .order("created_at", { ascending: false });
+  const { data, error } = await (folderId === null
+    ? base.is("folder_id", null)
+    : base.eq("folder_id", folderId));
+  if (error) throw error;
+  return (data ?? []) as FileRow[];
+}
+
+// Subfolders directly inside a folder (null = root).
+export async function listFoldersIn(
+  parentId: string | null,
+): Promise<FolderRow[]> {
+  const supabase = await createClient();
+  const base = supabase.from("folders").select("*").order("name");
+  const { data, error } = await (parentId === null
+    ? base.is("parent_id", null)
+    : base.eq("parent_id", parentId));
+  if (error) throw error;
+  return (data ?? []) as FolderRow[];
+}
+
+export async function getFolder(id: string): Promise<FolderRow | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("folders")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  return (data as FolderRow) ?? null;
+}
+
+export async function findFolderByName(
+  name: string,
+  parentId: string | null,
+): Promise<FolderRow | null> {
+  const supabase = await createClient();
+  const base = supabase.from("folders").select("*").eq("name", name);
+  const { data } = await (parentId === null
+    ? base.is("parent_id", null)
+    : base.eq("parent_id", parentId)
+  ).maybeSingle();
+  return (data as FolderRow) ?? null;
+}
+
+export async function insertFolder(row: {
+  owner_id: string;
+  name: string;
+  parent_id: string | null;
+}): Promise<FolderRow> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("folders")
+    .insert(row)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as FolderRow;
+}
+
+export async function deleteFolderRow(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("folders").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// Storage keys of every file in a folder's subtree (security-definer RPC).
+export async function descendantFileKeys(id: string): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("descendant_file_keys", { fid: id });
+  if (error) throw error;
+  return ((data ?? []) as { storage_key: string }[]).map((r) => r.storage_key);
 }
 
 export async function getFileById(id: string): Promise<FileRow | null> {
@@ -36,6 +125,7 @@ export async function insertFile(row: {
   size: number;
   mime_type: string | null;
   storage_key: string;
+  folder_id: string | null;
 }): Promise<FileRow> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("files").insert(row).select().single();
