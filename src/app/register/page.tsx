@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 
+export const metadata = { title: "Înregistrare" };
+
 export default function RegisterPage() {
   return (
     <AuthCard
