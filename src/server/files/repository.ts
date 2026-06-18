@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type FileRow = {
   id: string;
@@ -22,17 +23,6 @@ export type FolderRow = {
 
 // All queries run through the user-scoped Supabase client, so RLS enforces
 // owner-only access at the data layer.
-
-// Every file of the caller (used by the global B2 reconciliation).
-export async function listAllFiles(): Promise<FileRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("files")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as FileRow[];
-}
 
 // Files directly inside a folder (null = root).
 export async function listFilesIn(folderId: string | null): Promise<FileRow[]> {
@@ -145,6 +135,27 @@ export async function deleteFileRowsByKeys(keys: string[]) {
   if (keys.length === 0) return;
   const supabase = await createClient();
   const { error } = await supabase.from("files").delete().in("storage_key", keys);
+  if (error) throw error;
+}
+
+// --- Admin-client variants for reconciliation (used in `after()` where the
+// cookie-based user client isn't reliable). Storage keys are owner-prefixed, so
+// operating by key stays scoped to one user. ---
+
+export async function adminListUserFileKeys(ownerId: string): Promise<string[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("files")
+    .select("storage_key")
+    .eq("owner_id", ownerId);
+  if (error) throw error;
+  return (data ?? []).map((r) => r.storage_key as string);
+}
+
+export async function adminDeleteFilesByKeys(keys: string[]) {
+  if (keys.length === 0) return;
+  const admin = createAdminClient();
+  const { error } = await admin.from("files").delete().in("storage_key", keys);
   if (error) throw error;
 }
 
