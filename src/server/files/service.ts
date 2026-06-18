@@ -10,6 +10,7 @@ import {
   presignUpload,
   presignDownload,
   presignView,
+  copyObject,
   deleteObject,
   statObject,
   listKeys,
@@ -198,6 +199,112 @@ export async function deleteFolder(id: string): Promise<void> {
   const keys = await repo.descendantFileKeys(id);
   await Promise.all(keys.map((k) => deleteObject(k).catch(() => {})));
   await repo.deleteFolderRow(id);
+}
+
+function isUniqueViolation(e: unknown): boolean {
+  return typeof e === "object" && e !== null && "code" in e && e.code === "23505";
+}
+
+export async function renameFolder(id: string, name: string): Promise<void> {
+  await requireActiveUser();
+  const clean = name.trim();
+  if (!FOLDER_NAME_RE.test(clean)) throw new Error("Nume de folder invalid.");
+  try {
+    await repo.updateFolder(id, { name: clean });
+  } catch (e) {
+    if (isUniqueViolation(e)) {
+      throw new Error("Există deja un folder cu acest nume aici.");
+    }
+    throw e;
+  }
+}
+
+// Folders the caller owns — for the move-destination picker.
+export async function listAllFolders() {
+  await requireUserId();
+  return repo.listAllFolders();
+}
+
+// Move a folder (with everything in it) under a new parent (null = root).
+export async function moveFolder(
+  id: string,
+  newParentId: string | null,
+): Promise<void> {
+  await requireActiveUser();
+  if (id === newParentId) throw new Error("Destinație invalidă.");
+
+  const folders = await repo.listAllFolders();
+  // Build the subtree of `id` to forbid moving a folder into itself/descendant.
+  const childrenOf = new Map<string, string[]>();
+  for (const f of folders) {
+    if (!f.parent_id) continue;
+    const arr = childrenOf.get(f.parent_id) ?? [];
+    arr.push(f.id);
+    childrenOf.set(f.parent_id, arr);
+  }
+  const sub = new Set<string>([id]);
+  const stack = [id];
+  while (stack.length) {
+    const cur = stack.pop()!;
+    for (const c of childrenOf.get(cur) ?? []) {
+      if (!sub.has(c)) {
+        sub.add(c);
+        stack.push(c);
+      }
+    }
+  }
+  if (newParentId && sub.has(newParentId)) {
+    throw new Error("Nu poți muta un folder în el însuși.");
+  }
+
+  try {
+    await repo.updateFolder(id, { parent_id: newParentId });
+  } catch (e) {
+    if (isUniqueViolation(e)) {
+      throw new Error("Există deja un folder cu acest nume în destinație.");
+    }
+    throw e;
+  }
+}
+
+// Manifest for zipping a folder: every file in the subtree with its path
+// (relative to the folder's parent, so the zip contains the folder itself).
+export async function folderManifest(
+  id: string,
+): Promise<{ name: string; files: { key: string; path: string }[] }> {
+  await requireActiveUser();
+  const folders = await repo.listAllFolders();
+  const byId = new Map(folders.map((f) => [f.id, f]));
+  const target = byId.get(id);
+  if (!target) throw new Error("Folder inexistent.");
+
+  const childrenOf = new Map<string, string[]>();
+  for (const f of folders) {
+    if (!f.parent_id) continue;
+    const arr = childrenOf.get(f.parent_id) ?? [];
+    arr.push(f.id);
+    childrenOf.set(f.parent_id, arr);
+  }
+
+  const pathOf = new Map<string, string>([[id, target.name]]);
+  const subIds = [id];
+  const stack = [id];
+  while (stack.length) {
+    const cur = stack.pop()!;
+    for (const c of childrenOf.get(cur) ?? []) {
+      const cf = byId.get(c)!;
+      pathOf.set(c, `${pathOf.get(cur)!}/${cf.name}`);
+      subIds.push(c);
+      stack.push(c);
+    }
+  }
+
+  const files = await repo.listFilesInFolders(subIds);
+  const entries = files.map((f) => ({
+    key: f.storage_key,
+    path: `${pathOf.get(f.folder_id ?? "") ?? target.name}/${f.name}`,
+  }));
+  return { name: target.name, files: entries };
 }
 
 // Recursive size + file count of a folder (for the info box).
@@ -410,4 +517,66 @@ export async function deleteFile(id: string) {
     // consistent and the user never sees a delete error.
   }
   await repo.deleteFileRow(id);
+}
+
+// ---- File operations ------------------------------------------------------
+
+// A file name may contain dots but not path separators.
+const FILE_NAME_RE = /^[^/\\]{1,255}$/;
+
+export async function renameFile(id: string, name: string): Promise<void> {
+  await requireActiveUser();
+  const clean = name.trim();
+  if (!FILE_NAME_RE.test(clean)) throw new Error("Nume de fișier invalid.");
+  await repo.updateFile(id, { name: clean });
+}
+
+// Move a file into a folder (null = root). The destination folder must belong to
+// the caller — RLS only guards the file row, so we verify the folder explicitly
+// to stop a file being parked under someone else's (or a nonexistent) folder.
+export async function moveFile(
+  id: string,
+  folderId: string | null,
+): Promise<void> {
+  await requireActiveUser();
+  if (folderId !== null) {
+    const dest = await repo.getFolder(folderId);
+    if (!dest) throw new Error("Destinație invalidă.");
+  }
+  await repo.updateFile(id, { folder_id: folderId });
+}
+
+// Insert " (copie)" before the extension: "report.pdf" → "report (copie).pdf".
+function copyName(name: string): string {
+  const dot = name.lastIndexOf(".");
+  if (dot <= 0) return `${name} (copie)`;
+  return `${name.slice(0, dot)} (copie)${name.slice(dot)}`;
+}
+
+// Make a real, independent copy: a fresh B2 object (counts against quota) plus a
+// new DB row in the same folder.
+export async function copyFile(id: string): Promise<void> {
+  const { id: userId, maxFile, maxTotal } = await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+
+  await enforceQuota(userId, file.size, maxFile, maxTotal);
+
+  const destKey = `${userId}/${randomUUID()}`;
+  await copyObject(file.storage_key, destKey);
+  await repo.insertFile({
+    owner_id: userId,
+    name: copyName(file.name),
+    size: file.size,
+    mime_type: file.mime_type,
+    storage_key: destKey,
+    folder_id: file.folder_id,
+  });
+}
+
+// Soft delete: hide the file from listings but keep its bytes + row so it can be
+// restored from Trash. Permanent delete (and the Trash view) come in a later task.
+export async function moveFileToTrash(id: string): Promise<void> {
+  await requireActiveUser();
+  await repo.updateFile(id, { deleted_at: new Date().toISOString() });
 }

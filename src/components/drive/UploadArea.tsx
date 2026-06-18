@@ -2,9 +2,11 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence } from "motion/react";
 import { Upload, FolderUp, FolderPlus, UploadCloud } from "lucide-react";
 import { useUploads, type UploadItem } from "./UploadProvider";
 import { ensureFolderAction, createFolderAction } from "@/app/drive-actions";
+import { ModalShell } from "./anim";
 
 type Entry = { file: File; rel: string };
 
@@ -172,16 +174,19 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
         </p>
       </div>
 
-      {creating && (
-        <CreateFolderModal
-          parentId={folderId}
-          onClose={() => setCreating(false)}
-          onCreated={() => {
-            setCreating(false);
-            router.refresh();
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {creating && (
+          <CreateFolderModal
+            key="create"
+            parentId={folderId}
+            onClose={() => setCreating(false)}
+            onCreated={() => {
+              setCreating(false);
+              router.refresh();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -214,12 +219,8 @@ function CreateFolderModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <form
-        onSubmit={submit}
-        className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl"
-      >
+    <ModalShell onClose={onClose}>
+      <form onSubmit={submit}>
         <h3 className="text-base font-semibold text-zinc-100">Folder nou</h3>
         <input
           autoFocus
@@ -246,6 +247,6 @@ function CreateFolderModal({
           </button>
         </div>
       </form>
-    </div>
+    </ModalShell>
   );
 }

@@ -6,6 +6,7 @@ import { FolderList } from "@/components/drive/FolderList";
 import { FileList } from "@/components/drive/FileList";
 import { DriveEmpty } from "@/components/drive/DriveEmpty";
 import { FolderInfoButton } from "@/components/drive/FolderInfoButton";
+import { DriveTransition } from "@/components/drive/DriveTransition";
 
 export const metadata = { title: "Fișierele mele" };
 
@@ -64,7 +65,7 @@ export default async function Home({
         <UploadArea folderId={folderId} />
       </div>
 
-      <div className="flex flex-col gap-4">
+      <DriveTransition id={folderId ?? "root"}>
         <FolderList folders={folders.map((f) => ({ id: f.id, name: f.name }))} />
         <FileList
           folderId={folderId}
@@ -77,7 +78,7 @@ export default async function Home({
           }))}
         />
         {empty && <DriveEmpty folderId={folderId} />}
-      </div>
+      </DriveTransition>
     </div>
   );
 }

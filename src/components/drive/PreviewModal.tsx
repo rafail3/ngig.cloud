@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { X, Download, Loader2, FileQuestion, Info } from "lucide-react";
 import { getViewUrlAction, getTextPreviewAction } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
@@ -8,6 +9,7 @@ import { formatDateTime } from "@/lib/format-date";
 import { InfoModal } from "./InfoModal";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
+import { panelSpring } from "./anim";
 
 export type PreviewFile = {
   id: string;
@@ -83,7 +85,15 @@ export function PreviewModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+    >
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Video loads behind a simple full-screen blur + centered spinner. */}
@@ -93,7 +103,13 @@ export function PreviewModal({
         </div>
       )}
 
-      <div className="relative flex max-h-[90vh] w-auto max-w-[min(92vw,52rem)] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
+      <motion.div
+        className="relative flex max-h-[90vh] w-auto max-w-[min(92vw,52rem)] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl"
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 6 }}
+        transition={panelSpring}
+      >
         <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-3">
           <p className="min-w-0 max-w-[min(60vw,32rem)] truncate text-sm font-medium text-zinc-100">
             {file.name}
@@ -170,19 +186,23 @@ export function PreviewModal({
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
-      {showInfo && (
-        <InfoModal
-          title={file.name}
-          onClose={() => setShowInfo(false)}
-          rows={[
-            { label: "Dimensiune", value: formatBytes(file.size) },
-            { label: "Tip", value: file.mimeType ?? "necunoscut" },
-            { label: "Încărcat", value: formatDateTime(file.createdAt) },
-          ]}
-        />
-      )}
-    </div>
+      <AnimatePresence>
+        {showInfo && (
+          <InfoModal
+            key="preview-info"
+            title={file.name}
+            onClose={() => setShowInfo(false)}
+            lockScroll={false}
+            rows={[
+              { label: "Dimensiune", value: formatBytes(file.size) },
+              { label: "Tip", value: file.mimeType ?? "necunoscut" },
+              { label: "Încărcat", value: formatDateTime(file.createdAt) },
+            ]}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

@@ -3,6 +3,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  CopyObjectCommand,
   DeleteObjectCommand,
   ListObjectVersionsCommand,
   ListObjectsV2Command,
@@ -144,6 +145,18 @@ export function presignDownload(key: string, filename: string, expiresIn = 600) 
   );
 }
 
+// Server-side copy of an object to a new key (no bytes through us). Our keys are
+// `<owner>/<uuid>` — only URL-safe chars — so CopySource needs no extra encoding.
+export async function copyObject(srcKey: string, destKey: string): Promise<void> {
+  await client.send(
+    new CopyObjectCommand({
+      Bucket: bucket,
+      Key: destKey,
+      CopySource: `${bucket}/${srcKey}`,
+    }),
+  );
+}
+
 // Presigned GET for inline viewing (previews).
 export function presignView(key: string, expiresIn = 600) {
   return getSignedUrl(
@@ -196,6 +209,14 @@ export async function listKeys(prefix: string): Promise<Set<string>> {
 // versionId. We deliberately do NOT fall back to a plain DeleteObject — on a
 // versioned bucket that just adds another hide marker (a 0-byte orphan), which
 // is exactly what we're cleaning up. If nothing is listed, there's nothing to do.
+// Raw object stream (Node Readable) — used to pipe a file into a zip archive.
+export async function getObjectStream(key: string): Promise<NodeJS.ReadableStream> {
+  const res = await client.send(
+    new GetObjectCommand({ Bucket: bucket, Key: key }),
+  );
+  return res.Body as NodeJS.ReadableStream;
+}
+
 export async function deleteObject(key: string) {
   let keyMarker: string | undefined;
   let versionIdMarker: string | undefined;

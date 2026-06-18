@@ -1,14 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Loader2, Info, Download } from "lucide-react";
-import { getDownloadUrlAction, deleteFileAction } from "@/app/drive-actions";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  Loader2,
+  Info,
+  Download,
+  Pencil,
+  FolderInput,
+  Copy,
+  Trash2,
+  X,
+} from "lucide-react";
+import {
+  getDownloadUrlAction,
+  renameFileAction,
+  moveFileAction,
+  copyFileAction,
+  moveFileToTrashAction,
+} from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { useUploads, type UploadJob } from "./UploadProvider";
 import { PreviewModal } from "./PreviewModal";
 import { InfoModal } from "./InfoModal";
+import { FolderPickerModal } from "./FolderPickerModal";
+import { ActionMenu, type ActionMenuHandle, type MenuAction } from "./ActionMenu";
+import { ModalShell, listContainer, listItem } from "./anim";
 
 function speedLabel(bytesPerSec: number): string {
   if (!bytesPerSec || bytesPerSec < 1) return "—";
@@ -26,7 +45,12 @@ function etaLabel(sec: number | null): string {
 function UploadingRow({ job }: { job: UploadJob }) {
   const pct = job.size > 0 ? Math.min(100, Math.round((job.sent / job.size) * 100)) : 0;
   return (
-    <li className="px-4 py-3 opacity-55">
+    <motion.li
+      layout
+      variants={listItem}
+      exit={{ opacity: 0, scale: 0.97 }}
+      className="px-4 py-3 opacity-55"
+    >
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-2">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-indigo-400" />
@@ -49,7 +73,7 @@ function UploadingRow({ job }: { job: UploadJob }) {
       <p className="mt-1 text-sm text-zinc-500">
         {pct}% · {formatBytes(job.sent)} / {formatBytes(job.size)}
       </p>
-    </li>
+    </motion.li>
   );
 }
 
@@ -71,9 +95,11 @@ export function FileList({
   const router = useRouter();
   const { jobs } = useUploads();
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [toDelete, setToDelete] = useState<FileItem | null>(null);
   const [preview, setPreview] = useState<FileItem | null>(null);
   const [info, setInfo] = useState<FileItem | null>(null);
+  const [toRename, setToRename] = useState<FileItem | null>(null);
+  const [toMove, setToMove] = useState<FileItem | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
   // Rows shown above the stored files: in-flight uploads INTO THIS FOLDER, plus
   // just-finished ones whose real row hasn't arrived yet (bridges the brief gap
@@ -96,13 +122,25 @@ export function FileList({
     window.location.assign(res);
   }
 
-  async function confirmDelete() {
-    const file = toDelete;
-    if (!file) return;
-    setToDelete(null);
+  async function copy(file: FileItem) {
+    setPendingId(file.id);
+    setErr(null);
+    try {
+      const res = await copyFileAction(file.id);
+      if (res.error) {
+        setErr(res.error);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  async function trash(file: FileItem) {
     setPendingId(file.id);
     try {
-      const res = await deleteFileAction(file.id);
+      const res = await moveFileToTrashAction(file.id);
       if (res && "revoked" in res) {
         window.location.assign("/login");
         return;
@@ -117,139 +155,216 @@ export function FileList({
 
   return (
     <>
-      <ul className="divide-y divide-zinc-900 overflow-hidden rounded-xl border border-zinc-900">
-        {uploading.map((job) => (
-          <UploadingRow key={job.id} job={job} />
-        ))}
-        {files.map((f) => (
-          <li
-            key={f.id}
-            className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-zinc-900/40"
+      {err && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-red-900/60 bg-red-950/30 px-3.5 py-2 text-sm text-red-300">
+          <span>{err}</span>
+          <button
+            type="button"
+            onClick={() => setErr(null)}
+            aria-label="Închide"
+            className="shrink-0 rounded p-0.5 text-red-400 transition hover:text-red-200"
           >
-            <button
-              type="button"
-              onClick={() => setPreview(f)}
-              className="min-w-0 flex-1 text-left"
-            >
-              <p className="truncate text-base font-medium text-zinc-100">{f.name}</p>
-              <p className="text-sm text-zinc-500">
-                {formatBytes(f.size)} · {formatDateShort(f.createdAt)}
-              </p>
-            </button>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setInfo(f)}
-                aria-label="Detalii"
-                className="rounded-md border border-zinc-800 p-2 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-50"
-              >
-                <Info className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => download(f.id)}
-                aria-label="Descarcă"
-                className="rounded-md border border-zinc-800 p-2 text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
-              >
-                <Download className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setToDelete(f)}
-                disabled={pendingId === f.id}
-                aria-label="Șterge"
-                className="rounded-md border border-red-900/60 p-2 text-red-400 transition-colors hover:bg-red-950/40 disabled:opacity-50"
-              >
-                {pendingId === f.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {toDelete && (
-        <ConfirmDeleteModal
-          name={toDelete.name}
-          onCancel={() => setToDelete(null)}
-          onConfirm={confirmDelete}
-        />
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       )}
 
-      {preview && (
-        <PreviewModal
-          file={preview}
-          onClose={() => setPreview(null)}
-          onDownload={() => download(preview.id)}
-        />
-      )}
+      <motion.ul
+        variants={listContainer}
+        initial="hidden"
+        animate="show"
+        className="divide-y divide-zinc-900 overflow-hidden rounded-xl border border-zinc-900"
+      >
+        <AnimatePresence initial={false}>
+          {uploading.map((job) => (
+            <UploadingRow key={job.id} job={job} />
+          ))}
+          {files.map((f) => (
+            <FileRow
+              key={f.id}
+              file={f}
+              pending={pendingId === f.id}
+              onPreview={() => setPreview(f)}
+              onInfo={() => setInfo(f)}
+              onRename={() => setToRename(f)}
+              onMove={() => setToMove(f)}
+              onCopy={() => copy(f)}
+              onDownload={() => download(f.id)}
+              onTrash={() => trash(f)}
+            />
+          ))}
+        </AnimatePresence>
+      </motion.ul>
 
-      {info && (
-        <InfoModal
-          title={info.name}
-          onClose={() => setInfo(null)}
-          rows={[
-            { label: "Dimensiune", value: formatBytes(info.size) },
-            { label: "Tip", value: info.mimeType ?? "necunoscut" },
-            { label: "Încărcat", value: formatDateTime(info.createdAt) },
-          ]}
-        />
-      )}
+      <AnimatePresence>
+        {preview && (
+          <PreviewModal
+            key="preview"
+            file={preview}
+            onClose={() => setPreview(null)}
+            onDownload={() => download(preview.id)}
+          />
+        )}
+
+        {info && (
+          <InfoModal
+            key="info"
+            title={info.name}
+            onClose={() => setInfo(null)}
+            rows={[
+              { label: "Dimensiune", value: formatBytes(info.size) },
+              { label: "Tip", value: info.mimeType ?? "necunoscut" },
+              { label: "Încărcat", value: formatDateTime(info.createdAt) },
+            ]}
+          />
+        )}
+
+        {toRename && (
+          <RenameFileModal
+            key="rename"
+            file={toRename}
+            onClose={() => setToRename(null)}
+            onRenamed={() => {
+              setToRename(null);
+              router.refresh();
+            }}
+          />
+        )}
+
+        {toMove && (
+          <FolderPickerModal
+            key="move"
+            title={`Mută „${toMove.name}”`}
+            onClose={() => setToMove(null)}
+            onPick={async (dest) => {
+              const res = await moveFileAction(toMove.id, dest);
+              if (!res.error) {
+                setToMove(null);
+                router.refresh();
+              }
+              return res;
+            }}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
 
-function ConfirmDeleteModal({
-  name,
-  onCancel,
-  onConfirm,
+function FileRow({
+  file,
+  pending,
+  onPreview,
+  onInfo,
+  onRename,
+  onMove,
+  onCopy,
+  onDownload,
+  onTrash,
 }: {
-  name: string;
-  onCancel: () => void;
-  onConfirm: () => void;
+  file: FileItem;
+  pending: boolean;
+  onPreview: () => void;
+  onInfo: () => void;
+  onRename: () => void;
+  onMove: () => void;
+  onCopy: () => void;
+  onDownload: () => void;
+  onTrash: () => void;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onCancel]);
+  const menuRef = useRef<ActionMenuHandle>(null);
+
+  const actions: MenuAction[] = [
+    { icon: Download, label: "Descarcă", onSelect: onDownload },
+    { icon: Pencil, label: "Redenumește", onSelect: onRename },
+    { icon: FolderInput, label: "Mută", onSelect: onMove },
+    { icon: Copy, label: "Copiază", onSelect: onCopy },
+    { icon: Info, label: "Detalii", onSelect: onInfo },
+    { icon: Trash2, label: "Mută în coș", onSelect: onTrash, danger: true },
+  ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
-          <Trash2 className="h-5 w-5 text-red-400" />
-        </div>
-        <h3 className="mt-4 text-base font-semibold text-zinc-100">Ștergi fișierul?</h3>
-        <p className="mt-1.5 text-sm text-zinc-400">
-          <span className="break-all font-medium text-zinc-300">{name}</span> va fi șters definitiv.
-          Acțiunea e ireversibilă.
+    <motion.li
+      layout
+      variants={listItem}
+      exit={{ opacity: 0, scale: 0.97 }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        menuRef.current?.openAt(e.clientX, e.clientY);
+      }}
+      className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-zinc-900/40 ${
+        pending ? "opacity-50" : ""
+      }`}
+    >
+      <button type="button" onClick={onPreview} className="min-w-0 flex-1 text-left">
+        <p className="truncate text-base font-medium text-zinc-100">{file.name}</p>
+        <p className="text-sm text-zinc-500">
+          {formatBytes(file.size)} · {formatDateShort(file.createdAt)}
         </p>
-        <div className="mt-5 flex justify-end gap-2">
+      </button>
+      <div className="flex shrink-0 items-center">
+        {pending && <Loader2 className="mr-1 h-4 w-4 animate-spin text-indigo-400" />}
+        <ActionMenu ref={menuRef} actions={actions} label="Opțiuni fișier" />
+      </div>
+    </motion.li>
+  );
+}
+
+function RenameFileModal({
+  file,
+  onClose,
+  onRenamed,
+}: {
+  file: FileItem;
+  onClose: () => void;
+  onRenamed: () => void;
+}) {
+  const [name, setName] = useState(file.name);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setBusy(true);
+    setError(null);
+    const res = await renameFileAction(file.id, name);
+    setBusy(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    onRenamed();
+  }
+
+  return (
+    <ModalShell onClose={onClose}>
+      <form onSubmit={submit}>
+        <h3 className="text-base font-semibold text-zinc-100">Redenumește fișierul</h3>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mt-3 w-full rounded-xl border border-zinc-50/10 bg-zinc-50/5 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
+        />
+        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+        <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={onClose}
             className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
           >
             Anulează
           </button>
           <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
+            type="submit"
+            disabled={busy || !name.trim()}
+            className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
           >
-            Șterge
+            {busy ? "Se salvează…" : "Salvează"}
           </button>
         </div>
-      </div>
-    </div>
+      </form>
+    </ModalShell>
   );
 }
