@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.1](https://github.com/rafail3/ngig.cloud/compare/v1.17.0...v1.17.1) (2026-06-18)
+
+
+### Bug Fixes
+
+* **files:** reliably prune phantom DB rows via admin client ([5e1d3db](https://github.com/rafail3/ngig.cloud/commit/5e1d3dbc1f9d00124aaa087dcc8e7c7acd4d9091))
+* **files:** reliably prune phantom DB rows via admin client ([c5dce26](https://github.com/rafail3/ngig.cloud/commit/c5dce26c76cb8153f041a63caa2fd3f2945c7730))
+
 ## [1.17.0](https://github.com/rafail3/ngig.cloud/compare/v1.16.0...v1.17.0) (2026-06-18)
 
 
