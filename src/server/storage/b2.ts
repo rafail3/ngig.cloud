@@ -3,6 +3,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  CopyObjectCommand,
   DeleteObjectCommand,
   ListObjectVersionsCommand,
   ListObjectsV2Command,
@@ -141,6 +142,18 @@ export function presignDownload(key: string, filename: string, expiresIn = 600) 
       ResponseContentDisposition: `attachment; filename="${filename.replace(/"/g, "")}"`,
     }),
     { expiresIn },
+  );
+}
+
+// Server-side copy of an object to a new key (no bytes through us). Our keys are
+// `<owner>/<uuid>` — only URL-safe chars — so CopySource needs no extra encoding.
+export async function copyObject(srcKey: string, destKey: string): Promise<void> {
+  await client.send(
+    new CopyObjectCommand({
+      Bucket: bucket,
+      Key: destKey,
+      CopySource: `${bucket}/${srcKey}`,
+    }),
   );
 }
 

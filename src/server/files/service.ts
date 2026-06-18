@@ -10,6 +10,7 @@ import {
   presignUpload,
   presignDownload,
   presignView,
+  copyObject,
   deleteObject,
   statObject,
   listKeys,
@@ -516,4 +517,66 @@ export async function deleteFile(id: string) {
     // consistent and the user never sees a delete error.
   }
   await repo.deleteFileRow(id);
+}
+
+// ---- File operations ------------------------------------------------------
+
+// A file name may contain dots but not path separators.
+const FILE_NAME_RE = /^[^/\\]{1,255}$/;
+
+export async function renameFile(id: string, name: string): Promise<void> {
+  await requireActiveUser();
+  const clean = name.trim();
+  if (!FILE_NAME_RE.test(clean)) throw new Error("Nume de fișier invalid.");
+  await repo.updateFile(id, { name: clean });
+}
+
+// Move a file into a folder (null = root). The destination folder must belong to
+// the caller — RLS only guards the file row, so we verify the folder explicitly
+// to stop a file being parked under someone else's (or a nonexistent) folder.
+export async function moveFile(
+  id: string,
+  folderId: string | null,
+): Promise<void> {
+  await requireActiveUser();
+  if (folderId !== null) {
+    const dest = await repo.getFolder(folderId);
+    if (!dest) throw new Error("Destinație invalidă.");
+  }
+  await repo.updateFile(id, { folder_id: folderId });
+}
+
+// Insert " (copie)" before the extension: "report.pdf" → "report (copie).pdf".
+function copyName(name: string): string {
+  const dot = name.lastIndexOf(".");
+  if (dot <= 0) return `${name} (copie)`;
+  return `${name.slice(0, dot)} (copie)${name.slice(dot)}`;
+}
+
+// Make a real, independent copy: a fresh B2 object (counts against quota) plus a
+// new DB row in the same folder.
+export async function copyFile(id: string): Promise<void> {
+  const { id: userId, maxFile, maxTotal } = await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+
+  await enforceQuota(userId, file.size, maxFile, maxTotal);
+
+  const destKey = `${userId}/${randomUUID()}`;
+  await copyObject(file.storage_key, destKey);
+  await repo.insertFile({
+    owner_id: userId,
+    name: copyName(file.name),
+    size: file.size,
+    mime_type: file.mime_type,
+    storage_key: destKey,
+    folder_id: file.folder_id,
+  });
+}
+
+// Soft delete: hide the file from listings but keep its bytes + row so it can be
+// restored from Trash. Permanent delete (and the Trash view) come in a later task.
+export async function moveFileToTrash(id: string): Promise<void> {
+  await requireActiveUser();
+  await repo.updateFile(id, { deleted_at: new Date().toISOString() });
 }

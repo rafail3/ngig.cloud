@@ -2,19 +2,25 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Home, Folder, X } from "lucide-react";
-import { listAllFoldersAction, moveFolderAction } from "@/app/drive-actions";
+import { listAllFoldersAction } from "@/app/drive-actions";
 import { ModalShell } from "./anim";
 
 type F = { id: string; name: string; parent_id: string | null };
 
-export function MoveFolderModal({
-  folder,
+/* Destination picker for moving a file or folder. `excludeSubtreeOf` (a folder
+   id) removes that folder and all its descendants from the choices — used when
+   moving a folder, so it can't be dropped into itself. `onPick` performs the
+   move and returns `{ error? }`; on success it should close/refresh. */
+export function FolderPickerModal({
+  title,
+  excludeSubtreeOf,
   onClose,
-  onMoved,
+  onPick,
 }: {
-  folder: { id: string; name: string };
+  title: string;
+  excludeSubtreeOf?: string;
   onClose: () => void;
-  onMoved: () => void;
+  onPick: (dest: string | null) => Promise<{ error?: string }>;
 }) {
   const [folders, setFolders] = useState<F[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,21 +36,18 @@ export function MoveFolderModal({
     });
   }, []);
 
-  async function move(dest: string | null) {
+  async function pick(dest: string | null) {
     setBusy(true);
     setError(null);
-    const res = await moveFolderAction(folder.id, dest);
+    const res = await onPick(dest);
     setBusy(false);
-    if (res.error) {
-      setError(res.error);
-      return;
-    }
-    onMoved();
+    if (res.error) setError(res.error);
   }
 
-  // Exclude the folder itself and its descendants as destinations.
-  const excluded = new Set<string>([folder.id]);
-  if (folders) {
+  // Folder ids to hide: the excluded folder plus its whole subtree.
+  const excluded = new Set<string>();
+  if (excludeSubtreeOf && folders) {
+    excluded.add(excludeSubtreeOf);
     const childrenOf = new Map<string, string[]>();
     for (const f of folders) {
       if (!f.parent_id) continue;
@@ -52,7 +55,7 @@ export function MoveFolderModal({
       a.push(f.id);
       childrenOf.set(f.parent_id, a);
     }
-    const stack = [folder.id];
+    const stack = [excludeSubtreeOf];
     while (stack.length) {
       const cur = stack.pop()!;
       for (const c of childrenOf.get(cur) ?? []) {
@@ -72,7 +75,7 @@ export function MoveFolderModal({
         <button
           key={f.id}
           type="button"
-          onClick={() => move(f.id)}
+          onClick={() => pick(f.id)}
           disabled={busy}
           style={{ paddingLeft: depth * 18 + 12 }}
           className="flex w-full items-center gap-2 py-2 pr-3 text-left text-sm text-zinc-200 transition hover:bg-zinc-800/70 disabled:opacity-50"
@@ -91,7 +94,7 @@ export function MoveFolderModal({
     >
       <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-3">
         <h3 className="min-w-0 truncate text-base font-semibold text-zinc-100">
-          Mută „{folder.name}”
+          {title}
         </h3>
         <button
           type="button"
@@ -107,7 +110,7 @@ export function MoveFolderModal({
       <div className="mt-1 flex-1 overflow-auto py-1">
         <button
           type="button"
-          onClick={() => move(null)}
+          onClick={() => pick(null)}
           disabled={busy}
           className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-zinc-100 transition hover:bg-zinc-800/70 disabled:opacity-50"
         >

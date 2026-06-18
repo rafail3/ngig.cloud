@@ -1,19 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { Folder, Trash2 } from "lucide-react";
+import { Folder, Trash2, Download, Info, Pencil, FolderInput } from "lucide-react";
 import {
   deleteFolderAction,
   renameFolderAction,
+  moveFolderAction,
   folderStatsAction,
 } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { InfoModal } from "./InfoModal";
-import { FolderMenu } from "./FolderMenu";
-import { MoveFolderModal } from "./MoveFolderModal";
+import { ActionMenu, type ActionMenuHandle, type MenuAction } from "./ActionMenu";
+import { FolderPickerModal } from "./FolderPickerModal";
 import { ModalShell, listContainer, listItem } from "./anim";
 
 export type FolderItem = { id: string; name: string };
@@ -68,36 +69,16 @@ export function FolderList({ folders }: { folders: FolderItem[] }) {
       >
         <AnimatePresence initial={false}>
           {folders.map((f) => (
-            <motion.li
+            <FolderCard
               key={f.id}
-              layout
-              variants={listItem}
-              exit={{ opacity: 0, scale: 0.96 }}
-              whileHover={{ y: -2 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              className={`flex min-h-[66px] items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/70 ${
-                pendingId === f.id ? "opacity-50" : ""
-              }`}
-            >
-              <Link
-                href={`/?folder=${f.id}`}
-                className="flex min-w-0 flex-1 items-center gap-2.5"
-              >
-                <Folder className="h-5 w-5 shrink-0 text-indigo-400" />
-                <span className="truncate text-sm font-medium text-zinc-100">
-                  {f.name}
-                </span>
-              </Link>
-              <FolderMenu
-                onDownload={() =>
-                  window.location.assign(`/api/folder/${f.id}/download`)
-                }
-                onInfo={() => openInfo(f)}
-                onRename={() => setToRename(f)}
-                onMove={() => setToMove(f)}
-                onDelete={() => setToDelete(f)}
-              />
-            </motion.li>
+              folder={f}
+              pending={pendingId === f.id}
+              onDownload={() => window.location.assign(`/api/folder/${f.id}/download`)}
+              onInfo={() => openInfo(f)}
+              onRename={() => setToRename(f)}
+              onMove={() => setToMove(f)}
+              onDelete={() => setToDelete(f)}
+            />
           ))}
         </AnimatePresence>
       </motion.ul>
@@ -131,13 +112,18 @@ export function FolderList({ folders }: { folders: FolderItem[] }) {
         )}
 
         {toMove && (
-          <MoveFolderModal
+          <FolderPickerModal
             key="move"
-            folder={toMove}
+            title={`Mută „${toMove.name}”`}
+            excludeSubtreeOf={toMove.id}
             onClose={() => setToMove(null)}
-            onMoved={() => {
-              setToMove(null);
-              router.refresh();
+            onPick={async (dest) => {
+              const res = await moveFolderAction(toMove.id, dest);
+              if (!res.error) {
+                setToMove(null);
+                router.refresh();
+              }
+              return res;
             }}
           />
         )}
@@ -152,6 +138,57 @@ export function FolderList({ folders }: { folders: FolderItem[] }) {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function FolderCard({
+  folder,
+  pending,
+  onDownload,
+  onInfo,
+  onRename,
+  onMove,
+  onDelete,
+}: {
+  folder: FolderItem;
+  pending: boolean;
+  onDownload: () => void;
+  onInfo: () => void;
+  onRename: () => void;
+  onMove: () => void;
+  onDelete: () => void;
+}) {
+  const menuRef = useRef<ActionMenuHandle>(null);
+
+  const actions: MenuAction[] = [
+    { icon: Download, label: "Descarcă", onSelect: onDownload },
+    { icon: Info, label: "Detalii", onSelect: onInfo },
+    { icon: Pencil, label: "Redenumește", onSelect: onRename },
+    { icon: FolderInput, label: "Mută", onSelect: onMove },
+    { icon: Trash2, label: "Șterge", onSelect: onDelete, danger: true },
+  ];
+
+  return (
+    <motion.li
+      layout
+      variants={listItem}
+      exit={{ opacity: 0, scale: 0.96 }}
+      whileHover={{ y: -2 }}
+      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        menuRef.current?.openAt(e.clientX, e.clientY);
+      }}
+      className={`flex min-h-[66px] items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/70 ${
+        pending ? "opacity-50" : ""
+      }`}
+    >
+      <Link href={`/?folder=${folder.id}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+        <Folder className="h-5 w-5 shrink-0 text-indigo-400" />
+        <span className="truncate text-sm font-medium text-zinc-100">{folder.name}</span>
+      </Link>
+      <ActionMenu ref={menuRef} actions={actions} label="Opțiuni folder" />
+    </motion.li>
   );
 }
 

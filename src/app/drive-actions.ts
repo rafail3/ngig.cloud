@@ -208,3 +208,50 @@ export async function deleteFileAction(id: string): Promise<Revoked | void> {
     throw e;
   }
 }
+
+export async function renameFileAction(
+  id: string,
+  name: string,
+): Promise<{ error?: string }> {
+  try {
+    await files.renameFile(id, name);
+    return {};
+  } catch (e) {
+    if (isRevoked(e)) return { error: "Sesiune expirată." };
+    return { error: e instanceof Error ? e.message : "Eroare." };
+  }
+}
+
+export async function moveFileAction(
+  id: string,
+  folderId: string | null,
+): Promise<{ error?: string }> {
+  try {
+    await files.moveFile(id, folderId);
+    return {};
+  } catch (e) {
+    if (isRevoked(e)) return { error: "Sesiune expirată." };
+    return { error: e instanceof Error ? e.message : "Eroare." };
+  }
+}
+
+export async function copyFileAction(id: string): Promise<{ error?: string }> {
+  try {
+    await files.copyFile(id);
+    return {};
+  } catch (e) {
+    if (isRevoked(e)) return { error: "Sesiune expirată." };
+    return { error: e instanceof Error ? e.message : "Eroare." };
+  }
+}
+
+export async function moveFileToTrashAction(
+  id: string,
+): Promise<Revoked | void> {
+  try {
+    await files.moveFileToTrash(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}

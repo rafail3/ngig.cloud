@@ -11,6 +11,7 @@ export type FileRow = {
   storage_key: string;
   folder_id: string | null;
   created_at: string;
+  deleted_at: string | null;
 };
 
 export type FolderRow = {
@@ -24,12 +25,14 @@ export type FolderRow = {
 // All queries run through the user-scoped Supabase client, so RLS enforces
 // owner-only access at the data layer.
 
-// Files directly inside a folder (null = root).
+// Files directly inside a folder (null = root). Trashed files (deleted_at set)
+// are hidden from normal listings.
 export async function listFilesIn(folderId: string | null): Promise<FileRow[]> {
   const supabase = await createClient();
   const base = supabase
     .from("files")
     .select("*")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   const { data, error } = await (folderId === null
     ? base.is("folder_id", null)
@@ -118,6 +121,7 @@ export async function listFilesInFolders(ids: string[]): Promise<FileRow[]> {
   const { data, error } = await supabase
     .from("files")
     .select("*")
+    .is("deleted_at", null)
     .in("folder_id", ids);
   if (error) throw error;
   return (data ?? []) as FileRow[];
@@ -149,6 +153,15 @@ export async function insertFile(row: {
   const { data, error } = await supabase.from("files").insert(row).select().single();
   if (error) throw error;
   return data as FileRow;
+}
+
+export async function updateFile(
+  id: string,
+  patch: { name?: string; folder_id?: string | null; deleted_at?: string | null },
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("files").update(patch).eq("id", id);
+  if (error) throw error;
 }
 
 export async function deleteFileRow(id: string) {
