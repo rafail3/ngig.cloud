@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.17.0](https://github.com/rafail3/ngig.cloud/compare/v1.16.0...v1.17.0) (2026-06-18)
+
+
+### Features
+
+* **drive:** navigable folders, file preview and custom media players ([174406c](https://github.com/rafail3/ngig.cloud/commit/174406cf6b5dcb899e0f0bb62d5f97add95d59b3))
+
+
+### Bug Fixes
+
+* **csp:** allow B2 media and PDF iframe in preview ([3d83670](https://github.com/rafail3/ngig.cloud/commit/3d83670c0a704e4ffb57b2c15cba2bd14d663ac4))
+* **csp:** allow B2 media and PDF previews in production ([9a1227a](https://github.com/rafail3/ngig.cloud/commit/9a1227adadcbf32508700c3420f1d53a0f40c97d))
+
 ## [1.16.0](https://github.com/rafail3/ngig.cloud/compare/v1.15.1...v1.16.0) (2026-06-17)
 
 
