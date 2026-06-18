@@ -128,10 +128,12 @@ export async function listFolder(folderId: string | null) {
   after(async () => {
     try {
       if (existing) {
-        const all = await repo.listAllFiles();
-        const missing = all.filter((r) => !existing.has(r.storage_key));
+        // Admin client: the cookie-based user client isn't reliable in after(),
+        // which left phantom rows (B2 object gone, DB row stays) uncleaned.
+        const allKeys = await repo.adminListUserFileKeys(userId);
+        const missing = allKeys.filter((k) => !existing.has(k));
         if (missing.length > 0) {
-          await repo.deleteFileRowsByKeys(missing.map((r) => r.storage_key));
+          await repo.adminDeleteFilesByKeys(missing);
         }
       }
     } catch {
