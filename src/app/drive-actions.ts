@@ -120,6 +120,44 @@ export async function deleteFolderAction(id: string): Promise<Revoked | void> {
   }
 }
 
+export async function renameFolderAction(
+  id: string,
+  name: string,
+): Promise<{ error?: string }> {
+  try {
+    await files.renameFolder(id, name);
+    return {};
+  } catch (e) {
+    if (isRevoked(e)) return { error: "Sesiune expirată." };
+    return { error: e instanceof Error ? e.message : "Eroare." };
+  }
+}
+
+export async function moveFolderAction(
+  id: string,
+  newParentId: string | null,
+): Promise<{ error?: string }> {
+  try {
+    await files.moveFolder(id, newParentId);
+    return {};
+  } catch (e) {
+    if (isRevoked(e)) return { error: "Sesiune expirată." };
+    return { error: e instanceof Error ? e.message : "Eroare." };
+  }
+}
+
+export async function listAllFoldersAction(): Promise<
+  { id: string; name: string; parent_id: string | null }[] | Revoked
+> {
+  try {
+    const folders = await files.listAllFolders();
+    return folders.map((f) => ({ id: f.id, name: f.name, parent_id: f.parent_id }));
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
 export async function folderStatsAction(
   id: string,
 ): Promise<{ size: number; count: number } | Revoked> {

@@ -196,6 +196,14 @@ export async function listKeys(prefix: string): Promise<Set<string>> {
 // versionId. We deliberately do NOT fall back to a plain DeleteObject — on a
 // versioned bucket that just adds another hide marker (a 0-byte orphan), which
 // is exactly what we're cleaning up. If nothing is listed, there's nothing to do.
+// Raw object stream (Node Readable) — used to pipe a file into a zip archive.
+export async function getObjectStream(key: string): Promise<NodeJS.ReadableStream> {
+  const res = await client.send(
+    new GetObjectCommand({ Bucket: bucket, Key: key }),
+  );
+  return res.Body as NodeJS.ReadableStream;
+}
+
 export async function deleteObject(key: string) {
   let keyMarker: string | undefined;
   let versionIdMarker: string | undefined;

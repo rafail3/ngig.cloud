@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Folder, Trash2 } from "lucide-react";
-import { deleteFolderAction } from "@/app/drive-actions";
+import {
+  deleteFolderAction,
+  renameFolderAction,
+  folderStatsAction,
+} from "@/app/drive-actions";
+import { formatBytes } from "@/lib/format";
+import { InfoModal } from "./InfoModal";
+import { FolderMenu } from "./FolderMenu";
+import { MoveFolderModal } from "./MoveFolderModal";
 
 export type FolderItem = { id: string; name: string };
 
@@ -12,6 +20,22 @@ export function FolderList({ folders }: { folders: FolderItem[] }) {
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<FolderItem | null>(null);
+  const [toRename, setToRename] = useState<FolderItem | null>(null);
+  const [toMove, setToMove] = useState<FolderItem | null>(null);
+  const [info, setInfo] = useState<FolderItem | null>(null);
+  const [stats, setStats] = useState<{ size: number; count: number } | null>(null);
+
+  function openInfo(folder: FolderItem) {
+    setInfo(folder);
+    setStats(null);
+    folderStatsAction(folder.id).then((res) => {
+      if ("revoked" in res) {
+        window.location.assign("/login");
+        return;
+      }
+      setStats(res);
+    });
+  }
 
   async function confirmDelete() {
     const folder = toDelete;
@@ -38,29 +62,67 @@ export function FolderList({ folders }: { folders: FolderItem[] }) {
         {folders.map((f) => (
           <li
             key={f.id}
-            className="flex min-h-[66px] items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/70"
+            className={`flex min-h-[66px] items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/70 ${
+              pendingId === f.id ? "opacity-50" : ""
+            }`}
           >
             <Link
               href={`/?folder=${f.id}`}
-              className="flex min-w-0 flex-1 items-center gap-3"
+              className="flex min-w-0 flex-1 items-center gap-2.5"
             >
-              <Folder className="h-7 w-7 shrink-0 text-indigo-400" />
-              <span className="truncate text-lg font-medium text-zinc-100">
+              <Folder className="h-5 w-5 shrink-0 text-indigo-400" />
+              <span className="truncate text-sm font-medium text-zinc-100">
                 {f.name}
               </span>
             </Link>
-            <button
-              type="button"
-              onClick={() => setToDelete(f)}
-              disabled={pendingId === f.id}
-              aria-label="Șterge folderul"
-              className="shrink-0 rounded-md p-1 text-zinc-500 transition hover:text-red-400 disabled:opacity-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            <FolderMenu
+              onDownload={() =>
+                window.location.assign(`/api/folder/${f.id}/download`)
+              }
+              onInfo={() => openInfo(f)}
+              onRename={() => setToRename(f)}
+              onMove={() => setToMove(f)}
+              onDelete={() => setToDelete(f)}
+            />
           </li>
         ))}
       </ul>
+
+      {info && (
+        <InfoModal
+          title={info.name}
+          onClose={() => setInfo(null)}
+          rows={[
+            { label: "Fișiere", value: stats ? String(stats.count) : "…" },
+            {
+              label: "Dimensiune totală",
+              value: stats ? formatBytes(stats.size) : "…",
+            },
+          ]}
+        />
+      )}
+
+      {toRename && (
+        <RenameFolderModal
+          folder={toRename}
+          onClose={() => setToRename(null)}
+          onRenamed={() => {
+            setToRename(null);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {toMove && (
+        <MoveFolderModal
+          folder={toMove}
+          onClose={() => setToMove(null)}
+          onMoved={() => {
+            setToMove(null);
+            router.refresh();
+          }}
+        />
+      )}
 
       {toDelete && (
         <ConfirmDeleteFolder
@@ -70,6 +132,69 @@ export function FolderList({ folders }: { folders: FolderItem[] }) {
         />
       )}
     </>
+  );
+}
+
+function RenameFolderModal({
+  folder,
+  onClose,
+  onRenamed,
+}: {
+  folder: FolderItem;
+  onClose: () => void;
+  onRenamed: () => void;
+}) {
+  const [name, setName] = useState(folder.name);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setBusy(true);
+    setError(null);
+    const res = await renameFolderAction(folder.id, name);
+    setBusy(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    onRenamed();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <form
+        onSubmit={submit}
+        className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl"
+      >
+        <h3 className="text-base font-semibold text-zinc-100">Redenumește folderul</h3>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mt-3 w-full rounded-xl border border-zinc-50/10 bg-zinc-50/5 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
+        />
+        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+          >
+            Anulează
+          </button>
+          <button
+            type="submit"
+            disabled={busy || !name.trim()}
+            className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
+          >
+            {busy ? "Se salvează…" : "Salvează"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 

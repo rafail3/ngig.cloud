@@ -95,6 +95,34 @@ export async function deleteFolderRow(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function updateFolder(
+  id: string,
+  patch: { name?: string; parent_id?: string | null },
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("folders").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+// All of the caller's folders (for the move picker + path building).
+export async function listAllFolders(): Promise<FolderRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("folders").select("*").order("name");
+  if (error) throw error;
+  return (data ?? []) as FolderRow[];
+}
+
+export async function listFilesInFolders(ids: string[]): Promise<FileRow[]> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("files")
+    .select("*")
+    .in("folder_id", ids);
+  if (error) throw error;
+  return (data ?? []) as FileRow[];
+}
+
 // Storage keys of every file in a folder's subtree (security-definer RPC).
 export async function descendantFileKeys(id: string): Promise<string[]> {
   const supabase = await createClient();

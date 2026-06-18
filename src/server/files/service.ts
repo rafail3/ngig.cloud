@@ -200,6 +200,112 @@ export async function deleteFolder(id: string): Promise<void> {
   await repo.deleteFolderRow(id);
 }
 
+function isUniqueViolation(e: unknown): boolean {
+  return typeof e === "object" && e !== null && "code" in e && e.code === "23505";
+}
+
+export async function renameFolder(id: string, name: string): Promise<void> {
+  await requireActiveUser();
+  const clean = name.trim();
+  if (!FOLDER_NAME_RE.test(clean)) throw new Error("Nume de folder invalid.");
+  try {
+    await repo.updateFolder(id, { name: clean });
+  } catch (e) {
+    if (isUniqueViolation(e)) {
+      throw new Error("Există deja un folder cu acest nume aici.");
+    }
+    throw e;
+  }
+}
+
+// Folders the caller owns — for the move-destination picker.
+export async function listAllFolders() {
+  await requireUserId();
+  return repo.listAllFolders();
+}
+
+// Move a folder (with everything in it) under a new parent (null = root).
+export async function moveFolder(
+  id: string,
+  newParentId: string | null,
+): Promise<void> {
+  await requireActiveUser();
+  if (id === newParentId) throw new Error("Destinație invalidă.");
+
+  const folders = await repo.listAllFolders();
+  // Build the subtree of `id` to forbid moving a folder into itself/descendant.
+  const childrenOf = new Map<string, string[]>();
+  for (const f of folders) {
+    if (!f.parent_id) continue;
+    const arr = childrenOf.get(f.parent_id) ?? [];
+    arr.push(f.id);
+    childrenOf.set(f.parent_id, arr);
+  }
+  const sub = new Set<string>([id]);
+  const stack = [id];
+  while (stack.length) {
+    const cur = stack.pop()!;
+    for (const c of childrenOf.get(cur) ?? []) {
+      if (!sub.has(c)) {
+        sub.add(c);
+        stack.push(c);
+      }
+    }
+  }
+  if (newParentId && sub.has(newParentId)) {
+    throw new Error("Nu poți muta un folder în el însuși.");
+  }
+
+  try {
+    await repo.updateFolder(id, { parent_id: newParentId });
+  } catch (e) {
+    if (isUniqueViolation(e)) {
+      throw new Error("Există deja un folder cu acest nume în destinație.");
+    }
+    throw e;
+  }
+}
+
+// Manifest for zipping a folder: every file in the subtree with its path
+// (relative to the folder's parent, so the zip contains the folder itself).
+export async function folderManifest(
+  id: string,
+): Promise<{ name: string; files: { key: string; path: string }[] }> {
+  await requireActiveUser();
+  const folders = await repo.listAllFolders();
+  const byId = new Map(folders.map((f) => [f.id, f]));
+  const target = byId.get(id);
+  if (!target) throw new Error("Folder inexistent.");
+
+  const childrenOf = new Map<string, string[]>();
+  for (const f of folders) {
+    if (!f.parent_id) continue;
+    const arr = childrenOf.get(f.parent_id) ?? [];
+    arr.push(f.id);
+    childrenOf.set(f.parent_id, arr);
+  }
+
+  const pathOf = new Map<string, string>([[id, target.name]]);
+  const subIds = [id];
+  const stack = [id];
+  while (stack.length) {
+    const cur = stack.pop()!;
+    for (const c of childrenOf.get(cur) ?? []) {
+      const cf = byId.get(c)!;
+      pathOf.set(c, `${pathOf.get(cur)!}/${cf.name}`);
+      subIds.push(c);
+      stack.push(c);
+    }
+  }
+
+  const files = await repo.listFilesInFolders(subIds);
+  const entries = files.map((f) => ({
+    key: f.storage_key,
+    path: `${pathOf.get(f.folder_id ?? "") ?? target.name}/${f.name}`,
+  }));
+  return { name: target.name, files: entries };
+}
+
 // Recursive size + file count of a folder (for the info box).
 export async function folderStats(
   id: string,
