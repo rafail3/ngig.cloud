@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.18.0](https://github.com/rafail3/ngig.cloud/compare/v1.17.1...v1.18.0) (2026-06-18)
+
+
+### Features
+
+* **drive:** file context menu, copy & trash groundwork ([d0658f7](https://github.com/rafail3/ngig.cloud/commit/d0658f7dec7effcf05e62014170043f6790c2dcb))
+* **drive:** folder actions menu (download zip, rename, move, info) ([51bab82](https://github.com/rafail3/ngig.cloud/commit/51bab82602efa1a2efc3775dce3f9285d2268022))
+* **drive:** smooth Framer Motion interactions ([b846b0c](https://github.com/rafail3/ngig.cloud/commit/b846b0c7cfd3ae39d722915874f104597e972308))
+* **drive:** smooth interactions, context menus, copy & trash groundwork ([fda3348](https://github.com/rafail3/ngig.cloud/commit/fda3348773f44bb4f93746205661245f2def8b8c))
+
 ## [1.17.1](https://github.com/rafail3/ngig.cloud/compare/v1.17.0...v1.17.1) (2026-06-18)
 
 
