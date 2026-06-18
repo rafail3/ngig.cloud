@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { motion } from "motion/react";
 import {
   MoreVertical,
   Download,
@@ -10,6 +11,7 @@ import {
   FolderInput,
   Trash2,
 } from "lucide-react";
+import { menuMotion } from "./anim";
 
 export function FolderMenu({
   onDownload,
@@ -77,15 +79,21 @@ export function FolderMenu({
           <>
             <div className="fixed inset-0 z-[70]" onClick={() => setOpen(false)} />
             <div
-              className="fixed z-[71] w-44 -translate-x-full overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 py-1 shadow-2xl"
+              className="fixed z-[71] -translate-x-full"
               style={{ top: pos.top, left: pos.left }}
             >
-              {item(Download, "Descarcă", onDownload)}
-              {item(Info, "Detalii", onInfo)}
-              {item(Pencil, "Redenumește", onRename)}
-              {item(FolderInput, "Mută", onMove)}
-              <div className="my-1 h-px bg-zinc-800" />
-              {item(Trash2, "Șterge", onDelete, true)}
+              <motion.div
+                {...menuMotion}
+                style={{ transformOrigin: "top right" }}
+                className="w-44 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 py-1 shadow-2xl"
+              >
+                {item(Download, "Descarcă", onDownload)}
+                {item(Info, "Detalii", onInfo)}
+                {item(Pencil, "Redenumește", onRename)}
+                {item(FolderInput, "Mută", onMove)}
+                <div className="my-1 h-px bg-zinc-800" />
+                {item(Trash2, "Șterge", onDelete, true)}
+              </motion.div>
             </div>
           </>,
           document.body,

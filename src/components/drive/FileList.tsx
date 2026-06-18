@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { Trash2, Loader2, Info, Download } from "lucide-react";
 import { getDownloadUrlAction, deleteFileAction } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
@@ -9,6 +10,7 @@ import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { useUploads, type UploadJob } from "./UploadProvider";
 import { PreviewModal } from "./PreviewModal";
 import { InfoModal } from "./InfoModal";
+import { ModalShell, listContainer, listItem } from "./anim";
 
 function speedLabel(bytesPerSec: number): string {
   if (!bytesPerSec || bytesPerSec < 1) return "—";
@@ -26,7 +28,12 @@ function etaLabel(sec: number | null): string {
 function UploadingRow({ job }: { job: UploadJob }) {
   const pct = job.size > 0 ? Math.min(100, Math.round((job.sent / job.size) * 100)) : 0;
   return (
-    <li className="px-4 py-3 opacity-55">
+    <motion.li
+      layout
+      variants={listItem}
+      exit={{ opacity: 0, scale: 0.97 }}
+      className="px-4 py-3 opacity-55"
+    >
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-2">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-indigo-400" />
@@ -49,7 +56,7 @@ function UploadingRow({ job }: { job: UploadJob }) {
       <p className="mt-1 text-sm text-zinc-500">
         {pct}% · {formatBytes(job.sent)} / {formatBytes(job.size)}
       </p>
-    </li>
+    </motion.li>
   );
 }
 
@@ -117,87 +124,102 @@ export function FileList({
 
   return (
     <>
-      <ul className="divide-y divide-zinc-900 overflow-hidden rounded-xl border border-zinc-900">
-        {uploading.map((job) => (
-          <UploadingRow key={job.id} job={job} />
-        ))}
-        {files.map((f) => (
-          <li
-            key={f.id}
-            className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-zinc-900/40"
-          >
-            <button
-              type="button"
-              onClick={() => setPreview(f)}
-              className="min-w-0 flex-1 text-left"
+      <motion.ul
+        variants={listContainer}
+        initial="hidden"
+        animate="show"
+        className="divide-y divide-zinc-900 overflow-hidden rounded-xl border border-zinc-900"
+      >
+        <AnimatePresence initial={false}>
+          {uploading.map((job) => (
+            <UploadingRow key={job.id} job={job} />
+          ))}
+          {files.map((f) => (
+            <motion.li
+              key={f.id}
+              layout
+              variants={listItem}
+              exit={{ opacity: 0, scale: 0.97 }}
+              className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-zinc-900/40"
             >
-              <p className="truncate text-base font-medium text-zinc-100">{f.name}</p>
-              <p className="text-sm text-zinc-500">
-                {formatBytes(f.size)} · {formatDateShort(f.createdAt)}
-              </p>
-            </button>
-            <div className="flex shrink-0 items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setInfo(f)}
-                aria-label="Detalii"
-                className="rounded-md border border-zinc-800 p-2 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-50"
+                onClick={() => setPreview(f)}
+                className="min-w-0 flex-1 text-left"
               >
-                <Info className="h-4 w-4" />
+                <p className="truncate text-base font-medium text-zinc-100">{f.name}</p>
+                <p className="text-sm text-zinc-500">
+                  {formatBytes(f.size)} · {formatDateShort(f.createdAt)}
+                </p>
               </button>
-              <button
-                type="button"
-                onClick={() => download(f.id)}
-                aria-label="Descarcă"
-                className="rounded-md border border-zinc-800 p-2 text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
-              >
-                <Download className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setToDelete(f)}
-                disabled={pendingId === f.id}
-                aria-label="Șterge"
-                className="rounded-md border border-red-900/60 p-2 text-red-400 transition-colors hover:bg-red-950/40 disabled:opacity-50"
-              >
-                {pendingId === f.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setInfo(f)}
+                  aria-label="Detalii"
+                  className="rounded-md border border-zinc-800 p-2 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-50"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => download(f.id)}
+                  aria-label="Descarcă"
+                  className="rounded-md border border-zinc-800 p-2 text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setToDelete(f)}
+                  disabled={pendingId === f.id}
+                  aria-label="Șterge"
+                  className="rounded-md border border-red-900/60 p-2 text-red-400 transition-colors hover:bg-red-950/40 disabled:opacity-50"
+                >
+                  {pendingId === f.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </motion.li>
+          ))}
+        </AnimatePresence>
+      </motion.ul>
 
-      {toDelete && (
-        <ConfirmDeleteModal
-          name={toDelete.name}
-          onCancel={() => setToDelete(null)}
-          onConfirm={confirmDelete}
-        />
-      )}
+      <AnimatePresence>
+        {toDelete && (
+          <ConfirmDeleteModal
+            key="delete"
+            name={toDelete.name}
+            onCancel={() => setToDelete(null)}
+            onConfirm={confirmDelete}
+          />
+        )}
 
-      {preview && (
-        <PreviewModal
-          file={preview}
-          onClose={() => setPreview(null)}
-          onDownload={() => download(preview.id)}
-        />
-      )}
+        {preview && (
+          <PreviewModal
+            key="preview"
+            file={preview}
+            onClose={() => setPreview(null)}
+            onDownload={() => download(preview.id)}
+          />
+        )}
 
-      {info && (
-        <InfoModal
-          title={info.name}
-          onClose={() => setInfo(null)}
-          rows={[
-            { label: "Dimensiune", value: formatBytes(info.size) },
-            { label: "Tip", value: info.mimeType ?? "necunoscut" },
-            { label: "Încărcat", value: formatDateTime(info.createdAt) },
-          ]}
-        />
-      )}
+        {info && (
+          <InfoModal
+            key="info"
+            title={info.name}
+            onClose={() => setInfo(null)}
+            rows={[
+              { label: "Dimensiune", value: formatBytes(info.size) },
+              { label: "Tip", value: info.mimeType ?? "necunoscut" },
+              { label: "Încărcat", value: formatDateTime(info.createdAt) },
+            ]}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
@@ -211,45 +233,32 @@ function ConfirmDeleteModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onCancel]);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
-          <Trash2 className="h-5 w-5 text-red-400" />
-        </div>
-        <h3 className="mt-4 text-base font-semibold text-zinc-100">Ștergi fișierul?</h3>
-        <p className="mt-1.5 text-sm text-zinc-400">
-          <span className="break-all font-medium text-zinc-300">{name}</span> va fi șters definitiv.
-          Acțiunea e ireversibilă.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
-          >
-            Anulează
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
-          >
-            Șterge
-          </button>
-        </div>
+    <ModalShell onClose={onCancel}>
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
+        <Trash2 className="h-5 w-5 text-red-400" />
       </div>
-    </div>
+      <h3 className="mt-4 text-base font-semibold text-zinc-100">Ștergi fișierul?</h3>
+      <p className="mt-1.5 text-sm text-zinc-400">
+        <span className="break-all font-medium text-zinc-300">{name}</span> va fi șters definitiv.
+        Acțiunea e ireversibilă.
+      </p>
+      <div className="mt-5 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+        >
+          Anulează
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
+        >
+          Șterge
+        </button>
+      </div>
+    </ModalShell>
   );
 }

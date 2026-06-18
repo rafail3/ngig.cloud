@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MotionConfig } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -47,6 +48,7 @@ export function AppShell({
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin");
 
   return (
+    <MotionConfig reducedMotion="user">
     <UploadProvider>
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
       {/* ===== Top navbar (always visible, full width) ===== */}
@@ -203,5 +205,6 @@ export function AppShell({
       <UploadPanel />
     </div>
     </UploadProvider>
+    </MotionConfig>
   );
 }

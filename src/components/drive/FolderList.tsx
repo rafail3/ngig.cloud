@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { Folder, Trash2 } from "lucide-react";
 import {
   deleteFolderAction,
@@ -13,6 +14,7 @@ import { formatBytes } from "@/lib/format";
 import { InfoModal } from "./InfoModal";
 import { FolderMenu } from "./FolderMenu";
 import { MoveFolderModal } from "./MoveFolderModal";
+import { ModalShell, listContainer, listItem } from "./anim";
 
 export type FolderItem = { id: string; name: string };
 
@@ -58,79 +60,97 @@ export function FolderList({ folders }: { folders: FolderItem[] }) {
 
   return (
     <>
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-        {folders.map((f) => (
-          <li
-            key={f.id}
-            className={`flex min-h-[66px] items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/70 ${
-              pendingId === f.id ? "opacity-50" : ""
-            }`}
-          >
-            <Link
-              href={`/?folder=${f.id}`}
-              className="flex min-w-0 flex-1 items-center gap-2.5"
+      <motion.ul
+        variants={listContainer}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+      >
+        <AnimatePresence initial={false}>
+          {folders.map((f) => (
+            <motion.li
+              key={f.id}
+              layout
+              variants={listItem}
+              exit={{ opacity: 0, scale: 0.96 }}
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className={`flex min-h-[66px] items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/70 ${
+                pendingId === f.id ? "opacity-50" : ""
+              }`}
             >
-              <Folder className="h-5 w-5 shrink-0 text-indigo-400" />
-              <span className="truncate text-sm font-medium text-zinc-100">
-                {f.name}
-              </span>
-            </Link>
-            <FolderMenu
-              onDownload={() =>
-                window.location.assign(`/api/folder/${f.id}/download`)
-              }
-              onInfo={() => openInfo(f)}
-              onRename={() => setToRename(f)}
-              onMove={() => setToMove(f)}
-              onDelete={() => setToDelete(f)}
-            />
-          </li>
-        ))}
-      </ul>
+              <Link
+                href={`/?folder=${f.id}`}
+                className="flex min-w-0 flex-1 items-center gap-2.5"
+              >
+                <Folder className="h-5 w-5 shrink-0 text-indigo-400" />
+                <span className="truncate text-sm font-medium text-zinc-100">
+                  {f.name}
+                </span>
+              </Link>
+              <FolderMenu
+                onDownload={() =>
+                  window.location.assign(`/api/folder/${f.id}/download`)
+                }
+                onInfo={() => openInfo(f)}
+                onRename={() => setToRename(f)}
+                onMove={() => setToMove(f)}
+                onDelete={() => setToDelete(f)}
+              />
+            </motion.li>
+          ))}
+        </AnimatePresence>
+      </motion.ul>
 
-      {info && (
-        <InfoModal
-          title={info.name}
-          onClose={() => setInfo(null)}
-          rows={[
-            { label: "Fișiere", value: stats ? String(stats.count) : "…" },
-            {
-              label: "Dimensiune totală",
-              value: stats ? formatBytes(stats.size) : "…",
-            },
-          ]}
-        />
-      )}
+      <AnimatePresence>
+        {info && (
+          <InfoModal
+            key="info"
+            title={info.name}
+            onClose={() => setInfo(null)}
+            rows={[
+              { label: "Fișiere", value: stats ? String(stats.count) : "…" },
+              {
+                label: "Dimensiune totală",
+                value: stats ? formatBytes(stats.size) : "…",
+              },
+            ]}
+          />
+        )}
 
-      {toRename && (
-        <RenameFolderModal
-          folder={toRename}
-          onClose={() => setToRename(null)}
-          onRenamed={() => {
-            setToRename(null);
-            router.refresh();
-          }}
-        />
-      )}
+        {toRename && (
+          <RenameFolderModal
+            key="rename"
+            folder={toRename}
+            onClose={() => setToRename(null)}
+            onRenamed={() => {
+              setToRename(null);
+              router.refresh();
+            }}
+          />
+        )}
 
-      {toMove && (
-        <MoveFolderModal
-          folder={toMove}
-          onClose={() => setToMove(null)}
-          onMoved={() => {
-            setToMove(null);
-            router.refresh();
-          }}
-        />
-      )}
+        {toMove && (
+          <MoveFolderModal
+            key="move"
+            folder={toMove}
+            onClose={() => setToMove(null)}
+            onMoved={() => {
+              setToMove(null);
+              router.refresh();
+            }}
+          />
+        )}
 
-      {toDelete && (
-        <ConfirmDeleteFolder
-          name={toDelete.name}
-          onCancel={() => setToDelete(null)}
-          onConfirm={confirmDelete}
-        />
-      )}
+        {toDelete && (
+          <ConfirmDeleteFolder
+            key="delete"
+            name={toDelete.name}
+            onCancel={() => setToDelete(null)}
+            onConfirm={confirmDelete}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
@@ -163,12 +183,8 @@ function RenameFolderModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <form
-        onSubmit={submit}
-        className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl"
-      >
+    <ModalShell onClose={onClose}>
+      <form onSubmit={submit}>
         <h3 className="text-base font-semibold text-zinc-100">Redenumește folderul</h3>
         <input
           autoFocus
@@ -194,7 +210,7 @@ function RenameFolderModal({
           </button>
         </div>
       </form>
-    </div>
+    </ModalShell>
   );
 }
 
@@ -207,46 +223,33 @@ function ConfirmDeleteFolder({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onCancel]);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
-          <Trash2 className="h-5 w-5 text-red-400" />
-        </div>
-        <h3 className="mt-4 text-base font-semibold text-zinc-100">Ștergi folderul?</h3>
-        <p className="mt-1.5 text-sm text-zinc-400">
-          <span className="break-all font-medium text-zinc-300">{name}</span> și{" "}
-          <span className="font-medium text-zinc-300">tot ce conține</span> vor fi
-          șterse definitiv. Acțiunea e ireversibilă.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
-          >
-            Anulează
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
-          >
-            Șterge
-          </button>
-        </div>
+    <ModalShell onClose={onCancel}>
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
+        <Trash2 className="h-5 w-5 text-red-400" />
       </div>
-    </div>
+      <h3 className="mt-4 text-base font-semibold text-zinc-100">Ștergi folderul?</h3>
+      <p className="mt-1.5 text-sm text-zinc-400">
+        <span className="break-all font-medium text-zinc-300">{name}</span> și{" "}
+        <span className="font-medium text-zinc-300">tot ce conține</span> vor fi
+        șterse definitiv. Acțiunea e ireversibilă.
+      </p>
+      <div className="mt-5 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+        >
+          Anulează
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
+        >
+          Șterge
+        </button>
+      </div>
+    </ModalShell>
   );
 }
