@@ -20,7 +20,7 @@ const csp = [
   "form-action 'self'",
   "object-src 'none'",
   "upgrade-insecure-requests",
-].join("; ");
+].join("; "); 
 
 const securityHeaders = [
   // Force HTTPS for two years, including subdomains (preload-eligible).
