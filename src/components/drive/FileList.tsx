@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { useDraggable } from "@dnd-kit/core";
 import {
   Loader2,
   Info,
@@ -26,8 +27,10 @@ import { useUploads, type UploadJob } from "./UploadProvider";
 import { PreviewModal } from "./PreviewModal";
 import { InfoModal } from "./InfoModal";
 import { FolderPickerModal } from "./FolderPickerModal";
-import { ActionMenu, type ActionMenuHandle, type MenuAction } from "./ActionMenu";
-import { ModalShell, listContainer, listItem } from "./anim";
+import { ActionMenu, type MenuAction } from "./ActionMenu";
+import { useContextMenu } from "./ContextMenu";
+import { ModalShell, listContainer, listItem, useMounted } from "./anim";
+import type { DragData } from "./DriveDndProvider";
 
 function speedLabel(bytesPerSec: number): string {
   if (!bytesPerSec || bytesPerSec < 1) return "—";
@@ -183,6 +186,7 @@ export function FileList({
             <FileRow
               key={f.id}
               file={f}
+              folderId={folderId}
               pending={pendingId === f.id}
               onPreview={() => setPreview(f)}
               onInfo={() => setInfo(f)}
@@ -253,6 +257,7 @@ export function FileList({
 
 function FileRow({
   file,
+  folderId,
   pending,
   onPreview,
   onInfo,
@@ -263,6 +268,7 @@ function FileRow({
   onTrash,
 }: {
   file: FileItem;
+  folderId: string | null;
   pending: boolean;
   onPreview: () => void;
   onInfo: () => void;
@@ -272,7 +278,12 @@ function FileRow({
   onDownload: () => void;
   onTrash: () => void;
 }) {
-  const menuRef = useRef<ActionMenuHandle>(null);
+  const openMenu = useContextMenu();
+  const mounted = useMounted();
+  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({
+    id: `file:${file.id}`,
+    data: { kind: "file", id: file.id, name: file.name, parentId: folderId } satisfies DragData,
+  });
 
   const actions: MenuAction[] = [
     { icon: Download, label: "Descarcă", onSelect: onDownload },
@@ -285,16 +296,18 @@ function FileRow({
 
   return (
     <motion.li
+      ref={setNodeRef}
+      {...(mounted ? attributes : {})}
+      {...(mounted ? listeners : {})}
       layout
       variants={listItem}
       exit={{ opacity: 0, scale: 0.97 }}
       onContextMenu={(e) => {
         e.preventDefault();
-        menuRef.current?.openAt(e.clientX, e.clientY);
+        openMenu(actions, e.clientX, e.clientY);
       }}
-      className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-zinc-900/40 ${
-        pending ? "opacity-50" : ""
-      }`}
+      style={{ opacity: isDragging ? 0.4 : pending ? 0.5 : undefined }}
+      className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-zinc-900/40"
     >
       <button type="button" onClick={onPreview} className="min-w-0 flex-1 text-left">
         <p className="truncate text-base font-medium text-zinc-100">{file.name}</p>
@@ -304,7 +317,7 @@ function FileRow({
       </button>
       <div className="flex shrink-0 items-center">
         {pending && <Loader2 className="mr-1 h-4 w-4 animate-spin text-indigo-400" />}
-        <ActionMenu ref={menuRef} actions={actions} label="Opțiuni fișier" />
+        <ActionMenu actions={actions} label="Opțiuni fișier" />
       </div>
     </motion.li>
   );

@@ -1,7 +1,19 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { motion, type Transition, type Variants } from "motion/react";
+
+// False during SSR + the first client render, true thereafter. Use it to gate
+// attributes that differ between server and client (e.g. dnd-kit's generated aria
+// ids) so SSR hydration matches — the attributes get applied right after mount.
+const noopSubscribe = () => () => {};
+export function useMounted(): boolean {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+}
 
 /* Shared motion vocabulary for the whole drive surface, so every panel, card and
    menu animates with the same subtle-pro feel. Durations are short and springs

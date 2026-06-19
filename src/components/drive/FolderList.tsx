@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { Folder, Trash2, Download, Info, Pencil, FolderInput } from "lucide-react";
 import {
   deleteFolderAction,
@@ -13,13 +13,21 @@ import {
 } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { InfoModal } from "./InfoModal";
-import { ActionMenu, type ActionMenuHandle, type MenuAction } from "./ActionMenu";
+import { ActionMenu, type MenuAction } from "./ActionMenu";
+import { useContextMenu } from "./ContextMenu";
 import { FolderPickerModal } from "./FolderPickerModal";
-import { ModalShell, listContainer, listItem } from "./anim";
+import { ModalShell, listContainer, listItem, useMounted } from "./anim";
+import type { DragData, DropData } from "./DriveDndProvider";
 
 export type FolderItem = { id: string; name: string };
 
-export function FolderList({ folders }: { folders: FolderItem[] }) {
+export function FolderList({
+  folders,
+  folderId,
+}: {
+  folders: FolderItem[];
+  folderId: string | null;
+}) {
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<FolderItem | null>(null);
@@ -72,6 +80,7 @@ export function FolderList({ folders }: { folders: FolderItem[] }) {
             <FolderCard
               key={f.id}
               folder={f}
+              parentId={folderId}
               pending={pendingId === f.id}
               onDownload={() => window.location.assign(`/api/folder/${f.id}/download`)}
               onInfo={() => openInfo(f)}
@@ -143,6 +152,7 @@ export function FolderList({ folders }: { folders: FolderItem[] }) {
 
 function FolderCard({
   folder,
+  parentId,
   pending,
   onDownload,
   onInfo,
@@ -151,6 +161,7 @@ function FolderCard({
   onDelete,
 }: {
   folder: FolderItem;
+  parentId: string | null;
   pending: boolean;
   onDownload: () => void;
   onInfo: () => void;
@@ -158,7 +169,27 @@ function FolderCard({
   onMove: () => void;
   onDelete: () => void;
 }) {
-  const menuRef = useRef<ActionMenuHandle>(null);
+  const router = useRouter();
+  const openMenu = useContextMenu();
+  const mounted = useMounted();
+
+  // Draggable (to move it) and droppable (drop another item into it) at once.
+  const { setNodeRef: setDragRef, attributes, listeners, isDragging } = useDraggable({
+    id: `folder:${folder.id}`,
+    data: { kind: "folder", id: folder.id, name: folder.name, parentId } satisfies DragData,
+  });
+  const { setNodeRef: setDropRef, isOver, active } = useDroppable({
+    id: `drop-folder:${folder.id}`,
+    data: { destFolderId: folder.id } satisfies DropData,
+  });
+  const setRef = (el: HTMLLIElement | null) => {
+    setDragRef(el);
+    setDropRef(el);
+  };
+  const activeData = active?.data.current as DragData | undefined;
+  // Don't highlight a folder as a drop target for itself.
+  const canDrop = !!activeData && !(activeData.kind === "folder" && activeData.id === folder.id);
+  const highlight = isOver && canDrop;
 
   const actions: MenuAction[] = [
     { icon: Download, label: "Descarcă", onSelect: onDownload },
@@ -170,24 +201,31 @@ function FolderCard({
 
   return (
     <motion.li
+      ref={setRef}
+      {...(mounted ? attributes : {})}
+      {...(mounted ? listeners : {})}
       layout
       variants={listItem}
       exit={{ opacity: 0, scale: 0.96 }}
       whileHover={{ y: -2 }}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      onClick={() => router.push(`/?folder=${folder.id}`)}
       onContextMenu={(e) => {
         e.preventDefault();
-        menuRef.current?.openAt(e.clientX, e.clientY);
+        openMenu(actions, e.clientX, e.clientY);
       }}
-      className={`flex min-h-[66px] items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/70 ${
-        pending ? "opacity-50" : ""
-      }`}
+      style={{ opacity: isDragging ? 0.4 : undefined }}
+      className={`flex min-h-[66px] cursor-pointer items-center gap-1.5 rounded-xl border px-3 transition-colors ${
+        highlight
+          ? "border-indigo-400 bg-indigo-500/10 ring-2 ring-indigo-400/60"
+          : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/70"
+      } ${pending ? "opacity-50" : ""}`}
     >
-      <Link href={`/?folder=${folder.id}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <Folder className="h-5 w-5 shrink-0 text-indigo-400" />
         <span className="truncate text-sm font-medium text-zinc-100">{folder.name}</span>
-      </Link>
-      <ActionMenu ref={menuRef} actions={actions} label="Opțiuni folder" />
+      </div>
+      <ActionMenu actions={actions} label="Opțiuni folder" />
     </motion.li>
   );
 }
