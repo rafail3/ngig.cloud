@@ -66,23 +66,25 @@ export function AppShell({
             <Menu className="h-5 w-5" />
           </button>
           {/* White-wordmark logo for dark mode, black-wordmark for light. CSS
-              swap (not JS) so it never flashes the wrong one. */}
-          <Image
-            src="/ngig-logo.png"
-            alt="ngig.cloud"
-            width={352}
-            height={96}
-            priority
-            className="hidden h-9 w-auto dark:block sm:h-10"
-          />
-          <Image
-            src="/ngig-logo-light.png"
-            alt="ngig.cloud"
-            width={352}
-            height={96}
-            priority
-            className="block h-9 w-auto dark:hidden sm:h-10"
-          />
+              swap (not JS) so it never flashes the wrong one. Click → home. */}
+          <Link href="/" aria-label="Acasă" className="flex items-center">
+            <Image
+              src="/ngig-logo.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="hidden h-9 w-auto dark:block sm:h-10"
+            />
+            <Image
+              src="/ngig-logo-light.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="block h-9 w-auto dark:hidden sm:h-10"
+            />
+          </Link>
         </div>
 
         {/* right: theme toggle + user menu + logout */}

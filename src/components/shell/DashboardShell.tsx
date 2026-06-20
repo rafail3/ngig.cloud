@@ -61,23 +61,26 @@ export function DashboardShell({
           >
             <Menu className="h-5 w-5" />
           </button>
-          {/* White-wordmark logo for dark mode, black-wordmark for light. */}
-          <Image
-            src="/ngig-logo.png"
-            alt="ngig.cloud"
-            width={352}
-            height={96}
-            priority
-            className="hidden h-9 w-auto dark:block sm:h-10"
-          />
-          <Image
-            src="/ngig-logo-light.png"
-            alt="ngig.cloud"
-            width={352}
-            height={96}
-            priority
-            className="block h-9 w-auto dark:hidden sm:h-10"
-          />
+          {/* White-wordmark logo for dark mode, black-wordmark for light.
+              Click → dashboard overview. */}
+          <Link href="/" aria-label="Overview" className="flex items-center">
+            <Image
+              src="/ngig-logo.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="hidden h-9 w-auto dark:block sm:h-10"
+            />
+            <Image
+              src="/ngig-logo-light.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="block h-9 w-auto dark:hidden sm:h-10"
+            />
+          </Link>
           <span className="ml-1 hidden rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300 sm:inline">
             admin
           </span>
