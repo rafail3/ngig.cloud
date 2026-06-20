@@ -6,6 +6,7 @@ import { requireActiveUser } from "@/server/auth/active-user";
 import { getSettings } from "@/server/admin/settings";
 import { platformUsage } from "@/server/admin/stats";
 import * as repo from "./repository";
+import { extensionOf } from "@/lib/file-type";
 import {
   presignUpload,
   presignDownload,
@@ -555,9 +556,23 @@ const FILE_NAME_RE = /^[^/\\]{1,255}$/;
 
 export async function renameFile(id: string, name: string): Promise<void> {
   await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+
   const clean = name.trim();
   if (!FILE_NAME_RE.test(clean)) throw new Error("Nume de fișier invalid.");
-  await repo.updateFile(id, { name: clean });
+
+  // Lock the original extension: the new name must keep it, so a rename can
+  // never strip or change it (which would break the download filename). This is
+  // the source of truth — it also covers direct calls that bypass the UI.
+  const ext = extensionOf(file.name);
+  const finalName =
+    ext && clean.toLowerCase() !== ext.toLowerCase() &&
+    !clean.toLowerCase().endsWith(ext.toLowerCase())
+      ? clean + ext
+      : clean;
+
+  await repo.updateFile(id, { name: finalName });
 }
 
 // Move a file into a folder (null = root). The destination folder must belong to

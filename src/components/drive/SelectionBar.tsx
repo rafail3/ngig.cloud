@@ -218,6 +218,7 @@ export function SelectionBar() {
             key="rename"
             title={renaming.kind === "file" ? "Redenumește fișierul" : "Redenumește folderul"}
             initialName={renaming.name}
+            keepExtension={renaming.kind === "file"}
             onClose={() => setRenaming(null)}
             onRename={async (name) => {
               const res =

@@ -85,6 +85,16 @@ function extOf(name: string): string | null {
   return name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? null;
 }
 
+/**
+ * The file extension *including* the leading dot, in its original case
+ * ("report.PDF" → ".PDF"), or "" if the name has none. A leading-dot name like
+ * ".env" counts as having no extension (the dot is at position 0).
+ */
+export function extensionOf(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i > 0 ? name.slice(i) : "";
+}
+
 /** A friendly label like "Document Word (.docx)" for a file. */
 export function fileTypeLabel(name: string, mime?: string | null): string {
   const ext = extOf(name);

@@ -232,6 +232,7 @@ export function FileList({
             key="rename"
             title="Redenumește fișierul"
             initialName={toRename.name}
+            keepExtension
             onClose={() => setToRename(null)}
             onRename={async (name) => {
               const res = await renameFileAction(toRename.id, name);
