@@ -6,11 +6,13 @@ import { X, Download, Loader2, FileQuestion, Info } from "lucide-react";
 import { getViewUrlAction, getTextPreviewAction } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
+import { fileTypeLabel } from "@/lib/file-type";
 import { InfoModal } from "./InfoModal";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { PdfViewer } from "./PdfViewer";
 import { CodeViewer } from "./CodeViewer";
+import { DocxViewer } from "./DocxViewer";
 import { panelSpring } from "./anim";
 
 export type PreviewFile = {
@@ -24,15 +26,22 @@ export type PreviewFile = {
 const TEXT_EXT =
   /\.(txt|md|markdown|json|jsonc|js|jsx|ts|tsx|css|scss|html|xml|yml|yaml|csv|log|ini|env|sh|py|rb|go|rs|java|c|h|cpp|sql|toml)$/i;
 
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
 function kind(mime: string | null, name: string) {
   const m = mime ?? "";
   if (m.startsWith("image/")) return "image";
   if (m.startsWith("video/")) return "video";
   if (m.startsWith("audio/")) return "audio";
   if (m === "application/pdf") return "pdf";
+  if (m === DOCX_MIME || /\.docx$/i.test(name)) return "docx";
   if (m.startsWith("text/") || TEXT_EXT.test(name)) return "text";
   return "other";
 }
+
+// Document-style previews get a large, full-height modal.
+const BIG_WINDOW = new Set(["pdf", "docx"]);
 
 export function PreviewModal({
   file,
@@ -107,7 +116,7 @@ export function PreviewModal({
 
       <motion.div
         className={`relative flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
-          k === "pdf"
+          BIG_WINDOW.has(k)
             ? "h-[92vh] w-[min(96vw,80rem)] max-w-[96vw]"
             : "max-h-[90vh] w-auto max-w-[min(92vw,52rem)]"
         }`}
@@ -149,14 +158,14 @@ export function PreviewModal({
 
         <div
           className={
-            k === "pdf"
+            BIG_WINDOW.has(k)
               ? "flex min-h-0 flex-1 overflow-hidden bg-zinc-950/40"
               : "flex flex-1 items-center justify-center overflow-auto bg-zinc-950/40 p-3"
           }
         >
           {error && <p className="py-10 text-sm text-red-400">{error}</p>}
           {!error && !url && k !== "video" && (
-            <div className={k === "pdf" ? "flex w-full items-center justify-center" : ""}>
+            <div className={BIG_WINDOW.has(k) ? "flex w-full items-center justify-center" : ""}>
               <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
             </div>
           )}
@@ -176,6 +185,7 @@ export function PreviewModal({
           {url && k === "pdf" && (
             <PdfViewer url={url} fileName={file.name} onDownload={onDownload} />
           )}
+          {url && k === "docx" && <DocxViewer url={url} onDownload={onDownload} />}
           {url && k === "text" &&
             (text === null ? (
               <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
@@ -209,7 +219,7 @@ export function PreviewModal({
             lockScroll={false}
             rows={[
               { label: "Dimensiune", value: formatBytes(file.size) },
-              { label: "Tip", value: file.mimeType ?? "necunoscut" },
+              { label: "Tip", value: fileTypeLabel(file.name, file.mimeType) },
               { label: "Încărcat", value: formatDateTime(file.createdAt) },
             ]}
           />

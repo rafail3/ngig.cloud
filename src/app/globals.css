@@ -207,3 +207,19 @@ html.light .code-preview .shiki {
   color: var(--shiki-light);
   background-color: var(--shiki-light-bg);
 }
+
+/* ===========================================================================
+   .docx preview (docx-preview). The library renders the document faithfully on
+   white "paper" pages — kept white in both themes, like a real sheet. We only
+   neutralise its default gray wrapper so the modal background shows through.
+   =========================================================================== */
+.docx-host .docx-wrapper {
+  background: transparent;
+  padding: 0;
+  gap: 1rem;
+}
+.docx-host .docx-wrapper > section.docx {
+  margin: 0 auto;
+  border-radius: 2px;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.55);
+}
