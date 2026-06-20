@@ -9,6 +9,7 @@ import { formatDateTime } from "@/lib/format-date";
 import { InfoModal } from "./InfoModal";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
+import { PdfViewer } from "./PdfViewer";
 import { panelSpring } from "./anim";
 
 export type PreviewFile = {
@@ -104,7 +105,11 @@ export function PreviewModal({
       )}
 
       <motion.div
-        className="relative flex max-h-[90vh] w-auto max-w-[min(92vw,52rem)] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl"
+        className={`relative flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
+          k === "pdf"
+            ? "h-[92vh] w-[min(96vw,80rem)] max-w-[96vw]"
+            : "max-h-[90vh] w-auto max-w-[min(92vw,52rem)]"
+        }`}
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.97, y: 6 }}
@@ -141,10 +146,18 @@ export function PreviewModal({
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-center overflow-auto bg-zinc-950/40 p-3">
+        <div
+          className={
+            k === "pdf"
+              ? "flex min-h-0 flex-1 overflow-hidden bg-zinc-950/40"
+              : "flex flex-1 items-center justify-center overflow-auto bg-zinc-950/40 p-3"
+          }
+        >
           {error && <p className="py-10 text-sm text-red-400">{error}</p>}
           {!error && !url && k !== "video" && (
-            <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
+            <div className={k === "pdf" ? "flex w-full items-center justify-center" : ""}>
+              <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
+            </div>
           )}
 
           {url && k === "image" && (
@@ -160,7 +173,7 @@ export function PreviewModal({
           )}
           {url && k === "audio" && <AudioPlayer url={url} />}
           {url && k === "pdf" && (
-            <iframe src={url} title={file.name} className="h-[80vh] w-[min(80vw,48rem)] rounded bg-white" />
+            <PdfViewer url={url} fileName={file.name} onDownload={onDownload} />
           )}
           {url && k === "text" &&
             (text === null ? (

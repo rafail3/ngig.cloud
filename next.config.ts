@@ -13,8 +13,8 @@ const csp = [
   "media-src 'self' blob: https://*.backblazeb2.com",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.backblazeb2.com https://challenges.cloudflare.com",
-  // PDF previews are embedded in an iframe pointing at a presigned B2 URL.
-  "frame-src 'self' https://challenges.cloudflare.com https://*.backblazeb2.com",
+  // PDF print spins up a hidden same-origin blob iframe of the document.
+  "frame-src 'self' blob: https://challenges.cloudflare.com https://*.backblazeb2.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
