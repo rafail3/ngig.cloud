@@ -10,6 +10,7 @@ import { InfoModal } from "./InfoModal";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { PdfViewer } from "./PdfViewer";
+import { CodeViewer } from "./CodeViewer";
 import { panelSpring } from "./anim";
 
 export type PreviewFile = {
@@ -179,9 +180,7 @@ export function PreviewModal({
             (text === null ? (
               <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
             ) : (
-              <pre className="max-h-[80vh] w-[min(80vw,48rem)] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-zinc-800/80 bg-gradient-to-br from-zinc-900/70 to-zinc-900/30 p-4 text-left font-mono text-xs leading-relaxed text-zinc-200 shadow-inner backdrop-blur">
-                {text}
-              </pre>
+              <CodeViewer code={text} fileName={file.name} />
             ))}
           {url && k === "other" && (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
