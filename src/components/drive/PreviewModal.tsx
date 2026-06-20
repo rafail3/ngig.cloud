@@ -13,6 +13,7 @@ import { VideoPlayer } from "./VideoPlayer";
 import { PdfViewer } from "./PdfViewer";
 import { CodeViewer } from "./CodeViewer";
 import { DocxViewer } from "./DocxViewer";
+import { XlsxViewer } from "./XlsxViewer";
 import { panelSpring } from "./anim";
 
 export type PreviewFile = {
@@ -28,6 +29,8 @@ const TEXT_EXT =
 
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const XLSX_MIME =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 function kind(mime: string | null, name: string) {
   const m = mime ?? "";
@@ -36,12 +39,14 @@ function kind(mime: string | null, name: string) {
   if (m.startsWith("audio/")) return "audio";
   if (m === "application/pdf") return "pdf";
   if (m === DOCX_MIME || /\.docx$/i.test(name)) return "docx";
+  if (m === XLSX_MIME || m === "application/vnd.ms-excel" || /\.xlsx?$/i.test(name))
+    return "xlsx";
   if (m.startsWith("text/") || TEXT_EXT.test(name)) return "text";
   return "other";
 }
 
 // Document-style previews get a large, full-height modal.
-const BIG_WINDOW = new Set(["pdf", "docx"]);
+const BIG_WINDOW = new Set(["pdf", "docx", "xlsx"]);
 
 export function PreviewModal({
   file,
@@ -186,6 +191,7 @@ export function PreviewModal({
             <PdfViewer url={url} fileName={file.name} onDownload={onDownload} />
           )}
           {url && k === "docx" && <DocxViewer url={url} onDownload={onDownload} />}
+          {url && k === "xlsx" && <XlsxViewer url={url} onDownload={onDownload} />}
           {url && k === "text" &&
             (text === null ? (
               <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
