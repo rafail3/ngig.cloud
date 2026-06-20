@@ -11,6 +11,7 @@ import { dashboardOrigin } from "@/lib/dashboard";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { UploadProvider } from "@/components/drive/UploadProvider";
 import { UploadPanel } from "@/components/drive/UploadPanel";
+import { ContextMenuProvider } from "@/components/drive/ContextMenu";
 
 type ShellUser = { username: string; role: string; email: string };
 
@@ -49,6 +50,7 @@ export function AppShell({
 
   return (
     <MotionConfig reducedMotion="user">
+    <ContextMenuProvider>
     <UploadProvider>
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
       {/* ===== Top navbar (always visible, full width) ===== */}
@@ -205,6 +207,7 @@ export function AppShell({
       <UploadPanel />
     </div>
     </UploadProvider>
+    </ContextMenuProvider>
     </MotionConfig>
   );
 }

@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
-import { Upload, FolderUp, FolderPlus, UploadCloud } from "lucide-react";
+import { Upload, FolderPlus, UploadCloud } from "lucide-react";
 import { useUploads, type UploadItem } from "./UploadProvider";
 import { ensureFolderAction, createFolderAction } from "@/app/drive-actions";
 import { ModalShell } from "./anim";
@@ -142,7 +142,7 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
           onClick={() => folderRef.current?.click()}
           className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-200 transition hover:border-zinc-600 hover:bg-zinc-800"
         >
-          <FolderUp className="h-4 w-4" /> Folder
+          <Upload className="h-4 w-4" /> Folder
         </button>
         <button
           type="button"

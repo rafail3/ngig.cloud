@@ -18,6 +18,22 @@ function isRevoked(e: unknown): boolean {
   return e instanceof Error && e.message === SESSION_REVOKED;
 }
 
+// Best-effort human message for an error of any shape (Supabase errors are plain
+// objects with a `message`, not Error instances, so `e.message` alone misses them).
+function errMsg(e: unknown): string {
+  if (e instanceof Error && e.message) return e.message;
+  if (
+    typeof e === "object" &&
+    e !== null &&
+    "message" in e &&
+    typeof (e as { message: unknown }).message === "string" &&
+    (e as { message: string }).message
+  ) {
+    return (e as { message: string }).message;
+  }
+  return "Eroare.";
+}
+
 export async function createUploadAction(input: {
   name: string;
   size: number;
@@ -142,7 +158,7 @@ export async function moveFolderAction(
     return {};
   } catch (e) {
     if (isRevoked(e)) return { error: "Sesiune expirată." };
-    return { error: e instanceof Error ? e.message : "Eroare." };
+    return { error: errMsg(e) };
   }
 }
 
@@ -218,7 +234,7 @@ export async function renameFileAction(
     return {};
   } catch (e) {
     if (isRevoked(e)) return { error: "Sesiune expirată." };
-    return { error: e instanceof Error ? e.message : "Eroare." };
+    return { error: errMsg(e) };
   }
 }
 
@@ -231,7 +247,7 @@ export async function moveFileAction(
     return {};
   } catch (e) {
     if (isRevoked(e)) return { error: "Sesiune expirată." };
-    return { error: e instanceof Error ? e.message : "Eroare." };
+    return { error: errMsg(e) };
   }
 }
 
@@ -241,7 +257,7 @@ export async function copyFileAction(id: string): Promise<{ error?: string }> {
     return {};
   } catch (e) {
     if (isRevoked(e)) return { error: "Sesiune expirată." };
-    return { error: e instanceof Error ? e.message : "Eroare." };
+    return { error: errMsg(e) };
   }
 }
 

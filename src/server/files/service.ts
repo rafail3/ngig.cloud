@@ -36,6 +36,16 @@ async function requireUserId(): Promise<string> {
   return id;
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Reject anything that isn't a real uuid before it reaches the DB, so a bad id
+// surfaces as a clear message instead of a raw Postgres "invalid input syntax
+// for type uuid" error.
+function assertId(id: string, label: string): void {
+  if (typeof id !== "string" || !UUID_RE.test(id)) throw new Error(label);
+}
+
 // Effective upload limits for a user. null = unlimited.
 // Per-user overrides live on the profile; if unset there's no cap yet
 // (global platform limits arrive in a later phase).
@@ -231,6 +241,8 @@ export async function moveFolder(
   newParentId: string | null,
 ): Promise<void> {
   await requireActiveUser();
+  assertId(id, "Folder inexistent.");
+  if (newParentId !== null) assertId(newParentId, "Destinație invalidă.");
   if (id === newParentId) throw new Error("Destinație invalidă.");
 
   const folders = await repo.listAllFolders();
@@ -539,7 +551,9 @@ export async function moveFile(
   folderId: string | null,
 ): Promise<void> {
   await requireActiveUser();
+  assertId(id, "Fișier inexistent.");
   if (folderId !== null) {
+    assertId(folderId, "Destinație invalidă.");
     const dest = await repo.getFolder(folderId);
     if (!dest) throw new Error("Destinație invalidă.");
   }
