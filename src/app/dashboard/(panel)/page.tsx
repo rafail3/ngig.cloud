@@ -52,7 +52,7 @@ export default async function DashboardOverviewPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Kpi icon={<Files className="h-4 w-4" />} label="Fișiere" value={String(overview.fileCount)} />
-        <Kpi icon={<HardDrive className="h-4 w-4" />} label="Spațiu total" value={formatBytes(overview.totalSize)} />
+        <Kpi icon={<HardDrive className="h-4 w-4" />} label="Spațiu total fișiere" value={formatBytes(overview.totalSize)} />
         <Kpi icon={<Users className="h-4 w-4" />} label="Useri" value={String(overview.userCount)} />
         <Kpi icon={<Activity className="h-4 w-4" />} label="Online" value={String(overview.onlineCount)} />
       </div>
