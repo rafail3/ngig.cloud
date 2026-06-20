@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.20.0](https://github.com/rafail3/ngig.cloud/compare/v1.19.0...v1.20.0) (2026-06-20)
+
+
+### Features
+
+* **dashboard:** clearer 'Spațiu total fișiere' KPI label ([80ab50f](https://github.com/rafail3/ngig.cloud/commit/80ab50f699c0bcd848d401327ef745a6b322e6bd))
+* **files:** harden per-user storage isolation (defense in depth) ([56db5c7](https://github.com/rafail3/ngig.cloud/commit/56db5c7c241427ac042f50af59443dd1c36495d4))
+* in-app document previews (PDF, code, Word, Excel) + per-user storage hardening ([a5744fc](https://github.com/rafail3/ngig.cloud/commit/a5744fce53f8cc8e1dc6a530bb99bec315060178))
+* **preview:** custom PDF viewer with full toolbar ([c615d2e](https://github.com/rafail3/ngig.cloud/commit/c615d2eff82d7efe847a637c2eaf501e49d2b8b8))
+* **preview:** Excel-like .xlsx preview with grid and zoom ([fa9d1a3](https://github.com/rafail3/ngig.cloud/commit/fa9d1a3adf79e26acf7a5c23588afb4687cc6674))
+* **preview:** faithful .docx preview with toolbar ([9aee64b](https://github.com/rafail3/ngig.cloud/commit/9aee64ba071fd3b41ea99a1226a35a6d330fcaf6))
+* **preview:** VS Code-style syntax highlighting for code files ([e09f4c0](https://github.com/rafail3/ngig.cloud/commit/e09f4c0b6e17081843162138538c3de2b50abcbe))
+* **ui:** clickable logo navigates home / dashboard overview ([e3daf30](https://github.com/rafail3/ngig.cloud/commit/e3daf300792c112161ffa3e9d7510662861801f6))
+
 ## [1.19.0](https://github.com/rafail3/ngig.cloud/compare/v1.18.0...v1.19.0) (2026-06-20)
 
 
