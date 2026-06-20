@@ -46,6 +46,19 @@ function assertId(id: string, label: string): void {
   if (typeof id !== "string" || !UUID_RE.test(id)) throw new Error(label);
 }
 
+// Defense in depth for per-user storage isolation. Object keys are always
+// `${ownerId}/<uuid>` and DB rows are already RLS-scoped to the owner, so a
+// fetched row's key belongs to the caller. This guard makes that a hard
+// invariant right before we touch B2: even if RLS were ever misconfigured or a
+// row carried a corrupt/legacy key, we refuse to read, copy or delete any
+// object outside the caller's own `${userId}/` prefix. No cross-user access,
+// no wrong-file delete — regardless of how many users share a filename.
+function assertOwnedKey(userId: string, key: string): void {
+  if (typeof key !== "string" || !key.startsWith(`${userId}/`)) {
+    throw new Error("Acces interzis la acest fișier.");
+  }
+}
+
 // Effective upload limits for a user. null = unlimited.
 // Per-user overrides live on the profile; if unset there's no cap yet
 // (global platform limits arrive in a later phase).
@@ -144,7 +157,7 @@ export async function listFolder(folderId: string | null) {
         const allKeys = await repo.adminListUserFileKeys(userId);
         const missing = allKeys.filter((k) => !existing.has(k));
         if (missing.length > 0) {
-          await repo.adminDeleteFilesByKeys(missing);
+          await repo.adminDeleteFilesByKeys(userId, missing);
         }
       }
     } catch {
@@ -340,9 +353,10 @@ export async function folderStats(
 export async function getViewUrl(
   id: string,
 ): Promise<{ url: string; name: string; mime: string | null }> {
-  await requireActiveUser();
+  const { id: userId } = await requireActiveUser();
   const file = await repo.getFileById(id);
   if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
   const url = await presignView(file.storage_key);
   return { url, name: file.name, mime: file.mime_type };
 }
@@ -350,9 +364,10 @@ export async function getViewUrl(
 // First chunk of a text file, read server-side (no browser CORS needed). Capped
 // so previewing a huge file doesn't pull the whole thing.
 export async function getTextPreview(id: string): Promise<string> {
-  await requireActiveUser();
+  const { id: userId } = await requireActiveUser();
   const file = await repo.getFileById(id);
   if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
   const url = await presignView(file.storage_key);
   const res = await fetch(url, { headers: { Range: "bytes=0-100000" } });
   return res.text();
@@ -506,6 +521,7 @@ export async function getDownloadUrl(id: string) {
   const { id: userId } = await requireActiveUser();
   const file = await repo.getFileById(id); // RLS → only owner's rows
   if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
 
   // Track the last time the user pulled a file (best-effort).
   const supabase = await createClient();
@@ -518,9 +534,10 @@ export async function getDownloadUrl(id: string) {
 }
 
 export async function deleteFile(id: string) {
-  await requireActiveUser();
+  const { id: userId } = await requireActiveUser();
   const file = await repo.getFileById(id);
   if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
   try {
     await deleteObject(file.storage_key);
   } catch {
@@ -573,6 +590,7 @@ export async function copyFile(id: string): Promise<void> {
   const { id: userId, maxFile, maxTotal } = await requireActiveUser();
   const file = await repo.getFileById(id);
   if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
 
   await enforceQuota(userId, file.size, maxFile, maxTotal);
 
