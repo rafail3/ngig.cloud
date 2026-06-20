@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.19.0](https://github.com/rafail3/ngig.cloud/compare/v1.18.0...v1.19.0) (2026-06-20)
+
+
+### Features
+
+* **drive:** drag-and-drop move with spring-loaded folders ([f36829e](https://github.com/rafail3/ngig.cloud/commit/f36829e409d98af0eb0fa136d799068974573c33))
+* **drive:** drag-and-drop move, spring-loaded folders & multi-select ([2e93e52](https://github.com/rafail3/ngig.cloud/commit/2e93e52de88a3c64e21291098ad5068ec741ced1))
+* **drive:** multi-select files and folders with bulk actions ([4d38951](https://github.com/rafail3/ngig.cloud/commit/4d3895153c7a53b0367c5e7e6c32d722dceeb19c))
+
 ## [1.18.0](https://github.com/rafail3/ngig.cloud/compare/v1.17.1...v1.18.0) (2026-06-18)
 
 
