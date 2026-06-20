@@ -159,3 +159,128 @@ html.light {
     cursor: pointer;
   }
 }
+
+/* ===========================================================================
+   Code preview (Shiki). The viewer renders with two themes — VS Code's
+   Light+/Dark+ — and we pick per app theme via the `.dark` class. A CSS counter
+   on each `.line` gives a VS Code-style line-number gutter. Backgrounds come
+   from Shiki's own theme vars so the block looks identical to the editor.
+   =========================================================================== */
+.code-preview .shiki {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  tab-size: 2;
+  background-color: var(--shiki-light-bg);
+}
+.code-preview .shiki code {
+  counter-reset: sln;
+}
+.code-preview .shiki .line {
+  counter-increment: sln;
+}
+.code-preview .shiki .line::before {
+  content: counter(sln);
+  display: inline-block;
+  width: 2.25rem;
+  margin-right: 1rem;
+  padding-right: 0.75rem;
+  text-align: right;
+  color: var(--color-zinc-600);
+  border-right: 1px solid var(--color-zinc-800);
+  user-select: none;
+}
+/* Default (dark is the app's default theme) → light overrides under html.light. */
+.code-preview .shiki span {
+  color: var(--shiki-dark);
+}
+.code-preview .shiki {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+}
+html.light .code-preview .shiki span {
+  color: var(--shiki-light);
+}
+html.light .code-preview .shiki {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+}
+
+/* ===========================================================================
+   .docx preview (docx-preview). The library renders the document faithfully on
+   white "paper" pages — kept white in both themes, like a real sheet. We only
+   neutralise its default gray wrapper so the modal background shows through.
+   =========================================================================== */
+.docx-host .docx-wrapper {
+  background: transparent;
+  padding: 0;
+  gap: 1rem;
+}
+.docx-host .docx-wrapper > section.docx {
+  margin: 0 auto;
+  border-radius: 2px;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.55);
+}
+
+/* ===========================================================================
+   .xlsx preview — an Excel-like grid: A/B/C column headers, 1/2/3 row numbers
+   (both sticky), grid lines, merged cells. Painted with zinc tokens so it works
+   in both themes. Cell values come from SheetJS (data + structure, not Excel's
+   cell colours/fonts — a free-tier limitation).
+   =========================================================================== */
+.xlsx-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+.xlsx-grid th,
+.xlsx-grid td {
+  border-right: 1px solid var(--color-zinc-800);
+  border-bottom: 1px solid var(--color-zinc-800);
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+  background: var(--color-zinc-950);
+}
+.xlsx-grid tbody td {
+  color: var(--color-zinc-200);
+  min-width: 4rem;
+  max-width: 24rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.xlsx-grid td.xlsx-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* Header row (A,B,C) + row-number column (1,2,3) — sticky like Excel. */
+.xlsx-grid thead th,
+.xlsx-grid .xlsx-rownum,
+.xlsx-grid .xlsx-corner {
+  position: sticky;
+  background: var(--color-zinc-900);
+  color: var(--color-zinc-400);
+  font-weight: 500;
+  text-align: center;
+}
+.xlsx-grid thead th {
+  top: 0;
+  z-index: 2;
+}
+.xlsx-grid .xlsx-rownum,
+.xlsx-grid .xlsx-corner {
+  left: 0;
+  z-index: 1;
+}
+.xlsx-grid .xlsx-corner {
+  top: 0;
+  z-index: 3;
+}
+.xlsx-empty {
+  padding: 2rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-zinc-500);
+}

@@ -6,9 +6,14 @@ import { X, Download, Loader2, FileQuestion, Info } from "lucide-react";
 import { getViewUrlAction, getTextPreviewAction } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
+import { fileTypeLabel } from "@/lib/file-type";
 import { InfoModal } from "./InfoModal";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
+import { PdfViewer } from "./PdfViewer";
+import { CodeViewer } from "./CodeViewer";
+import { DocxViewer } from "./DocxViewer";
+import { XlsxViewer } from "./XlsxViewer";
 import { panelSpring } from "./anim";
 
 export type PreviewFile = {
@@ -22,15 +27,26 @@ export type PreviewFile = {
 const TEXT_EXT =
   /\.(txt|md|markdown|json|jsonc|js|jsx|ts|tsx|css|scss|html|xml|yml|yaml|csv|log|ini|env|sh|py|rb|go|rs|java|c|h|cpp|sql|toml)$/i;
 
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const XLSX_MIME =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
 function kind(mime: string | null, name: string) {
   const m = mime ?? "";
   if (m.startsWith("image/")) return "image";
   if (m.startsWith("video/")) return "video";
   if (m.startsWith("audio/")) return "audio";
   if (m === "application/pdf") return "pdf";
+  if (m === DOCX_MIME || /\.docx$/i.test(name)) return "docx";
+  if (m === XLSX_MIME || m === "application/vnd.ms-excel" || /\.xlsx?$/i.test(name))
+    return "xlsx";
   if (m.startsWith("text/") || TEXT_EXT.test(name)) return "text";
   return "other";
 }
+
+// Document-style previews get a large, full-height modal.
+const BIG_WINDOW = new Set(["pdf", "docx", "xlsx"]);
 
 export function PreviewModal({
   file,
@@ -104,7 +120,11 @@ export function PreviewModal({
       )}
 
       <motion.div
-        className="relative flex max-h-[90vh] w-auto max-w-[min(92vw,52rem)] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl"
+        className={`relative flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
+          BIG_WINDOW.has(k)
+            ? "h-[92vh] w-[min(96vw,80rem)] max-w-[96vw]"
+            : "max-h-[90vh] w-auto max-w-[min(92vw,52rem)]"
+        }`}
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.97, y: 6 }}
@@ -141,10 +161,18 @@ export function PreviewModal({
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-center overflow-auto bg-zinc-950/40 p-3">
+        <div
+          className={
+            BIG_WINDOW.has(k)
+              ? "flex min-h-0 flex-1 overflow-hidden bg-zinc-950/40"
+              : "flex flex-1 items-center justify-center overflow-auto bg-zinc-950/40 p-3"
+          }
+        >
           {error && <p className="py-10 text-sm text-red-400">{error}</p>}
           {!error && !url && k !== "video" && (
-            <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
+            <div className={BIG_WINDOW.has(k) ? "flex w-full items-center justify-center" : ""}>
+              <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
+            </div>
           )}
 
           {url && k === "image" && (
@@ -160,15 +188,15 @@ export function PreviewModal({
           )}
           {url && k === "audio" && <AudioPlayer url={url} />}
           {url && k === "pdf" && (
-            <iframe src={url} title={file.name} className="h-[80vh] w-[min(80vw,48rem)] rounded bg-white" />
+            <PdfViewer url={url} fileName={file.name} onDownload={onDownload} />
           )}
+          {url && k === "docx" && <DocxViewer url={url} onDownload={onDownload} />}
+          {url && k === "xlsx" && <XlsxViewer url={url} onDownload={onDownload} />}
           {url && k === "text" &&
             (text === null ? (
               <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
             ) : (
-              <pre className="max-h-[80vh] w-[min(80vw,48rem)] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-zinc-800/80 bg-gradient-to-br from-zinc-900/70 to-zinc-900/30 p-4 text-left font-mono text-xs leading-relaxed text-zinc-200 shadow-inner backdrop-blur">
-                {text}
-              </pre>
+              <CodeViewer code={text} fileName={file.name} />
             ))}
           {url && k === "other" && (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
@@ -197,7 +225,7 @@ export function PreviewModal({
             lockScroll={false}
             rows={[
               { label: "Dimensiune", value: formatBytes(file.size) },
-              { label: "Tip", value: file.mimeType ?? "necunoscut" },
+              { label: "Tip", value: fileTypeLabel(file.name, file.mimeType) },
               { label: "Încărcat", value: formatDateTime(file.createdAt) },
             ]}
           />

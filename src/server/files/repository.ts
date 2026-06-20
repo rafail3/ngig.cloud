@@ -193,10 +193,17 @@ export async function adminListUserFileKeys(ownerId: string): Promise<string[]> 
   return (data ?? []).map((r) => r.storage_key as string);
 }
 
-export async function adminDeleteFilesByKeys(keys: string[]) {
+// Scoped to the owner on purpose: the service-role client bypasses RLS, so we
+// constrain the delete to the given owner's rows. A wrong key can never prune
+// another user's file.
+export async function adminDeleteFilesByKeys(ownerId: string, keys: string[]) {
   if (keys.length === 0) return;
   const admin = createAdminClient();
-  const { error } = await admin.from("files").delete().in("storage_key", keys);
+  const { error } = await admin
+    .from("files")
+    .delete()
+    .eq("owner_id", ownerId)
+    .in("storage_key", keys);
   if (error) throw error;
 }
 

@@ -6,15 +6,17 @@ const isProd = process.env.NODE_ENV === "production";
 // to a nonce (dropping 'unsafe-inline') is a future hardening step.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  // 'wasm-unsafe-eval' lets the Shiki code highlighter instantiate its inlined
+  // WebAssembly grammar engine. It permits WASM only — NOT string eval().
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.backblazeb2.com",
   // Audio/video previews stream straight from B2.
   "media-src 'self' blob: https://*.backblazeb2.com",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.backblazeb2.com https://challenges.cloudflare.com",
-  // PDF previews are embedded in an iframe pointing at a presigned B2 URL.
-  "frame-src 'self' https://challenges.cloudflare.com https://*.backblazeb2.com",
+  // PDF print spins up a hidden same-origin blob iframe of the document.
+  "frame-src 'self' blob: https://challenges.cloudflare.com https://*.backblazeb2.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
