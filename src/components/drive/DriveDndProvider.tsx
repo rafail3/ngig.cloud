@@ -1,13 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
   MeasuringStrategy,
-  PointerSensor,
-  TouchSensor,
+  MouseSensor,
   pointerWithin,
   useDroppable,
   useSensor,
@@ -38,6 +45,20 @@ export type DropData = { destFolderId: string | null };
 // How long to hover a folder/breadcrumb (mid-drag) before springing into it.
 const SPRING_MS = 150;
 
+// The item currently being dragged (or null). Rows read this to dim themselves —
+// it's cleared reliably on drag end/cancel, so the dim never sticks as a "ghost".
+const DragActiveContext = createContext<DragData | null>(null);
+export function useDragActive(): DragData | null {
+  return useContext(DragActiveContext);
+}
+
+// Keys (`${kind}:${id}`) of items whose move is in flight. Rows read this to show
+// a loading ghost while the move runs (the action can be slow for big folders).
+const PendingMoveContext = createContext<ReadonlySet<string>>(new Set());
+export function usePendingMove(): ReadonlySet<string> {
+  return useContext(PendingMoveContext);
+}
+
 /* Drag-and-drop for moving files/folders. A row is draggable; folder cards and
    breadcrumb segments are droppable. Pointer sensor (mouse) starts after a small
    move so clicks still work; touch sensor uses a long-press so taps and scroll
@@ -51,6 +72,7 @@ export function DriveDndProvider({
 }) {
   const router = useRouter();
   const [active, setActive] = useState<DragData | null>(null);
+  const [pending, setPending] = useState<ReadonlySet<string>>(() => new Set());
   const [err, setErr] = useState<string | null>(null);
 
   // The dragged item, captured at drag start. dnd-kit clears `active.data` once
@@ -78,9 +100,10 @@ export function DriveDndProvider({
     return () => clearTimeout(t);
   }, [err]);
 
+  // Mouse only — drag-and-drop is a desktop affordance. On touch there is no
+  // drag; selection is done via long-press (see useLongPress in the rows).
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
   );
 
   // Prefer a specific target (folder card / breadcrumb) when the pointer is over
@@ -135,15 +158,29 @@ export function DriveDndProvider({
     if (dest === data.parentId) return;
     if (data.kind === "folder" && data.id === dest) return;
 
-    const res =
-      data.kind === "file"
-        ? await moveFileAction(data.id, dest)
-        : await moveFolderAction(data.id, dest);
-    if (res.error) {
-      setErr(res.error);
-      return;
+    // Show a loading ghost on the source item while the move runs. A move is a
+    // metadata-only DB update (B2 objects never move, so file size is irrelevant)
+    // and is usually near-instant; the ghost becomes visible when there's real
+    // latency (slow network) — no artificial delay, so normal moves stay snappy.
+    const key = `${data.kind}:${data.id}`;
+    setPending((prev) => new Set(prev).add(key));
+    try {
+      const res =
+        data.kind === "file"
+          ? await moveFileAction(data.id, dest)
+          : await moveFolderAction(data.id, dest);
+      if (res.error) {
+        setErr(res.error);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setPending((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     }
-    router.refresh();
   }
 
   return (
@@ -161,7 +198,9 @@ export function DriveDndProvider({
         setActive(null);
       }}
     >
-      {children}
+      <DragActiveContext.Provider value={active}>
+        <PendingMoveContext.Provider value={pending}>{children}</PendingMoveContext.Provider>
+      </DragActiveContext.Provider>
 
       <DragOverlay dropAnimation={null}>
         {active && (
@@ -207,12 +246,16 @@ export function CurrentFolderDropZone({
   folderId: string | null;
   children: ReactNode;
 }) {
-  const { setNodeRef, isOver, active } = useDroppable({
+  const { setNodeRef } = useDroppable({
     id: CURRENT_AREA_ID,
     data: { destFolderId: folderId } satisfies DropData,
   });
-  const data = active?.data.current as DragData | undefined;
-  const show = isOver && !!data && data.parentId !== folderId;
+  // Show the glow whenever a drag is actually in progress (active is only set once
+  // the pointer moves — see the provider). Gives consistent "you're dragging, drop
+  // anywhere here = this folder" feedback; not gated on isOver, which dnd-kit
+  // doesn't recompute after a spring-load navigation unless the pointer moves.
+  const data = useDragActive();
+  const show = !!data;
 
   return (
     <>

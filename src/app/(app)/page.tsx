@@ -8,6 +8,8 @@ import { DriveEmpty } from "@/components/drive/DriveEmpty";
 import { FolderInfoButton } from "@/components/drive/FolderInfoButton";
 import { DriveTransition } from "@/components/drive/DriveTransition";
 import { DriveDndProvider, CurrentFolderDropZone } from "@/components/drive/DriveDndProvider";
+import { SelectionProvider, type SelItem } from "@/components/drive/SelectionProvider";
+import { SelectionBar } from "@/components/drive/SelectionBar";
 
 export const metadata = { title: "Fișierele mele" };
 
@@ -33,6 +35,20 @@ export default async function Home({
       : "Fișierele mele";
   const empty = folders.length === 0 && files.length === 0;
 
+  // Visual order (folders then files) for Shift-range selection; files carry
+  // metadata so the selection bar can show Info/Download without re-fetching.
+  const selItems: SelItem[] = [
+    ...folders.map((f) => ({ kind: "folder" as const, id: f.id, name: f.name })),
+    ...files.map((f) => ({
+      kind: "file" as const,
+      id: f.id,
+      name: f.name,
+      size: f.size,
+      mimeType: f.mime_type,
+      createdAt: f.created_at,
+    })),
+  ];
+
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -42,7 +58,8 @@ export default async function Home({
         {folderId && <FolderInfoButton folderId={folderId} name={title} />}
       </div>
 
-      <DriveDndProvider folderId={folderId}>
+      <SelectionProvider items={selItems} folderId={folderId}>
+        <DriveDndProvider folderId={folderId}>
         <div className="mb-4">
           <Breadcrumb crumbs={breadcrumb} />
         </div>
@@ -69,6 +86,8 @@ export default async function Home({
           <UploadArea folderId={folderId} />
         </div>
 
+        <SelectionBar />
+
         <CurrentFolderDropZone folderId={folderId}>
           <DriveTransition id={folderId ?? "root"}>
             <FolderList
@@ -88,7 +107,8 @@ export default async function Home({
             {empty && <DriveEmpty folderId={folderId} />}
           </DriveTransition>
         </CurrentFolderDropZone>
-      </DriveDndProvider>
+        </DriveDndProvider>
+      </SelectionProvider>
     </div>
   );
 }

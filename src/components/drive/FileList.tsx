@@ -29,8 +29,12 @@ import { InfoModal } from "./InfoModal";
 import { FolderPickerModal } from "./FolderPickerModal";
 import { ActionMenu, type MenuAction } from "./ActionMenu";
 import { useContextMenu } from "./ContextMenu";
-import { ModalShell, listContainer, listItem, useMounted } from "./anim";
-import type { DragData } from "./DriveDndProvider";
+import { useSelection, selKey, type SelItem } from "./SelectionProvider";
+import { SelectCheckbox } from "./SelectCheckbox";
+import { useLongPress } from "./useLongPress";
+import { RenameModal } from "./RenameModal";
+import { listContainer, listItem, useMounted } from "./anim";
+import { useDragActive, usePendingMove, type DragData } from "./DriveDndProvider";
 
 function speedLabel(bytesPerSec: number): string {
   if (!bytesPerSec || bytesPerSec < 1) return "—";
@@ -224,13 +228,18 @@ export function FileList({
         )}
 
         {toRename && (
-          <RenameFileModal
+          <RenameModal
             key="rename"
-            file={toRename}
+            title="Redenumește fișierul"
+            initialName={toRename.name}
             onClose={() => setToRename(null)}
-            onRenamed={() => {
-              setToRename(null);
-              router.refresh();
+            onRename={async (name) => {
+              const res = await renameFileAction(toRename.id, name);
+              if (!res.error) {
+                setToRename(null);
+                router.refresh();
+              }
+              return res;
             }}
           />
         )}
@@ -279,11 +288,27 @@ function FileRow({
   onTrash: () => void;
 }) {
   const openMenu = useContextMenu();
+  const selection = useSelection();
   const mounted = useMounted();
-  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({
+  const { setNodeRef, attributes, listeners } = useDraggable({
     id: `file:${file.id}`,
     data: { kind: "file", id: file.id, name: file.name, parentId: folderId } satisfies DragData,
   });
+
+  const item: SelItem = {
+    kind: "file",
+    id: file.id,
+    name: file.name,
+    size: file.size,
+    mimeType: file.mimeType,
+    createdAt: file.createdAt,
+  };
+  const selected = selection.isSelected(selKey(item));
+  const dragActive = useDragActive();
+  const dimmed = dragActive?.kind === "file" && dragActive.id === file.id;
+  const moving = usePendingMove().has(selKey(item));
+  const busy = pending || moving;
+  const longPress = useLongPress(() => selection.toggle(item));
 
   const actions: MenuAction[] = [
     { icon: Download, label: "Descarcă", onSelect: onDownload },
@@ -299,6 +324,7 @@ function FileRow({
       ref={setNodeRef}
       {...(mounted ? attributes : {})}
       {...(mounted ? listeners : {})}
+      {...longPress.handlers}
       layout
       variants={listItem}
       exit={{ opacity: 0, scale: 0.97 }}
@@ -306,78 +332,34 @@ function FileRow({
         e.preventDefault();
         openMenu(actions, e.clientX, e.clientY);
       }}
-      style={{ opacity: isDragging ? 0.4 : pending ? 0.5 : undefined }}
-      className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-zinc-900/40"
+      style={{ opacity: dimmed ? 0.4 : busy ? 0.5 : undefined }}
+      className={`group flex items-center gap-3 px-4 py-3 transition-colors ${
+        selected ? "bg-indigo-500/10" : "hover:bg-zinc-900/40"
+      }`}
     >
-      <button type="button" onClick={onPreview} className="min-w-0 flex-1 text-left">
+      <SelectCheckbox
+        selected={selected}
+        show={selected || selection.count > 0}
+        onToggle={() => selection.toggle(item)}
+      />
+      <button
+        type="button"
+        onClick={(e) => {
+          if (longPress.consumedClick()) return;
+          if (selection.handleClick(item, e)) return;
+          onPreview();
+        }}
+        className="min-w-0 flex-1 text-left"
+      >
         <p className="truncate text-base font-medium text-zinc-100">{file.name}</p>
         <p className="text-sm text-zinc-500">
           {formatBytes(file.size)} · {formatDateShort(file.createdAt)}
         </p>
       </button>
       <div className="flex shrink-0 items-center">
-        {pending && <Loader2 className="mr-1 h-4 w-4 animate-spin text-indigo-400" />}
+        {busy && <Loader2 className="mr-1 h-4 w-4 animate-spin text-indigo-400" />}
         <ActionMenu actions={actions} label="Opțiuni fișier" />
       </div>
     </motion.li>
-  );
-}
-
-function RenameFileModal({
-  file,
-  onClose,
-  onRenamed,
-}: {
-  file: FileItem;
-  onClose: () => void;
-  onRenamed: () => void;
-}) {
-  const [name, setName] = useState(file.name);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setBusy(true);
-    setError(null);
-    const res = await renameFileAction(file.id, name);
-    setBusy(false);
-    if (res.error) {
-      setError(res.error);
-      return;
-    }
-    onRenamed();
-  }
-
-  return (
-    <ModalShell onClose={onClose}>
-      <form onSubmit={submit}>
-        <h3 className="text-base font-semibold text-zinc-100">Redenumește fișierul</h3>
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mt-3 w-full rounded-xl border border-zinc-50/10 bg-zinc-50/5 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
-        />
-        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
-        <div className="mt-4 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
-          >
-            Anulează
-          </button>
-          <button
-            type="submit"
-            disabled={busy || !name.trim()}
-            className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
-          >
-            {busy ? "Se salvează…" : "Salvează"}
-          </button>
-        </div>
-      </form>
-    </ModalShell>
   );
 }
