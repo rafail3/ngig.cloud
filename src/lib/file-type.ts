@@ -95,18 +95,29 @@ export function extensionOf(name: string): string {
   return i > 0 ? name.slice(i) : "";
 }
 
-/** A friendly label like "Document Word (.docx)" for a file. */
-export function fileTypeLabel(name: string, mime?: string | null): string {
+// The bare category label, no extension suffix: "Document Word", "Cod Python".
+function categoryLabel(name: string, mime?: string | null): string {
   const ext = extOf(name);
-  if (ext && BY_EXT[ext]) return `${BY_EXT[ext]} (.${ext})`;
+  if (ext && BY_EXT[ext]) return BY_EXT[ext];
 
   const m = mime ?? "";
-  const suffix = ext ? ` (.${ext})` : "";
-  if (m.startsWith("image/")) return `Imagine${suffix}`;
-  if (m.startsWith("video/")) return `Video${suffix}`;
-  if (m.startsWith("audio/")) return `Audio${suffix}`;
-  if (m.startsWith("text/")) return `Text${suffix}`;
+  if (m.startsWith("image/")) return "Imagine";
+  if (m.startsWith("video/")) return "Video";
+  if (m.startsWith("audio/")) return "Audio";
+  if (m.startsWith("text/")) return "Text";
 
-  if (ext) return `Fișier .${ext}`;
-  return m || "Fișier necunoscut";
+  return ext ? `Fișier .${ext}` : m || "Fișier necunoscut";
+}
+
+/** Short type label for compact UI (file rows): e.g. "Document Word". */
+export function fileTypeShort(name: string, mime?: string | null): string {
+  return categoryLabel(name, mime);
+}
+
+/** Full type label for detail panels: e.g. "Document Word (.docx)". */
+export function fileTypeLabel(name: string, mime?: string | null): string {
+  const ext = extOf(name);
+  const base = categoryLabel(name, mime);
+  // Don't duplicate the extension when the fallback label already shows it.
+  return ext && !base.includes(`.${ext}`) ? `${base} (.${ext})` : base;
 }

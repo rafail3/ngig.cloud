@@ -11,6 +11,7 @@ export type FileRow = {
   storage_key: string;
   folder_id: string | null;
   created_at: string;
+  updated_at: string;
   deleted_at: string | null;
 };
 

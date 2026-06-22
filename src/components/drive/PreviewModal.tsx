@@ -22,6 +22,7 @@ export type PreviewFile = {
   size: number;
   mimeType: string | null;
   createdAt: string;
+  updatedAt: string;
 };
 
 const TEXT_EXT =
@@ -227,6 +228,10 @@ export function PreviewModal({
               { label: "Dimensiune", value: formatBytes(file.size) },
               { label: "Tip", value: fileTypeLabel(file.name, file.mimeType) },
               { label: "Încărcat", value: formatDateTime(file.createdAt) },
+              ...(new Date(file.updatedAt).getTime() >
+              new Date(file.createdAt).getTime()
+                ? [{ label: "Modificat", value: formatDateTime(file.updatedAt) }]
+                : []),
             ]}
           />
         )}

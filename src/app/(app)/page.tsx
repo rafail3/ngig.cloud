@@ -102,6 +102,7 @@ export default async function Home({
                 size: f.size,
                 mimeType: f.mime_type,
                 createdAt: f.created_at,
+                updatedAt: f.updated_at,
               }))}
             />
             {empty && <DriveEmpty folderId={folderId} />}
