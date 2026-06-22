@@ -74,9 +74,11 @@ export function SelectionProvider({
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
-  const activeRef = useRef(false);
+  // Mirror selection into a ref so handleClick can read it without being
+  // recreated on every selection change.
+  const selectedRef = useRef(selected);
   useEffect(() => {
-    activeRef.current = selected.size > 0;
+    selectedRef.current = selected;
   }, [selected]);
 
   const toggle = useCallback((item: SelItem) => {
@@ -87,6 +89,13 @@ export function SelectionProvider({
       else next.set(k, item);
       return next;
     });
+    anchor.current = k;
+  }, []);
+
+  // Replace the whole selection with just this item (plain desktop click).
+  const select = useCallback((item: SelItem) => {
+    const k = selKey(item);
+    setSelected(new Map([[k, item]]));
     anchor.current = k;
   }, []);
 
@@ -128,15 +137,36 @@ export function SelectionProvider({
         selectRange(item);
         return true;
       }
-      // Once a selection exists, a plain click toggles too (no checkbox needed).
-      if (activeRef.current) {
-        toggle(item);
-        return true;
-      }
-      return false;
+      // Plain desktop click: clicking the sole selected item again deselects it;
+      // otherwise select only this item (replace). Opening is via double-click,
+      // so a single click never opens.
+      const k = selKey(item);
+      const cur = selectedRef.current;
+      if (cur.has(k) && cur.size === 1) clear();
+      else select(item);
+      return true;
     },
-    [toggle, selectRange],
+    [toggle, selectRange, select, clear],
   );
+
+  // Click outside any row / selection bar / menu / dialog clears the selection.
+  useEffect(() => {
+    if (selected.size === 0) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (
+        !t ||
+        t.closest("[data-drive-item]") ||
+        t.closest("[data-keep-selection]") ||
+        t.closest('[role="dialog"]')
+      ) {
+        return;
+      }
+      clear();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [selected.size, clear]);
 
   const value = useMemo<SelectionCtx>(
     () => ({

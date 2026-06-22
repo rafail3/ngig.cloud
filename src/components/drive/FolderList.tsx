@@ -16,11 +16,10 @@ import { InfoModal } from "./InfoModal";
 import { ActionMenu, type MenuAction } from "./ActionMenu";
 import { useContextMenu } from "./ContextMenu";
 import { useSelection, selKey, type SelItem } from "./SelectionProvider";
-import { SelectCheckbox } from "./SelectCheckbox";
 import { useLongPress } from "./useLongPress";
 import { FolderPickerModal } from "./FolderPickerModal";
 import { RenameModal } from "./RenameModal";
-import { ModalShell, listContainer, listItem, useMounted } from "./anim";
+import { ModalShell, listContainer, listItem, useMounted, useIsTouch, useRowClick } from "./anim";
 import { useDragActive, usePendingMove, type DragData, type DropData } from "./DriveDndProvider";
 
 export type FolderItem = { id: string; name: string };
@@ -182,10 +181,16 @@ function FolderCard({
   const openMenu = useContextMenu();
   const selection = useSelection();
   const mounted = useMounted();
+  const isTouch = useIsTouch();
 
   const item: SelItem = { kind: "folder", id: folder.id, name: folder.name };
   const selected = selection.isSelected(selKey(item));
   const longPress = useLongPress(() => selection.toggle(item));
+  const handleRowClick = useRowClick({
+    isTouch,
+    onSelect: (mods) => selection.handleClick(item, mods),
+    onOpen: () => router.push(`/?folder=${folder.id}`),
+  });
 
   // Draggable (to move it) and droppable (drop another item into it) at once.
   const { setNodeRef: setDragRef, attributes, listeners } = useDraggable({
@@ -227,16 +232,18 @@ function FolderCard({
       exit={{ opacity: 0, scale: 0.96 }}
       whileHover={{ y: -2 }}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      data-drive-item
       onClick={(e) => {
         if (longPress.consumedClick()) return;
-        if (selection.handleClick(item, e)) return;
-        router.push(`/?folder=${folder.id}`);
+        handleRowClick(e);
       }}
       onContextMenu={(e) => {
         e.preventDefault();
         openMenu(actions, e.clientX, e.clientY);
       }}
-      style={{ opacity: dimmed ? 0.4 : busy ? 0.5 : undefined }}
+      // Use 1 (not undefined) for the normal state: framer-motion doesn't reset
+      // opacity when the style prop becomes undefined, which left a stuck ghost.
+      style={{ opacity: dimmed ? 0.4 : busy ? 0.5 : 1 }}
       className={`group flex min-h-[66px] cursor-pointer items-center gap-1.5 rounded-xl border px-3 transition-colors ${
         highlight
           ? "border-indigo-400 bg-indigo-500/10 ring-2 ring-indigo-400/60"
@@ -245,11 +252,6 @@ function FolderCard({
             : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/70"
       }`}
     >
-      <SelectCheckbox
-        selected={selected}
-        show={selected || selection.count > 0}
-        onToggle={() => selection.toggle(item)}
-      />
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <Folder className="h-5 w-5 shrink-0 text-indigo-400" />
         <span className="truncate text-sm font-medium text-zinc-100">{folder.name}</span>

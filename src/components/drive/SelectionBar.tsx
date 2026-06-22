@@ -17,6 +17,7 @@ import {
 } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
+import { fileTypeLabel } from "@/lib/file-type";
 import { useSelection, type SelItem } from "./SelectionProvider";
 import { FolderPickerModal } from "./FolderPickerModal";
 import { RenameModal } from "./RenameModal";
@@ -175,13 +176,17 @@ export function SelectionBar() {
       <AnimatePresence initial={false}>
         {count > 0 && (
           <motion.div
-            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-            animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
-            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="overflow-hidden"
+            data-keep-selection
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
+            // Floats over the content (fixed) instead of sitting in the flow, so
+            // selecting never pushes the list down — selection is instant and
+            // double-click stays reliable.
+            className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4"
           >
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-indigo-500/40 bg-indigo-500/10 px-4 py-2.5">
+            <div className="pointer-events-auto flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-indigo-500/40 bg-zinc-900/95 px-4 py-2.5 shadow-2xl shadow-black/40 backdrop-blur">
               <button
                 type="button"
                 onClick={clear}
@@ -193,7 +198,7 @@ export function SelectionBar() {
               <span className="text-sm font-medium text-zinc-100">
                 {count} {count === 1 ? "selectat" : "selectate"}
               </span>
-              <div className="ml-auto flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {actions.map((a) => (
                   <BarButton key={a.label} action={a} disabled={busy} />
                 ))}
@@ -244,7 +249,7 @@ export function SelectionBar() {
               infoItem.kind === "file"
                 ? [
                     { label: "Dimensiune", value: formatBytes(infoItem.size ?? 0) },
-                    { label: "Tip", value: infoItem.mimeType ?? "necunoscut" },
+                    { label: "Tip", value: fileTypeLabel(infoItem.name, infoItem.mimeType) },
                     {
                       label: "Încărcat",
                       value: infoItem.createdAt ? formatDateTime(infoItem.createdAt) : "—",
