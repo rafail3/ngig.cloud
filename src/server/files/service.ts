@@ -13,6 +13,7 @@ import {
   presignView,
   copyObject,
   deleteObject,
+  putObject,
   statObject,
   listKeys,
   cleanupPrefix,
@@ -372,6 +373,54 @@ export async function getTextPreview(id: string): Promise<string> {
   const url = await presignView(file.storage_key);
   const res = await fetch(url, { headers: { Range: "bytes=0-100000" } });
   return res.text();
+}
+
+// Largest text file we let the user edit in-app. Editing must load the WHOLE
+// file (saving the capped preview would truncate it), so we bound it.
+const MAX_EDIT_SIZE = 1024 * 1024; // 1 MB
+
+// Full text of a file, for in-app editing (NOT capped like the preview).
+// Returns { tooLarge: true } if the file exceeds the edit cap.
+export async function getTextContent(
+  id: string,
+): Promise<{ content: string } | { tooLarge: true }> {
+  const { id: userId } = await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
+  if (file.size > MAX_EDIT_SIZE) return { tooLarge: true };
+  const url = await presignView(file.storage_key);
+  const res = await fetch(url);
+  return { content: await res.text() };
+}
+
+// Overwrite a text file's content in place (same B2 key), then bump size +
+// updated_at so the drive shows it as modified. Quota is re-checked only for the
+// growth. Owner-scoped via RLS + the key guard.
+export async function saveTextFile(
+  id: string,
+  content: string,
+): Promise<{ size: number; updatedAt: string }> {
+  const { id: userId, maxFile, maxTotal } = await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
+
+  const bytes = Buffer.byteLength(content, "utf8");
+  if (bytes > MAX_EDIT_SIZE) throw new Error("Fișier prea mare pentru editare.");
+
+  const grew = bytes - file.size;
+  if (grew > 0) await enforceQuota(userId, grew, maxFile, maxTotal);
+
+  await putObject(
+    file.storage_key,
+    Buffer.from(content, "utf8"),
+    file.mime_type ?? "text/plain; charset=utf-8",
+  );
+
+  const updatedAt = new Date().toISOString();
+  await repo.updateFile(id, { size: bytes, updated_at: updatedAt });
+  return { size: bytes, updatedAt };
 }
 
 // Total usage + quota for the drive's usage bar (null quota = unlimited). Usage

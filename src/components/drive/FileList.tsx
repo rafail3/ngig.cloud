@@ -219,6 +219,7 @@ export function FileList({
             file={preview}
             onClose={() => setPreview(null)}
             onDownload={() => download(preview.id)}
+            onSaved={() => router.refresh()}
           />
         )}
 
@@ -371,17 +372,22 @@ function FileRow({
             {fileTypeShort(file.name, file.mimeType)} · {formatBytes(file.size)}
           </span>
           <span aria-hidden="true">·</span>
-          <span
-            className="flex shrink-0 items-center gap-1"
-            title={isModified(file) ? "Data modificării" : "Data încărcării"}
-          >
-            {isModified(file) ? (
-              <Pencil className="h-3 w-3" aria-hidden="true" />
-            ) : (
-              <Upload className="h-3 w-3" aria-hidden="true" />
-            )}
-            {formatDateShort(isModified(file) ? file.updatedAt : file.createdAt)}
+          <span className="flex shrink-0 items-center gap-1" title="Data încărcării">
+            <Upload className="h-3 w-3" aria-hidden="true" />
+            {formatDateShort(file.createdAt)}
           </span>
+          {isModified(file) && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span
+                className="flex shrink-0 items-center gap-1"
+                title="Data modificării"
+              >
+                <Pencil className="h-3 w-3" aria-hidden="true" />
+                {formatDateShort(file.updatedAt)}
+              </span>
+            </>
+          )}
         </p>
       </div>
       <div className="flex shrink-0 items-center">

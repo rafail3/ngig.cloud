@@ -132,6 +132,24 @@ export async function abortMultipart(
   );
 }
 
+// Write bytes straight to a key from the server (overwrite). Used to save an
+// in-app text edit back to its existing object — the payload is small text, so
+// proxying it through the server (vs a presigned PUT round-trip) is simplest.
+export async function putObject(
+  key: string,
+  body: Uint8Array | string,
+  contentType: string,
+): Promise<void> {
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }),
+  );
+}
+
 // Presigned GET that forces a download with the original filename.
 export function presignDownload(key: string, filename: string, expiresIn = 600) {
   return getSignedUrl(

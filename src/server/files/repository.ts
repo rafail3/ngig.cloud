@@ -158,7 +158,13 @@ export async function insertFile(row: {
 
 export async function updateFile(
   id: string,
-  patch: { name?: string; folder_id?: string | null; deleted_at?: string | null },
+  patch: {
+    name?: string;
+    folder_id?: string | null;
+    deleted_at?: string | null;
+    size?: number;
+    updated_at?: string;
+  },
 ): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("files").update(patch).eq("id", id);
