@@ -131,3 +131,60 @@ export function fileTypeLabel(name: string, mime?: string | null): string {
   // Don't duplicate the extension when the fallback label already shows it.
   return ext && !base.includes(`.${ext}`) ? `${base} (.${ext})` : base;
 }
+
+// ---------------------------------------------------------------------------
+// Coarse categories — the buckets the in-folder filter (TASK 40) groups by.
+// Deliberately broader than the labels above: a user filtering for "Documente"
+// expects pdf/word/text together, not one bucket per extension.
+// ---------------------------------------------------------------------------
+
+export type FileCategory =
+  | "image"
+  | "video"
+  | "audio"
+  | "document"
+  | "spreadsheet"
+  | "presentation"
+  | "code"
+  | "archive"
+  | "other";
+
+const CATEGORY_BY_EXT: Record<string, FileCategory> = {
+  // Documents (incl. plain text — a reader looking for "documents" wants these)
+  pdf: "document", doc: "document", docx: "document", odt: "document",
+  rtf: "document", txt: "document", md: "document", markdown: "document",
+  // Spreadsheets
+  xls: "spreadsheet", xlsx: "spreadsheet", csv: "spreadsheet", ods: "spreadsheet",
+  // Presentations
+  ppt: "presentation", pptx: "presentation", odp: "presentation",
+  // Code / data / config
+  json: "code", jsonc: "code", xml: "code", yml: "code", yaml: "code",
+  ini: "code", env: "code", toml: "code", log: "code",
+  js: "code", mjs: "code", cjs: "code", jsx: "code", ts: "code", tsx: "code",
+  css: "code", scss: "code", html: "code", py: "code", rb: "code", go: "code",
+  rs: "code", java: "code", c: "code", h: "code", cpp: "code", sql: "code",
+  sh: "code",
+  // Images
+  png: "image", jpg: "image", jpeg: "image", gif: "image", webp: "image",
+  svg: "image", bmp: "image", ico: "image", avif: "image", heic: "image",
+  // Audio
+  mp3: "audio", wav: "audio", ogg: "audio", flac: "audio", m4a: "audio",
+  // Video
+  mp4: "video", webm: "video", mov: "video", mkv: "video", avi: "video",
+  // Archives
+  zip: "archive", rar: "archive", "7z": "archive", tar: "archive", gz: "archive",
+};
+
+/** The coarse bucket a file belongs to — extension first, MIME as fallback. */
+export function fileCategory(name: string, mime?: string | null): FileCategory {
+  const ext = extOf(name);
+  if (ext && CATEGORY_BY_EXT[ext]) return CATEGORY_BY_EXT[ext];
+
+  const m = mime ?? "";
+  if (m.startsWith("image/")) return "image";
+  if (m.startsWith("video/")) return "video";
+  if (m.startsWith("audio/")) return "audio";
+  if (m.startsWith("text/")) return "document";
+
+  return "other";
+}

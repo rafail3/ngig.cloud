@@ -175,6 +175,102 @@ export async function listFolder(folderId: string | null) {
   return { folders, files: visibleFiles, breadcrumb: crumbs };
 }
 
+// ---- Global search --------------------------------------------------------
+
+export type SearchCrumb = { id: string; name: string };
+export type FileHit = {
+  id: string;
+  name: string;
+  size: number;
+  mimeType: string | null;
+  createdAt: string;
+  updatedAt: string;
+  folderId: string | null;
+  path: SearchCrumb[]; // ancestor folders, root → containing folder ([] = root)
+};
+export type FolderHit = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  path: SearchCrumb[]; // ancestor folders, root → parent ([] = root)
+};
+
+// Cap each result set so a broad query stays snappy and bounded.
+const SEARCH_LIMIT = 100;
+// Higher cap for the no-query case (filter-only global view), where we pull the
+// whole drive and the filters do the narrowing client-side.
+const ALL_FILES_LIMIT = 1000;
+
+// Escape LIKE wildcards so a literal "%" or "_" the user types isn't treated as
+// a pattern.
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+// Search the whole drive (all folders, every depth) by name. Each hit carries
+// the path to where it lives so the UI can show its location and navigate there.
+export async function searchDrive(
+  query: string,
+): Promise<{ files: FileHit[]; folders: FolderHit[] }> {
+  await requireUserId();
+  const tokens = query
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(escapeLike);
+  const noQuery = tokens.length === 0;
+
+  const [allFolders, files] = await Promise.all([
+    repo.listAllFolders(),
+    noQuery
+      ? repo.listAllFiles(ALL_FILES_LIMIT)
+      : repo.searchFiles(tokens, SEARCH_LIMIT),
+  ]);
+  // No name query → folders can't be name-matched; the file filters drive the
+  // view and folders are hidden anyway.
+  const folders: repo.FolderRow[] = noQuery
+    ? []
+    : await repo.searchFolders(tokens, SEARCH_LIMIT);
+
+  const byId = new Map(allFolders.map((f) => [f.id, f]));
+  const pathCache = new Map<string, SearchCrumb[]>();
+  // Ancestor crumbs (root → folder) for a folder id, memoized across hits.
+  function pathTo(folderId: string | null): SearchCrumb[] {
+    if (!folderId) return [];
+    const cached = pathCache.get(folderId);
+    if (cached) return cached;
+    const crumbs: SearchCrumb[] = [];
+    let id: string | null = folderId;
+    for (let i = 0; id && i < 64; i++) {
+      const f = byId.get(id);
+      if (!f) break;
+      crumbs.unshift({ id: f.id, name: f.name });
+      id = f.parent_id;
+    }
+    pathCache.set(folderId, crumbs);
+    return crumbs;
+  }
+
+  return {
+    files: files.map((f) => ({
+      id: f.id,
+      name: f.name,
+      size: f.size,
+      mimeType: f.mime_type,
+      createdAt: f.created_at,
+      updatedAt: f.updated_at,
+      folderId: f.folder_id,
+      path: pathTo(f.folder_id),
+    })),
+    folders: folders.map((f) => ({
+      id: f.id,
+      name: f.name,
+      parentId: f.parent_id,
+      path: pathTo(f.parent_id),
+    })),
+  };
+}
+
 // ---- Folder operations ----------------------------------------------------
 
 const FOLDER_NAME_RE = /^[^/\\]{1,255}$/;

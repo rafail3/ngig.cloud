@@ -55,6 +55,51 @@ export async function listFoldersIn(
   return (data ?? []) as FolderRow[];
 }
 
+// Name search across ALL of the caller's files (RLS-scoped to the owner).
+// Every token must appear in the name (AND). Trashed files are excluded and the
+// result is capped so a broad query can't pull the whole drive.
+export async function searchFiles(
+  tokens: string[],
+  limit: number,
+): Promise<FileRow[]> {
+  const supabase = await createClient();
+  let q = supabase.from("files").select("*").is("deleted_at", null);
+  for (const t of tokens) q = q.ilike("name", `%${t}%`);
+  const { data, error } = await q
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as FileRow[];
+}
+
+// All of the caller's (non-trashed) files, newest first, capped. Used by the
+// global view when only type/date/size filters are active (no name query), so
+// the filters have the whole drive to narrow.
+export async function listAllFiles(limit: number): Promise<FileRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("files")
+    .select("*")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as FileRow[];
+}
+
+// Name search across ALL of the caller's folders (RLS-scoped).
+export async function searchFolders(
+  tokens: string[],
+  limit: number,
+): Promise<FolderRow[]> {
+  const supabase = await createClient();
+  let q = supabase.from("folders").select("*");
+  for (const t of tokens) q = q.ilike("name", `%${t}%`);
+  const { data, error } = await q.order("name").limit(limit);
+  if (error) throw error;
+  return (data ?? []) as FolderRow[];
+}
+
 export async function getFolder(id: string): Promise<FolderRow | null> {
   const supabase = await createClient();
   const { data } = await supabase

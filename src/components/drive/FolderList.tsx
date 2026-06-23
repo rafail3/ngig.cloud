@@ -21,17 +21,14 @@ import { FolderPickerModal } from "./FolderPickerModal";
 import { RenameModal } from "./RenameModal";
 import { ModalShell, listContainer, listItem, useMounted, useIsTouch, useRowClick } from "./anim";
 import { useDragActive, usePendingMove, type DragData, type DropData } from "./DriveDndProvider";
+import { useFilter } from "./FilterProvider";
 
 export type FolderItem = { id: string; name: string };
 
-export function FolderList({
-  folders,
-  folderId,
-}: {
-  folders: FolderItem[];
-  folderId: string | null;
-}) {
+export function FolderList({ folderId }: { folderId: string | null }) {
   const router = useRouter();
+  // Folders to display come pre-filtered (name search) from the filter bar.
+  const { folders } = useFilter();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<FolderItem | null>(null);
   const [toRename, setToRename] = useState<FolderItem | null>(null);
