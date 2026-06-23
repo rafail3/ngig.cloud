@@ -105,6 +105,7 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
         createPortal(
           <div
             ref={menuRef}
+            data-keep-selection
             className="fixed z-[71]"
             style={{
               top: coords ? coords.top : state.y,

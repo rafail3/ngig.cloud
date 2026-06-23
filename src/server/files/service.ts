@@ -6,12 +6,14 @@ import { requireActiveUser } from "@/server/auth/active-user";
 import { getSettings } from "@/server/admin/settings";
 import { platformUsage } from "@/server/admin/stats";
 import * as repo from "./repository";
+import { extensionOf } from "@/lib/file-type";
 import {
   presignUpload,
   presignDownload,
   presignView,
   copyObject,
   deleteObject,
+  putObject,
   statObject,
   listKeys,
   cleanupPrefix,
@@ -373,6 +375,54 @@ export async function getTextPreview(id: string): Promise<string> {
   return res.text();
 }
 
+// Largest text file we let the user edit in-app. Editing must load the WHOLE
+// file (saving the capped preview would truncate it), so we bound it.
+const MAX_EDIT_SIZE = 1024 * 1024; // 1 MB
+
+// Full text of a file, for in-app editing (NOT capped like the preview).
+// Returns { tooLarge: true } if the file exceeds the edit cap.
+export async function getTextContent(
+  id: string,
+): Promise<{ content: string } | { tooLarge: true }> {
+  const { id: userId } = await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
+  if (file.size > MAX_EDIT_SIZE) return { tooLarge: true };
+  const url = await presignView(file.storage_key);
+  const res = await fetch(url);
+  return { content: await res.text() };
+}
+
+// Overwrite a text file's content in place (same B2 key), then bump size +
+// updated_at so the drive shows it as modified. Quota is re-checked only for the
+// growth. Owner-scoped via RLS + the key guard.
+export async function saveTextFile(
+  id: string,
+  content: string,
+): Promise<{ size: number; updatedAt: string }> {
+  const { id: userId, maxFile, maxTotal } = await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
+
+  const bytes = Buffer.byteLength(content, "utf8");
+  if (bytes > MAX_EDIT_SIZE) throw new Error("Fișier prea mare pentru editare.");
+
+  const grew = bytes - file.size;
+  if (grew > 0) await enforceQuota(userId, grew, maxFile, maxTotal);
+
+  await putObject(
+    file.storage_key,
+    Buffer.from(content, "utf8"),
+    file.mime_type ?? "text/plain; charset=utf-8",
+  );
+
+  const updatedAt = new Date().toISOString();
+  await repo.updateFile(id, { size: bytes, updated_at: updatedAt });
+  return { size: bytes, updatedAt };
+}
+
 // Total usage + quota for the drive's usage bar (null quota = unlimited). Usage
 // is the sum across ALL the user's files, not just the current folder.
 export async function myUsage(): Promise<{ used: number; quota: number | null }> {
@@ -555,9 +605,23 @@ const FILE_NAME_RE = /^[^/\\]{1,255}$/;
 
 export async function renameFile(id: string, name: string): Promise<void> {
   await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+
   const clean = name.trim();
   if (!FILE_NAME_RE.test(clean)) throw new Error("Nume de fișier invalid.");
-  await repo.updateFile(id, { name: clean });
+
+  // Lock the original extension: the new name must keep it, so a rename can
+  // never strip or change it (which would break the download filename). This is
+  // the source of truth — it also covers direct calls that bypass the UI.
+  const ext = extensionOf(file.name);
+  const finalName =
+    ext && clean.toLowerCase() !== ext.toLowerCase() &&
+    !clean.toLowerCase().endsWith(ext.toLowerCase())
+      ? clean + ext
+      : clean;
+
+  await repo.updateFile(id, { name: finalName });
 }
 
 // Move a file into a folder (null = root). The destination folder must belong to

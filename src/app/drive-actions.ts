@@ -207,6 +207,29 @@ export async function getTextPreviewAction(
   }
 }
 
+export async function getTextContentAction(
+  id: string,
+): Promise<{ content: string } | { tooLarge: true } | Revoked> {
+  try {
+    return await files.getTextContent(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function saveTextFileAction(
+  id: string,
+  content: string,
+): Promise<{ size: number; updatedAt: string } | { error: string } | Revoked> {
+  try {
+    return await files.saveTextFile(id, content);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    return { error: e instanceof Error ? e.message : "Nu am putut salva." };
+  }
+}
+
 export async function getDownloadUrlAction(id: string): Promise<string | Revoked> {
   try {
     return await files.getDownloadUrl(id);

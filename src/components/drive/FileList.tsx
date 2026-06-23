@@ -9,9 +9,11 @@ import {
   Info,
   Download,
   Pencil,
+  SquarePen,
   FolderInput,
   Copy,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import {
@@ -23,6 +25,7 @@ import {
 } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
+import { fileTypeShort, fileTypeLabel, isTextEditable } from "@/lib/file-type";
 import { useUploads, type UploadJob } from "./UploadProvider";
 import { PreviewModal } from "./PreviewModal";
 import { InfoModal } from "./InfoModal";
@@ -30,10 +33,9 @@ import { FolderPickerModal } from "./FolderPickerModal";
 import { ActionMenu, type MenuAction } from "./ActionMenu";
 import { useContextMenu } from "./ContextMenu";
 import { useSelection, selKey, type SelItem } from "./SelectionProvider";
-import { SelectCheckbox } from "./SelectCheckbox";
 import { useLongPress } from "./useLongPress";
 import { RenameModal } from "./RenameModal";
-import { listContainer, listItem, useMounted } from "./anim";
+import { listContainer, listItem, useMounted, useIsTouch, useRowClick } from "./anim";
 import { useDragActive, usePendingMove, type DragData } from "./DriveDndProvider";
 
 function speedLabel(bytesPerSec: number): string {
@@ -90,7 +92,14 @@ type FileItem = {
   size: number;
   mimeType: string | null;
   createdAt: string;
+  updatedAt: string;
 };
+
+// A file counts as "modified" only once its content has actually changed
+// (in-app editing) — updated_at moves past created_at. Rename/move don't.
+function isModified(f: { createdAt: string; updatedAt: string }): boolean {
+  return new Date(f.updatedAt).getTime() > new Date(f.createdAt).getTime();
+}
 
 export function FileList({
   files,
@@ -103,6 +112,8 @@ export function FileList({
   const { jobs } = useUploads();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<FileItem | null>(null);
+  // True when the preview was opened straight into edit mode (Editează action).
+  const [editIntent, setEditIntent] = useState(false);
   const [info, setInfo] = useState<FileItem | null>(null);
   const [toRename, setToRename] = useState<FileItem | null>(null);
   const [toMove, setToMove] = useState<FileItem | null>(null);
@@ -193,6 +204,10 @@ export function FileList({
               folderId={folderId}
               pending={pendingId === f.id}
               onPreview={() => setPreview(f)}
+              onEdit={() => {
+                setEditIntent(true);
+                setPreview(f);
+              }}
               onInfo={() => setInfo(f)}
               onRename={() => setToRename(f)}
               onMove={() => setToMove(f)}
@@ -209,8 +224,13 @@ export function FileList({
           <PreviewModal
             key="preview"
             file={preview}
-            onClose={() => setPreview(null)}
+            startEditing={editIntent}
+            onClose={() => {
+              setPreview(null);
+              setEditIntent(false);
+            }}
             onDownload={() => download(preview.id)}
+            onSaved={() => router.refresh()}
           />
         )}
 
@@ -221,8 +241,11 @@ export function FileList({
             onClose={() => setInfo(null)}
             rows={[
               { label: "Dimensiune", value: formatBytes(info.size) },
-              { label: "Tip", value: info.mimeType ?? "necunoscut" },
+              { label: "Tip", value: fileTypeLabel(info.name, info.mimeType) },
               { label: "Încărcat", value: formatDateTime(info.createdAt) },
+              ...(isModified(info)
+                ? [{ label: "Modificat", value: formatDateTime(info.updatedAt) }]
+                : []),
             ]}
           />
         )}
@@ -232,6 +255,7 @@ export function FileList({
             key="rename"
             title="Redenumește fișierul"
             initialName={toRename.name}
+            keepExtension
             onClose={() => setToRename(null)}
             onRename={async (name) => {
               const res = await renameFileAction(toRename.id, name);
@@ -269,6 +293,7 @@ function FileRow({
   folderId,
   pending,
   onPreview,
+  onEdit,
   onInfo,
   onRename,
   onMove,
@@ -280,6 +305,7 @@ function FileRow({
   folderId: string | null;
   pending: boolean;
   onPreview: () => void;
+  onEdit: () => void;
   onInfo: () => void;
   onRename: () => void;
   onMove: () => void;
@@ -290,6 +316,7 @@ function FileRow({
   const openMenu = useContextMenu();
   const selection = useSelection();
   const mounted = useMounted();
+  const isTouch = useIsTouch();
   const { setNodeRef, attributes, listeners } = useDraggable({
     id: `file:${file.id}`,
     data: { kind: "file", id: file.id, name: file.name, parentId: folderId } satisfies DragData,
@@ -304,14 +331,24 @@ function FileRow({
     createdAt: file.createdAt,
   };
   const selected = selection.isSelected(selKey(item));
+  // Dim from OUR own drag context (cleared reliably on drag end); dnd-kit's
+  // isDragging can stick "true" after a drop-in-place in this setup.
   const dragActive = useDragActive();
   const dimmed = dragActive?.kind === "file" && dragActive.id === file.id;
   const moving = usePendingMove().has(selKey(item));
   const busy = pending || moving;
   const longPress = useLongPress(() => selection.toggle(item));
+  const handleRowClick = useRowClick({
+    isTouch,
+    onSelect: (mods) => selection.handleClick(item, mods),
+    onOpen: onPreview,
+  });
 
   const actions: MenuAction[] = [
     { icon: Download, label: "Descarcă", onSelect: onDownload },
+    ...(isTextEditable(file.name, file.mimeType)
+      ? [{ icon: SquarePen, label: "Editează", onSelect: onEdit }]
+      : []),
     { icon: Pencil, label: "Redenumește", onSelect: onRename },
     { icon: FolderInput, label: "Mută", onSelect: onMove },
     { icon: Copy, label: "Copiază", onSelect: onCopy },
@@ -328,34 +365,47 @@ function FileRow({
       layout
       variants={listItem}
       exit={{ opacity: 0, scale: 0.97 }}
+      data-drive-item
+      onClick={(e) => {
+        if (longPress.consumedClick()) return;
+        handleRowClick(e);
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         openMenu(actions, e.clientX, e.clientY);
       }}
-      style={{ opacity: dimmed ? 0.4 : busy ? 0.5 : undefined }}
-      className={`group flex items-center gap-3 px-4 py-3 transition-colors ${
+      // Use 1 (not undefined) for the normal state: framer-motion doesn't reset
+      // opacity when the style prop becomes undefined, which left a stuck ghost.
+      style={{ opacity: dimmed ? 0.4 : busy ? 0.5 : 1 }}
+      className={`group flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors ${
         selected ? "bg-indigo-500/10" : "hover:bg-zinc-900/40"
       }`}
     >
-      <SelectCheckbox
-        selected={selected}
-        show={selected || selection.count > 0}
-        onToggle={() => selection.toggle(item)}
-      />
-      <button
-        type="button"
-        onClick={(e) => {
-          if (longPress.consumedClick()) return;
-          if (selection.handleClick(item, e)) return;
-          onPreview();
-        }}
-        className="min-w-0 flex-1 text-left"
-      >
+      <div className="min-w-0 flex-1 text-left">
         <p className="truncate text-base font-medium text-zinc-100">{file.name}</p>
-        <p className="text-sm text-zinc-500">
-          {formatBytes(file.size)} · {formatDateShort(file.createdAt)}
+        <p className="flex items-center gap-1.5 text-sm text-zinc-500">
+          <span className="truncate">
+            {fileTypeShort(file.name, file.mimeType)} · {formatBytes(file.size)}
+          </span>
+          <span aria-hidden="true">·</span>
+          <span className="flex shrink-0 items-center gap-1" title="Data încărcării">
+            <Upload className="h-3 w-3" aria-hidden="true" />
+            {formatDateShort(file.createdAt)}
+          </span>
+          {isModified(file) && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span
+                className="flex shrink-0 items-center gap-1"
+                title="Data modificării"
+              >
+                <Pencil className="h-3 w-3" aria-hidden="true" />
+                {formatDateShort(file.updatedAt)}
+              </span>
+            </>
+          )}
         </p>
-      </button>
+      </div>
       <div className="flex shrink-0 items-center">
         {busy && <Loader2 className="mr-1 h-4 w-4 animate-spin text-indigo-400" />}
         <ActionMenu actions={actions} label="Opțiuni fișier" />

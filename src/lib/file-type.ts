@@ -85,18 +85,49 @@ function extOf(name: string): string | null {
   return name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? null;
 }
 
-/** A friendly label like "Document Word (.docx)" for a file. */
-export function fileTypeLabel(name: string, mime?: string | null): string {
+// Files we render as editable text/code (kept in sync with PreviewModal's text
+// detection). Office/PDF/binary types are intentionally excluded.
+const TEXT_EXT =
+  /\.(txt|md|markdown|json|jsonc|js|jsx|ts|tsx|css|scss|html|xml|yml|yaml|csv|log|ini|env|sh|py|rb|go|rs|java|c|h|cpp|sql|toml)$/i;
+
+/** Whether a file holds plain text we can open in the in-app editor. */
+export function isTextEditable(name: string, mime?: string | null): boolean {
+  return (mime ?? "").startsWith("text/") || TEXT_EXT.test(name);
+}
+
+/**
+ * The file extension *including* the leading dot, in its original case
+ * ("report.PDF" → ".PDF"), or "" if the name has none. A leading-dot name like
+ * ".env" counts as having no extension (the dot is at position 0).
+ */
+export function extensionOf(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i > 0 ? name.slice(i) : "";
+}
+
+// The bare category label, no extension suffix: "Document Word", "Cod Python".
+function categoryLabel(name: string, mime?: string | null): string {
   const ext = extOf(name);
-  if (ext && BY_EXT[ext]) return `${BY_EXT[ext]} (.${ext})`;
+  if (ext && BY_EXT[ext]) return BY_EXT[ext];
 
   const m = mime ?? "";
-  const suffix = ext ? ` (.${ext})` : "";
-  if (m.startsWith("image/")) return `Imagine${suffix}`;
-  if (m.startsWith("video/")) return `Video${suffix}`;
-  if (m.startsWith("audio/")) return `Audio${suffix}`;
-  if (m.startsWith("text/")) return `Text${suffix}`;
+  if (m.startsWith("image/")) return "Imagine";
+  if (m.startsWith("video/")) return "Video";
+  if (m.startsWith("audio/")) return "Audio";
+  if (m.startsWith("text/")) return "Text";
 
-  if (ext) return `Fișier .${ext}`;
-  return m || "Fișier necunoscut";
+  return ext ? `Fișier .${ext}` : m || "Fișier necunoscut";
+}
+
+/** Short type label for compact UI (file rows): e.g. "Document Word". */
+export function fileTypeShort(name: string, mime?: string | null): string {
+  return categoryLabel(name, mime);
+}
+
+/** Full type label for detail panels: e.g. "Document Word (.docx)". */
+export function fileTypeLabel(name: string, mime?: string | null): string {
+  const ext = extOf(name);
+  const base = categoryLabel(name, mime);
+  // Don't duplicate the extension when the fallback label already shows it.
+  return ext && !base.includes(`.${ext}`) ? `${base} (.${ext})` : base;
 }

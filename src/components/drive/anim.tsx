@@ -1,7 +1,62 @@
 "use client";
 
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { motion, type Transition, type Variants } from "motion/react";
+
+export type ClickMods = { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean };
+
+// How long a single click waits before selecting, so a double-click can cancel
+// it first. Short enough to feel responsive, long enough that double-clicking to
+// open never flashes the selection bar.
+const DOUBLE_CLICK_MS = 150;
+
+// Single vs double click on a drive row. A plain single click selects, a double
+// click opens. The select is deferred briefly so a double-click cancels it and
+// never flashes the selection bar. On touch, a tap just opens. Returns an
+// onClick handler for the row.
+export function useRowClick(opts: {
+  isTouch: boolean;
+  onSelect: (mods: ClickMods) => void;
+  onOpen: () => void;
+}): (e: MouseEvent<HTMLElement>) => void {
+  const { isTouch, onSelect, onOpen } = opts;
+  const timer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    },
+    [],
+  );
+  return useCallback(
+    (e: MouseEvent<HTMLElement>) => {
+      if (timer.current) {
+        window.clearTimeout(timer.current);
+        timer.current = null;
+      }
+      if (isTouch || e.detail >= 2) {
+        onOpen();
+        return;
+      }
+      const mods: ClickMods = {
+        ctrlKey: e.ctrlKey,
+        metaKey: e.metaKey,
+        shiftKey: e.shiftKey,
+      };
+      timer.current = window.setTimeout(() => {
+        timer.current = null;
+        onSelect(mods);
+      }, DOUBLE_CLICK_MS);
+    },
+    [isTouch, onSelect, onOpen],
+  );
+}
 
 // False during SSR + the first client render, true thereafter. Use it to gate
 // attributes that differ between server and client (e.g. dnd-kit's generated aria
@@ -11,6 +66,21 @@ export function useMounted(): boolean {
   return useSyncExternalStore(
     noopSubscribe,
     () => true,
+    () => false,
+  );
+}
+
+// True on touch / coarse-pointer devices (no hover). There, a single tap opens
+// and long-press selects; on desktop a single click selects and double-click
+// opens. SSR-safe: returns false (desktop) until mounted.
+export function useIsTouch(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      const mq = window.matchMedia("(hover: none)");
+      mq.addEventListener("change", cb);
+      return () => mq.removeEventListener("change", cb);
+    },
+    () => window.matchMedia("(hover: none)").matches,
     () => false,
   );
 }
