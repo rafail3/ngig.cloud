@@ -10,6 +10,9 @@ import { DriveTransition } from "@/components/drive/DriveTransition";
 import { DriveDndProvider, CurrentFolderDropZone } from "@/components/drive/DriveDndProvider";
 import { SelectionProvider, type SelItem } from "@/components/drive/SelectionProvider";
 import { SelectionBar } from "@/components/drive/SelectionBar";
+import { FilterProvider } from "@/components/drive/FilterProvider";
+import { FilterBar } from "@/components/drive/FilterBar";
+import { DriveResults } from "@/components/drive/SearchResults";
 
 export const metadata = { title: "Fișierele mele" };
 
@@ -51,65 +54,69 @@ export default async function Home({
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
-          {title}
-        </h1>
-        {folderId && <FolderInfoButton folderId={folderId} name={title} />}
-      </div>
+      <FilterProvider
+        folders={folders.map((f) => ({ id: f.id, name: f.name }))}
+        files={files.map((f) => ({
+          id: f.id,
+          name: f.name,
+          size: f.size,
+          mimeType: f.mime_type,
+          createdAt: f.created_at,
+          updatedAt: f.updated_at,
+        }))}
+      >
+        {/* Search + filters sit above everything else on the page. */}
+        <FilterBar />
 
-      <SelectionProvider items={selItems} folderId={folderId}>
-        <DriveDndProvider folderId={folderId}>
-        <div className="mb-4">
-          <Breadcrumb crumbs={breadcrumb} />
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
+            {title}
+          </h1>
+          {folderId && <FolderInfoButton folderId={folderId} name={title} />}
         </div>
 
-        {/* storage usage */}
-        <div className="mb-6">
-          <div className="mb-1.5 flex justify-between text-sm text-zinc-400">
-            <span>Spațiu folosit</span>
-            <span>
-              {quota
-                ? `${formatBytes(used)} / ${formatBytes(quota)} (${pct}%)`
-                : `${formatBytes(used)} folosiți`}
-            </span>
+        <SelectionProvider items={selItems} folderId={folderId}>
+          <DriveDndProvider folderId={folderId}>
+          <div className="mb-4">
+            <Breadcrumb crumbs={breadcrumb} />
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-900">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all"
-              style={{ width: `${quota ? pct : 100}%`, opacity: quota ? 1 : 0.3 }}
-            />
+
+          {/* storage usage */}
+          <div className="mb-6">
+            <div className="mb-1.5 flex justify-between text-sm text-zinc-400">
+              <span>Spațiu folosit</span>
+              <span>
+                {quota
+                  ? `${formatBytes(used)} / ${formatBytes(quota)} (${pct}%)`
+                  : `${formatBytes(used)} folosiți`}
+              </span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-900">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all"
+                style={{ width: `${quota ? pct : 100}%`, opacity: quota ? 1 : 0.3 }}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="mb-6">
-          <UploadArea folderId={folderId} />
-        </div>
+          <div className="mb-6">
+            <UploadArea folderId={folderId} />
+          </div>
 
-        <SelectionBar />
+          <SelectionBar />
 
-        <CurrentFolderDropZone folderId={folderId}>
-          <DriveTransition id={folderId ?? "root"}>
-            <FolderList
-              folderId={folderId}
-              folders={folders.map((f) => ({ id: f.id, name: f.name }))}
-            />
-            <FileList
-              folderId={folderId}
-              files={files.map((f) => ({
-                id: f.id,
-                name: f.name,
-                size: f.size,
-                mimeType: f.mime_type,
-                createdAt: f.created_at,
-                updatedAt: f.updated_at,
-              }))}
-            />
-            {empty && <DriveEmpty folderId={folderId} />}
-          </DriveTransition>
-        </CurrentFolderDropZone>
-        </DriveDndProvider>
-      </SelectionProvider>
+          <DriveResults>
+            <CurrentFolderDropZone folderId={folderId}>
+              <DriveTransition id={folderId ?? "root"}>
+                <FolderList folderId={folderId} />
+                <FileList folderId={folderId} />
+                {empty && <DriveEmpty folderId={folderId} />}
+              </DriveTransition>
+            </CurrentFolderDropZone>
+          </DriveResults>
+          </DriveDndProvider>
+        </SelectionProvider>
+      </FilterProvider>
     </div>
   );
 }

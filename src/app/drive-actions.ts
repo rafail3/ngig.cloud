@@ -174,6 +174,17 @@ export async function listAllFoldersAction(): Promise<
   }
 }
 
+export async function searchDriveAction(
+  query: string,
+): Promise<{ files: files.FileHit[]; folders: files.FolderHit[] } | Revoked> {
+  try {
+    return await files.searchDrive(query);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
 export async function folderStatsAction(
   id: string,
 ): Promise<{ size: number; count: number } | Revoked> {

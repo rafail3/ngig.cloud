@@ -37,6 +37,7 @@ import { useLongPress } from "./useLongPress";
 import { RenameModal } from "./RenameModal";
 import { listContainer, listItem, useMounted, useIsTouch, useRowClick } from "./anim";
 import { useDragActive, usePendingMove, type DragData } from "./DriveDndProvider";
+import { useFilter } from "./FilterProvider";
 
 function speedLabel(bytesPerSec: number): string {
   if (!bytesPerSec || bytesPerSec < 1) return "—";
@@ -101,15 +102,12 @@ function isModified(f: { createdAt: string; updatedAt: string }): boolean {
   return new Date(f.updatedAt).getTime() > new Date(f.createdAt).getTime();
 }
 
-export function FileList({
-  files,
-  folderId,
-}: {
-  files: FileItem[];
-  folderId: string | null;
-}) {
+export function FileList({ folderId }: { folderId: string | null }) {
   const router = useRouter();
   const { jobs } = useUploads();
+  // `files` is filtered for display; `rawFiles` is the full set, used only to
+  // tell when an upload's real row has arrived (so its ghost can disappear).
+  const { files, rawFiles } = useFilter();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<FileItem | null>(null);
   // True when the preview was opened straight into edit mode (Editează action).
@@ -128,7 +126,7 @@ export function FileList({
       (j.status === "uploading" ||
         j.status === "queued" ||
         (j.status === "done" &&
-          !files.some((f) => f.name === j.name && f.size === j.size))),
+          !rawFiles.some((f) => f.name === j.name && f.size === j.size))),
   );
 
   async function download(id: string) {
