@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.22.0](https://github.com/rafail3/ngig.cloud/compare/v1.21.0...v1.22.0) (2026-06-23)
+
+
+### Features
+
+* **drive:** add file-category and fuzzy-match utilities ([6269a67](https://github.com/rafail3/ngig.cloud/commit/6269a67f6e7c549516e116ab3a5443d28a316bbf))
+* **drive:** filter bar with global cloud search ([13682c0](https://github.com/rafail3/ngig.cloud/commit/13682c0cf0911487cba9643d9f6ce759ac28a4a7))
+* **drive:** filter bar with global cloud search ([1d6584f](https://github.com/rafail3/ngig.cloud/commit/1d6584f0c84d426387c8670c4b719ff9093c87a6))
+
 ## [1.21.0](https://github.com/rafail3/ngig.cloud/compare/v1.20.0...v1.21.0) (2026-06-23)
 
 
