@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.21.0](https://github.com/rafail3/ngig.cloud/compare/v1.20.0...v1.21.0) (2026-06-23)
+
+
+### Features
+
+* drive file handling — rename keeps extension, file type + dates, click-to-select UX, in-app text editing ([21c5c3c](https://github.com/rafail3/ngig.cloud/commit/21c5c3c3042abc4f63bc788e5ccbb4da88012e8c))
+* **drive:** add Edit action to the file context menu ([b08fd2e](https://github.com/rafail3/ngig.cloud/commit/b08fd2ec7f294521cb9f1f559402b84d39e86623))
+* **drive:** click-to-select, double-click-to-open, floating selection bar ([a88acca](https://github.com/rafail3/ngig.cloud/commit/a88accaa4c2b7050e7c3f933aac5cf24082c24c6))
+* **drive:** in-app text/code editing with CodeMirror ([37a2804](https://github.com/rafail3/ngig.cloud/commit/37a2804e68081c60bfddebed01aae359b14aa03f))
+* **drive:** track per-file modified date + friendly type labels ([bd9d54c](https://github.com/rafail3/ngig.cloud/commit/bd9d54c785ea091c3edf68255cb02fc931e5765c))
+
+
+### Bug Fixes
+
+* **drive:** always keep file extension on rename ([49cb880](https://github.com/rafail3/ngig.cloud/commit/49cb880185f8a99ff146f45264fa2ac92e0ff9d8))
+
 ## [1.20.0](https://github.com/rafail3/ngig.cloud/compare/v1.19.0...v1.20.0) (2026-06-20)
 
 
