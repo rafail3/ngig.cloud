@@ -9,6 +9,7 @@ import {
   Info,
   Download,
   Pencil,
+  SquarePen,
   FolderInput,
   Copy,
   Trash2,
@@ -24,7 +25,7 @@ import {
 } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
-import { fileTypeShort, fileTypeLabel } from "@/lib/file-type";
+import { fileTypeShort, fileTypeLabel, isTextEditable } from "@/lib/file-type";
 import { useUploads, type UploadJob } from "./UploadProvider";
 import { PreviewModal } from "./PreviewModal";
 import { InfoModal } from "./InfoModal";
@@ -111,6 +112,8 @@ export function FileList({
   const { jobs } = useUploads();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<FileItem | null>(null);
+  // True when the preview was opened straight into edit mode (Editează action).
+  const [editIntent, setEditIntent] = useState(false);
   const [info, setInfo] = useState<FileItem | null>(null);
   const [toRename, setToRename] = useState<FileItem | null>(null);
   const [toMove, setToMove] = useState<FileItem | null>(null);
@@ -201,6 +204,10 @@ export function FileList({
               folderId={folderId}
               pending={pendingId === f.id}
               onPreview={() => setPreview(f)}
+              onEdit={() => {
+                setEditIntent(true);
+                setPreview(f);
+              }}
               onInfo={() => setInfo(f)}
               onRename={() => setToRename(f)}
               onMove={() => setToMove(f)}
@@ -217,7 +224,11 @@ export function FileList({
           <PreviewModal
             key="preview"
             file={preview}
-            onClose={() => setPreview(null)}
+            startEditing={editIntent}
+            onClose={() => {
+              setPreview(null);
+              setEditIntent(false);
+            }}
             onDownload={() => download(preview.id)}
             onSaved={() => router.refresh()}
           />
@@ -282,6 +293,7 @@ function FileRow({
   folderId,
   pending,
   onPreview,
+  onEdit,
   onInfo,
   onRename,
   onMove,
@@ -293,6 +305,7 @@ function FileRow({
   folderId: string | null;
   pending: boolean;
   onPreview: () => void;
+  onEdit: () => void;
   onInfo: () => void;
   onRename: () => void;
   onMove: () => void;
@@ -333,6 +346,9 @@ function FileRow({
 
   const actions: MenuAction[] = [
     { icon: Download, label: "Descarcă", onSelect: onDownload },
+    ...(isTextEditable(file.name, file.mimeType)
+      ? [{ icon: SquarePen, label: "Editează", onSelect: onEdit }]
+      : []),
     { icon: Pencil, label: "Redenumește", onSelect: onRename },
     { icon: FolderInput, label: "Mută", onSelect: onMove },
     { icon: Copy, label: "Copiază", onSelect: onCopy },

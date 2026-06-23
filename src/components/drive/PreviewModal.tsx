@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { X, Download, Loader2, FileQuestion, Info, Pencil, Save } from "lucide-react";
 import {
@@ -62,11 +62,13 @@ export function PreviewModal({
   onClose,
   onDownload,
   onSaved,
+  startEditing = false,
 }: {
   file: PreviewFile;
   onClose: () => void;
   onDownload: () => void;
   onSaved?: () => void;
+  startEditing?: boolean;
 }) {
   const k = kind(file.mimeType, file.name);
   const [url, setUrl] = useState<string | null>(null);
@@ -84,6 +86,17 @@ export function PreviewModal({
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const canEdit = k === "text";
+  // When opened straight into edit mode (the "Editează" menu action), kick off
+  // editing once the modal mounts.
+  const autoEditRef = useRef(false);
+  useEffect(() => {
+    if (startEditing && canEdit && !autoEditRef.current) {
+      autoEditRef.current = true;
+      void startEdit();
+    }
+    // startEdit is stable enough for a one-shot kick-off.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startEditing, canEdit]);
   // Editing a text file also gets the large modal so there's room to work.
   const big = BIG_WINDOW.has(k) || (k === "text" && editing);
 

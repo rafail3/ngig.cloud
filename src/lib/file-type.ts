@@ -85,6 +85,16 @@ function extOf(name: string): string | null {
   return name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? null;
 }
 
+// Files we render as editable text/code (kept in sync with PreviewModal's text
+// detection). Office/PDF/binary types are intentionally excluded.
+const TEXT_EXT =
+  /\.(txt|md|markdown|json|jsonc|js|jsx|ts|tsx|css|scss|html|xml|yml|yaml|csv|log|ini|env|sh|py|rb|go|rs|java|c|h|cpp|sql|toml)$/i;
+
+/** Whether a file holds plain text we can open in the in-app editor. */
+export function isTextEditable(name: string, mime?: string | null): boolean {
+  return (mime ?? "").startsWith("text/") || TEXT_EXT.test(name);
+}
+
 /**
  * The file extension *including* the leading dot, in its original case
  * ("report.PDF" → ".PDF"), or "" if the name has none. A leading-dot name like
