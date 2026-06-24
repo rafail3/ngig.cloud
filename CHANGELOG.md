@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.25.0](https://github.com/rafail3/ngig.cloud/compare/v1.24.0...v1.25.0) (2026-06-24)
+
+
+### Features
+
+* **drive:** archive files with a dedicated archive view ([482aada](https://github.com/rafail3/ngig.cloud/commit/482aadafd52b1eb958b1f40595d1af8e96102a80))
+* **drive:** file archive, instant transitions, and collapsible sidebar ([025753a](https://github.com/rafail3/ngig.cloud/commit/025753aaa6607216f82e51a0a2ff4cf7d2cd4f0b))
+* **shell:** collapsible sidebar on desktop ([1169986](https://github.com/rafail3/ngig.cloud/commit/116998616ed6ddf318a040f833beda15a69236a7))
+
+
+### Bug Fixes
+
+* **drive:** clear global search when navigating via breadcrumb ([7b61e38](https://github.com/rafail3/ngig.cloud/commit/7b61e386b83a85f2220be3b529654e2b5c28a2fd))
+
+
+### Performance Improvements
+
+* **app:** instant page transitions with a loading skeleton ([cb0cbd2](https://github.com/rafail3/ngig.cloud/commit/cb0cbd2cf0cae92372f12bba36ceda74cd2ab4e0))
+
 ## [1.24.0](https://github.com/rafail3/ngig.cloud/compare/v1.23.0...v1.24.0) (2026-06-24)
 
 
