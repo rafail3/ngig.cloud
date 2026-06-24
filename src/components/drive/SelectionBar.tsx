@@ -110,6 +110,13 @@ export function SelectionBar() {
     router.refresh();
   }
 
+  // Files only go to the (reversible) trash → act straight away, like the
+  // right-click menu. Folders are deleted permanently → confirm first.
+  function requestDelete() {
+    if (folderCount > 0) setConfirmDel(true);
+    else bulkDelete();
+  }
+
   async function downloadSelection() {
     for (const it of items) {
       if (it.kind === "file") {
@@ -157,7 +164,7 @@ export function SelectionBar() {
         {
           icon: Trash2,
           label: single.kind === "file" ? "Mută în coș" : "Șterge",
-          onClick: () => setConfirmDel(true),
+          onClick: requestDelete,
           danger: true,
         },
       ]
@@ -166,7 +173,12 @@ export function SelectionBar() {
   const bulkActions: BarAction[] = [
     { icon: Download, label: "Descarcă", onClick: downloadSelection },
     { icon: FolderInput, label: "Mută", onClick: () => setMoving(true) },
-    { icon: Trash2, label: "Șterge", onClick: () => setConfirmDel(true), danger: true },
+    {
+      icon: Trash2,
+      label: folderCount > 0 ? "Șterge" : "Mută în coș",
+      onClick: requestDelete,
+      danger: true,
+    },
   ];
 
   const actions = single ? singleActions : bulkActions;
