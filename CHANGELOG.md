@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.23.0](https://github.com/rafail3/ngig.cloud/compare/v1.22.0...v1.23.0) (2026-06-24)
+
+
+### Features
+
+* **drive:** global cloud search with filter bar ([ed0f8b6](https://github.com/rafail3/ngig.cloud/commit/ed0f8b6efae85e31bb3a5ca1c01d9918c6e67afa))
+* **drive:** right-click and kebab menu on search results ([8f661d2](https://github.com/rafail3/ngig.cloud/commit/8f661d2c32e4a9951ae09b6f9dc2c1cda1caa079))
+
+
+### Bug Fixes
+
+* **drive:** seamless code preview background on horizontal scroll ([629f7c5](https://github.com/rafail3/ngig.cloud/commit/629f7c5dddb44b4436a568df59ed9dc4dee5ddbb))
+
 ## [1.22.0](https://github.com/rafail3/ngig.cloud/compare/v1.21.0...v1.22.0) (2026-06-23)
 
 
