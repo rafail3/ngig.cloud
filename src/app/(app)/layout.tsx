@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/shell/AppShell";
@@ -32,8 +33,13 @@ export default async function AppLayout({
     await touchLastSeen(userId, profile.last_seen_at);
   }
 
+  const collapsed = (await cookies()).get("sidebar_collapsed")?.value === "1";
+
   return (
-    <AppShell user={{ username: profile?.username ?? "", role: profile?.role ?? "", email }}>
+    <AppShell
+      user={{ username: profile?.username ?? "", role: profile?.role ?? "", email }}
+      defaultCollapsed={collapsed}
+    >
       {children}
     </AppShell>
   );
