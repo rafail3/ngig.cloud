@@ -259,7 +259,7 @@ function FolderCard({
   );
 }
 
-function ConfirmDeleteFolder({
+export function ConfirmDeleteFolder({
   name,
   onCancel,
   onConfirm,
