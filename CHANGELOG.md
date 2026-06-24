@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.26.0](https://github.com/rafail3/ngig.cloud/compare/v1.25.1...v1.26.0) (2026-06-24)
+
+
+### Features
+
+* **invites:** ack email on request + block requests from existing accounts ([09778fd](https://github.com/rafail3/ngig.cloud/commit/09778fde2f96d30e6acb683b8cbe38f1205af52d))
+* **invites:** request ack email, pre-filled register code, existing-account guard ([15bbe27](https://github.com/rafail3/ngig.cloud/commit/15bbe272e5f2837c238df440e9f9e633c0441f5d))
+* **register:** pre-fill the invite code from the email link ([f03204a](https://github.com/rafail3/ngig.cloud/commit/f03204adcc181bb8a3039e36fe6c6df6d745d426))
+
 ## [1.25.1](https://github.com/rafail3/ngig.cloud/compare/v1.25.0...v1.25.1) (2026-06-24)
 
 
