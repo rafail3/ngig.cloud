@@ -166,6 +166,14 @@ html.light {
    on each `.line` gives a VS Code-style line-number gutter. Backgrounds come
    from Shiki's own theme vars so the block looks identical to the editor.
    =========================================================================== */
+/* The container paints the same code background as the block, so horizontal
+   scrolling never reveals a different colour behind it. */
+.code-preview {
+  background-color: #121215;
+}
+html.light .code-preview {
+  background-color: var(--shiki-light-bg);
+}
 .code-preview .shiki {
   margin: 0;
   padding: 0.875rem 1rem;
@@ -173,6 +181,10 @@ html.light {
   font-size: 0.78rem;
   line-height: 1.6;
   tab-size: 2;
+  /* Grow to the widest line (so the background covers the full scroll width)
+     while still filling the container when the code is narrow. */
+  width: fit-content;
+  min-width: 100%;
   background-color: var(--shiki-light-bg);
 }
 .code-preview .shiki code {
@@ -198,7 +210,7 @@ html.light {
 }
 .code-preview .shiki {
   color: var(--shiki-dark);
-  background-color: var(--shiki-dark-bg);
+  background-color: #121215;
 }
 html.light .code-preview .shiki span {
   color: var(--shiki-light);
