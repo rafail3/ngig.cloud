@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.24.0](https://github.com/rafail3/ngig.cloud/compare/v1.23.0...v1.24.0) (2026-06-24)
+
+
+### Features
+
+* **drive:** trash view with restore and 30-day auto-purge ([9bfeb63](https://github.com/rafail3/ngig.cloud/commit/9bfeb63783cd1ae06b53684915b7b0ac457b8705))
+* **drive:** trash view with restore, permanent delete, and daily cron purge ([95239e6](https://github.com/rafail3/ngig.cloud/commit/95239e618f5b1366f92312780a91136ea471ffbb))
+
+
+### Bug Fixes
+
+* **drive:** move files to trash without a confirm from the selection bar ([1635525](https://github.com/rafail3/ngig.cloud/commit/16355251434e16d2645b486b7c90febec3d3c4e7))
+
 ## [1.23.0](https://github.com/rafail3/ngig.cloud/compare/v1.22.0...v1.23.0) (2026-06-24)
 
 
