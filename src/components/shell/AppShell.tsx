@@ -5,7 +5,7 @@ import { MotionConfig } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck, UserRound, Trash2 } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { dashboardOrigin } from "@/lib/dashboard";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -27,6 +27,7 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { href: "/", label: "Fișierele mele", icon: <Folder className="h-5 w-5" /> },
+  { href: "/trash", label: "Coș", icon: <Trash2 className="h-5 w-5" /> },
   { href: "/profil", label: "Profil", icon: <UserRound className="h-5 w-5" /> },
   {
     href: dashboardOrigin(),

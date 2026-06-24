@@ -767,8 +767,88 @@ export async function copyFile(id: string): Promise<void> {
 }
 
 // Soft delete: hide the file from listings but keep its bytes + row so it can be
-// restored from Trash. Permanent delete (and the Trash view) come in a later task.
+// restored from Trash.
 export async function moveFileToTrash(id: string): Promise<void> {
   await requireActiveUser();
   await repo.updateFile(id, { deleted_at: new Date().toISOString() });
+}
+
+// ---- Trash ----------------------------------------------------------------
+
+// How long a trashed file is kept before the cron purge removes it for good.
+export const TRASH_RETENTION_DAYS = 30;
+const DAY_MS = 86_400_000;
+
+export type TrashFile = {
+  id: string;
+  name: string;
+  size: number;
+  mimeType: string | null;
+  deletedAt: string;
+  // Days until the file is auto-purged (0 = imminent). Computed server-side so
+  // the client never needs Date.now() during render.
+  expiresInDays: number;
+};
+
+export async function listTrash(): Promise<TrashFile[]> {
+  await requireUserId();
+  const rows = await repo.listTrashedFiles();
+  const now = Date.now();
+  return rows.map((f) => {
+    const elapsedDays = Math.floor((now - new Date(f.deleted_at!).getTime()) / DAY_MS);
+    return {
+      id: f.id,
+      name: f.name,
+      size: f.size,
+      mimeType: f.mime_type,
+      deletedAt: f.deleted_at!,
+      expiresInDays: Math.max(0, TRASH_RETENTION_DAYS - elapsedDays),
+    };
+  });
+}
+
+// Bring a trashed file back. It returns to its original folder, or to the root
+// if that folder has since been deleted.
+export async function restoreFile(id: string): Promise<void> {
+  await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+  let folderId = file.folder_id;
+  if (folderId && !(await repo.getFolder(folderId))) folderId = null;
+  await repo.updateFile(id, { deleted_at: null, folder_id: folderId });
+}
+
+// Permanently delete a single trashed file: remove its B2 object, then its row.
+export async function deleteFilePermanently(id: string): Promise<void> {
+  const { id: userId } = await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
+  try {
+    await deleteObject(file.storage_key);
+  } catch {
+    // Object may already be gone from B2 — drop the row regardless.
+  }
+  await repo.deleteFileRow(id);
+}
+
+// Permanently delete everything currently in the caller's trash.
+export async function emptyTrash(): Promise<void> {
+  const { id: userId } = await requireActiveUser();
+  const rows = await repo.listTrashedFiles();
+  const keys = rows.map((f) => f.storage_key);
+  for (const k of keys) assertOwnedKey(userId, k);
+  await Promise.all(keys.map((k) => deleteObject(k).catch(() => {})));
+  await repo.deleteFileRowsByKeys(keys);
+}
+
+// Cron-only: permanently remove trashed files older than the retention window,
+// across ALL users. Runs without a user session (admin/service-role client).
+export async function purgeExpiredTrash(): Promise<number> {
+  const cutoff = new Date(Date.now() - TRASH_RETENTION_DAYS * DAY_MS).toISOString();
+  const expired = await repo.adminListExpiredTrash(cutoff);
+  if (expired.length === 0) return 0;
+  await Promise.all(expired.map((f) => deleteObject(f.storage_key).catch(() => {})));
+  await repo.adminDeleteFileRowsByIds(expired.map((f) => f.id));
+  return expired.length;
 }
