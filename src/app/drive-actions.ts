@@ -305,3 +305,32 @@ export async function moveFileToTrashAction(
     throw e;
   }
 }
+
+export async function restoreFileAction(id: string): Promise<Revoked | void> {
+  try {
+    await files.restoreFile(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function deleteFilePermanentlyAction(
+  id: string,
+): Promise<Revoked | void> {
+  try {
+    await files.deleteFilePermanently(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function emptyTrashAction(): Promise<Revoked | void> {
+  try {
+    await files.emptyTrash();
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}

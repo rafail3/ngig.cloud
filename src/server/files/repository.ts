@@ -42,6 +42,18 @@ export async function listFilesIn(folderId: string | null): Promise<FileRow[]> {
   return (data ?? []) as FileRow[];
 }
 
+// Trashed files (deleted_at set), newest-trashed first — for the Trash view.
+export async function listTrashedFiles(): Promise<FileRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("files")
+    .select("*")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as FileRow[];
+}
+
 // Subfolders directly inside a folder (null = root).
 export async function listFoldersIn(
   parentId: string | null,
@@ -256,6 +268,30 @@ export async function adminDeleteFilesByKeys(ownerId: string, keys: string[]) {
     .delete()
     .eq("owner_id", ownerId)
     .in("storage_key", keys);
+  if (error) throw error;
+}
+
+// Trashed files past the retention cutoff, across ALL users — for the cron
+// purge, which has no user session (service-role client, RLS bypassed).
+export async function adminListExpiredTrash(
+  cutoffIso: string,
+): Promise<{ id: string; storage_key: string }[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("files")
+    .select("id, storage_key")
+    .not("deleted_at", "is", null)
+    .lt("deleted_at", cutoffIso);
+  if (error) throw error;
+  return (data ?? []) as { id: string; storage_key: string }[];
+}
+
+// Delete file rows by id with the service-role client (used by the cron purge,
+// after their B2 objects are removed).
+export async function adminDeleteFileRowsByIds(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const admin = createAdminClient();
+  const { error } = await admin.from("files").delete().in("id", ids);
   if (error) throw error;
 }
 
