@@ -3,7 +3,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { Copy, Download, FolderInput, Info, Pencil, Trash2, X } from "lucide-react";
+import { Archive, Copy, Download, FolderInput, Info, Pencil, Trash2, X } from "lucide-react";
 import {
   getDownloadUrlAction,
   moveFileAction,
@@ -13,6 +13,7 @@ import {
   renameFileAction,
   renameFolderAction,
   copyFileAction,
+  archiveFileAction,
   folderStatsAction,
 } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
@@ -144,6 +145,22 @@ export function SelectionBar() {
     }
   }
 
+  // Archive the file(s) in the selection (folders aren't archivable, skipped).
+  async function archiveSelection() {
+    setBusy(true);
+    for (const it of items) {
+      if (it.kind !== "file") continue;
+      const res = await archiveFileAction(it.id);
+      if (res && "revoked" in res) {
+        window.location.assign("/login");
+        return;
+      }
+    }
+    setBusy(false);
+    clear();
+    router.refresh();
+  }
+
   // Per-item actions for a single selection, mirroring the desktop context menu.
   const singleActions: BarAction[] = single
     ? [
@@ -151,7 +168,10 @@ export function SelectionBar() {
         { icon: Pencil, label: "Redenumește", onClick: () => setRenaming(single) },
         { icon: FolderInput, label: "Mută", onClick: () => setMoving(true) },
         ...(single.kind === "file"
-          ? [{ icon: Copy, label: "Copiază", onClick: copySingle }]
+          ? [
+              { icon: Copy, label: "Copiază", onClick: copySingle },
+              { icon: Archive, label: "Arhivează", onClick: archiveSelection },
+            ]
           : []),
         {
           icon: Info,
@@ -173,6 +193,10 @@ export function SelectionBar() {
   const bulkActions: BarAction[] = [
     { icon: Download, label: "Descarcă", onClick: downloadSelection },
     { icon: FolderInput, label: "Mută", onClick: () => setMoving(true) },
+    // Archive only when the selection is files-only (folders aren't archivable).
+    ...(folderCount === 0
+      ? [{ icon: Archive, label: "Arhivează", onClick: archiveSelection }]
+      : []),
     {
       icon: Trash2,
       label: folderCount > 0 ? "Șterge" : "Mută în coș",

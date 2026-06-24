@@ -12,6 +12,7 @@ import {
   SquarePen,
   FolderInput,
   Copy,
+  Archive,
   Trash2,
   Upload,
   X,
@@ -22,6 +23,7 @@ import {
   moveFileAction,
   copyFileAction,
   moveFileToTrashAction,
+  archiveFileAction,
 } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
@@ -167,6 +169,20 @@ export function FileList({ folderId }: { folderId: string | null }) {
     }
   }
 
+  async function archive(file: FileItem) {
+    setPendingId(file.id);
+    try {
+      const res = await archiveFileAction(file.id);
+      if (res && "revoked" in res) {
+        window.location.assign("/login");
+        return;
+      }
+      router.refresh();
+    } finally {
+      setPendingId(null);
+    }
+  }
+
   if (files.length === 0 && uploading.length === 0) return null;
 
   return (
@@ -210,6 +226,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
               onRename={() => setToRename(f)}
               onMove={() => setToMove(f)}
               onCopy={() => copy(f)}
+              onArchive={() => archive(f)}
               onDownload={() => download(f.id)}
               onTrash={() => trash(f)}
             />
@@ -296,6 +313,7 @@ function FileRow({
   onRename,
   onMove,
   onCopy,
+  onArchive,
   onDownload,
   onTrash,
 }: {
@@ -308,6 +326,7 @@ function FileRow({
   onRename: () => void;
   onMove: () => void;
   onCopy: () => void;
+  onArchive: () => void;
   onDownload: () => void;
   onTrash: () => void;
 }) {
@@ -350,6 +369,7 @@ function FileRow({
     { icon: Pencil, label: "Redenumește", onSelect: onRename },
     { icon: FolderInput, label: "Mută", onSelect: onMove },
     { icon: Copy, label: "Copiază", onSelect: onCopy },
+    { icon: Archive, label: "Arhivează", onSelect: onArchive },
     { icon: Info, label: "Detalii", onSelect: onInfo },
     { icon: Trash2, label: "Mută în coș", onSelect: onTrash, danger: true },
   ];

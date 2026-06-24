@@ -5,7 +5,7 @@ import { MotionConfig } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck, UserRound, Trash2 } from "lucide-react";
+import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck, UserRound, Trash2, Archive, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { dashboardOrigin } from "@/lib/dashboard";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -27,6 +27,7 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { href: "/", label: "Fișierele mele", icon: <Folder className="h-5 w-5" /> },
+  { href: "/archive", label: "Arhivă", icon: <Archive className="h-5 w-5" /> },
   { href: "/trash", label: "Coș", icon: <Trash2 className="h-5 w-5" /> },
   { href: "/profil", label: "Profil", icon: <UserRound className="h-5 w-5" /> },
   {
@@ -40,14 +41,25 @@ const NAV: NavItem[] = [
 export function AppShell({
   user,
   children,
+  defaultCollapsed = false,
 }: {
   user: ShellUser;
   children: React.ReactNode;
+  defaultCollapsed?: boolean;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Desktop-only collapse, seeded from a cookie (read in the layout) so it
+  // survives reloads with no flash.
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const pathname = usePathname();
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin");
+
+  function toggleCollapsed() {
+    const next = !collapsed;
+    setCollapsed(next);
+    document.cookie = `sidebar_collapsed=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
+  }
 
   return (
     <MotionConfig reducedMotion="user">
@@ -154,9 +166,9 @@ export function AppShell({
       <div className="flex flex-1">
         {/* Sidebar */}
         <aside
-          className={`fixed inset-y-0 left-0 top-16 z-40 flex w-64 flex-col border-r border-zinc-900 bg-zinc-950 transition-transform md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 top-16 z-40 flex w-64 flex-col border-r border-zinc-900 bg-zinc-950 transition-[transform,width] duration-200 md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+          } ${collapsed ? "md:w-16" : "md:w-64"}`}
         >
           <nav className="flex-1 space-y-1 px-3 py-4">
             {items.map((item) => {
@@ -165,12 +177,18 @@ export function AppShell({
                 return (
                   <span
                     key={item.label}
-                    className="flex cursor-default items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-600"
-                    title="În curând"
+                    className={`flex cursor-default items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-600 ${
+                      collapsed ? "md:justify-center" : ""
+                    }`}
+                    title={item.label}
                   >
                     {item.icon}
-                    <span>{item.label}</span>
-                    <span className="ml-auto rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
+                    <span className={collapsed ? "md:hidden" : undefined}>{item.label}</span>
+                    <span
+                      className={`ml-auto rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500 ${
+                        collapsed ? "md:hidden" : ""
+                      }`}
+                    >
                       soon
                     </span>
                   </span>
@@ -181,18 +199,37 @@ export function AppShell({
                   key={item.label}
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
+                  title={item.label}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                     active
                       ? "bg-zinc-900 text-zinc-50"
                       : "text-zinc-400 hover:bg-zinc-900/60 hover:text-zinc-100"
-                  }`}
+                  } ${collapsed ? "md:justify-center" : ""}`}
                 >
                   {item.icon}
-                  <span>{item.label}</span>
+                  <span className={collapsed ? "md:hidden" : undefined}>{item.label}</span>
                 </Link>
               );
             })}
           </nav>
+
+          {/* Desktop-only collapse / expand toggle */}
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            title={collapsed ? "Extinde meniul" : "Restrânge meniul"}
+            aria-label={collapsed ? "Extinde meniul" : "Restrânge meniul"}
+            className={`hidden border-t border-zinc-900 px-3 py-3 text-sm text-zinc-400 transition-colors hover:bg-zinc-900/60 hover:text-zinc-100 md:flex md:items-center md:gap-3 ${
+              collapsed ? "md:justify-center" : ""
+            }`}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-5 w-5" />
+            ) : (
+              <PanelLeftClose className="h-5 w-5" />
+            )}
+            {!collapsed && <span>Restrânge</span>}
+          </button>
         </aside>
 
         {/* Mobile sidebar overlay */}

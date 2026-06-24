@@ -334,3 +334,21 @@ export async function emptyTrashAction(): Promise<Revoked | void> {
     throw e;
   }
 }
+
+export async function archiveFileAction(id: string): Promise<Revoked | void> {
+  try {
+    await files.archiveFile(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function unarchiveFileAction(id: string): Promise<Revoked | void> {
+  try {
+    await files.unarchiveFile(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
