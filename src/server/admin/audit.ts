@@ -7,6 +7,7 @@ export async function recordLogin(
   userId: string,
   h: Headers,
   sessionId: string | null = null,
+  app: string | null = null,
 ): Promise<void> {
   try {
     const admin = createAdminClient();
@@ -25,7 +26,23 @@ export async function recordLogin(
       region,
       user_agent: userAgent,
       session_id: sessionId,
+      app,
     });
+
+    // Collapse duplicate sessions for this device AND app: keep the session we
+    // just created, drop older same-device same-app one(s). Matching on `app`
+    // keeps the cloud and dashboard sessions independent (same browser/IP), so
+    // logging into one never bounces the other.
+    if (sessionId && app) {
+      await admin.rpc("prune_duplicate_sessions", {
+        p_user_id: userId,
+        p_session_id: sessionId,
+        p_ip: ip,
+        p_user_agent: userAgent,
+        p_app: app,
+      });
+    }
+
     await admin
       .from("profiles")
       .update({ last_seen_at: new Date().toISOString() })

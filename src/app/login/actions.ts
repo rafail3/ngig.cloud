@@ -70,6 +70,6 @@ export async function login(
   // this session with its real device/IP/geo.
   const { data: claims } = await supabase.auth.getClaims();
   const sessionId = (claims?.claims?.session_id as string | undefined) ?? null;
-  await recordLogin(profile.id, await headers(), sessionId);
+  await recordLogin(profile.id, await headers(), sessionId, "cloud");
   redirect("/");
 }

@@ -77,7 +77,7 @@ export async function dashboardLogin(
 
   const { data: claims } = await supabase.auth.getClaims();
   const sessionId = (claims?.claims?.session_id as string | undefined) ?? null;
-  await recordLogin(profile.id, await headers(), sessionId);
+  await recordLogin(profile.id, await headers(), sessionId, "dashboard");
   // Clean path on the dashboard host; the proxy rewrites "/" → "/dashboard".
   redirect("/");
 }
