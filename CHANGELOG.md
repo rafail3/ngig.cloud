@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.25.1](https://github.com/rafail3/ngig.cloud/compare/v1.25.0...v1.25.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* **auth:** collapse duplicate sessions per device and app on login ([e128d50](https://github.com/rafail3/ngig.cloud/commit/e128d50796c7d6a3a69f275c8ce25af4037645bc))
+* **auth:** per-device session dedup + local logout scope ([74fc82b](https://github.com/rafail3/ngig.cloud/commit/74fc82b0cd19df55f0160fd38c51db47a3a26218))
+* **auth:** sign out only the current session (local scope) ([6a04e9d](https://github.com/rafail3/ngig.cloud/commit/6a04e9d04584188923d35cee7dc21b7d61067089))
+
+
+### Performance Improvements
+
+* **dashboard:** instant page transitions with a loading skeleton ([341b6fe](https://github.com/rafail3/ngig.cloud/commit/341b6fe5a90cceaca91dabfa5c306c800cd28ce9))
+
 ## [1.25.0](https://github.com/rafail3/ngig.cloud/compare/v1.24.0...v1.25.0) (2026-06-24)
 
 
