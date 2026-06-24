@@ -101,14 +101,17 @@ export async function sendInviteCode(input: {
   const resend = new Resend(API_KEY);
 
   const greeting = input.name ? `Salut ${escapeHtml(input.name)},` : "Salut,";
+  // The register link carries the code, so the registration form pre-fills it —
+  // the recipient never has to copy/paste it by hand.
+  const registerUrl = `https://ngig.cloud/register?code=${encodeURIComponent(input.code)}`;
   const inner = `
     <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
       ${greeting}<br/>Cererea ta de invitație pe ngig.cloud a fost aprobată.
     </p>
     <p style="margin:0 0 8px;color:#fafafa;font-size:14px;font-weight:600">Codul tău de invitație</p>
     <div style="margin:0 0 20px;padding:14px 16px;background:#0a0a0b;border:1px solid #27272a;border-radius:12px;font-family:monospace;font-size:16px;color:#a5b4fc;word-break:break-all">${escapeHtml(input.code)}</div>
-    ${button("https://ngig.cloud/register", "Creează-ți contul")}
-    <p style="margin:16px 0 0;color:#71717a;font-size:12px">Folosește codul pe pagina de înregistrare.</p>
+    ${button(registerUrl, "Creează-ți contul")}
+    <p style="margin:16px 0 0;color:#71717a;font-size:12px">Butonul deschide pagina de înregistrare cu codul deja completat.</p>
   `;
 
   const { error } = await resend.emails.send({
@@ -121,7 +124,7 @@ export async function sendInviteCode(input: {
       "",
       `Cod de invitație: ${input.code}`,
       "",
-      "Creează-ți contul: https://ngig.cloud/register",
+      `Creează-ți contul (cod precompletat): ${registerUrl}`,
       "",
       "— ngig.cloud",
     ].join("\n"),
@@ -129,4 +132,44 @@ export async function sendInviteCode(input: {
   });
 
   if (error) throw new Error("Nu am putut trimite codul. Reîncearcă.");
+}
+
+// Auto-acknowledgement sent TO the requester right after they submit the invite
+// request form, so they know it was received (the owner gets a separate
+// notification). Best-effort — its failure must not fail the request.
+export async function sendInviteRequestAck(input: {
+  name: string;
+  email: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const greeting = input.name ? `Salut ${escapeHtml(input.name)},` : "Salut,";
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      ${greeting}<br/>Am primit cererea ta de invitație pe ngig.cloud. Mulțumim!
+    </p>
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      O analizăm și revenim cu un răspuns pe această adresă de email. Dacă e
+      aprobată, vei primi un cod de invitație cu care îți poți crea contul.
+    </p>
+    <p style="margin:0;color:#71717a;font-size:12px">Nu e nevoie să faci nimic acum.</p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: "Am primit cererea ta — ngig.cloud",
+    text: [
+      greeting.replace(/<[^>]+>/g, ""),
+      "Am primit cererea ta de invitație pe ngig.cloud. Mulțumim!",
+      "",
+      "O analizăm și revenim cu un răspuns pe această adresă. Dacă e aprobată, vei primi un cod de invitație.",
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Cerere primită", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite confirmarea.");
 }

@@ -16,7 +16,7 @@ const inputCls =
 
 type Check = { u: string; status: "checking" | "available" | "taken" };
 
-export function RegisterForm() {
+export function RegisterForm({ initialCode }: { initialCode?: string }) {
   const [state, formAction, pending] = useActionState(registerWithInvite, initial);
   const [username, setUsername] = useState(state.values?.username ?? "");
   const [check, setCheck] = useState<Check | null>(null);
@@ -82,7 +82,7 @@ export function RegisterForm() {
           type="text"
           name="code"
           required
-          defaultValue={state.values?.code}
+          defaultValue={state.values?.code ?? initialCode}
           className={`${inputCls} font-mono`}
         />
       </div>

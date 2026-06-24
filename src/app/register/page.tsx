@@ -4,7 +4,14 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
 
 export const metadata = { title: "Înregistrare" };
 
-export default function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string }>;
+}) {
+  // The invite email links here with ?code=… so the form pre-fills the code.
+  const { code } = await searchParams;
+
   return (
     <AuthCard
       subtitle="Creează cont cu cod de invitație"
@@ -25,7 +32,7 @@ export default function RegisterPage() {
         </div>
       }
     >
-      <RegisterForm />
+      <RegisterForm initialCode={code} />
     </AuthCard>
   );
 }
