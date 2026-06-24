@@ -14,6 +14,7 @@ import {
   SquarePen,
   FolderInput,
   Copy,
+  Archive,
   Info,
   Trash2,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import {
   moveFileAction,
   copyFileAction,
   moveFileToTrashAction,
+  archiveFileAction,
   renameFolderAction,
   moveFolderAction,
   deleteFolderAction,
@@ -138,6 +140,15 @@ function SearchResults() {
     refetch();
   }
 
+  async function archive(id: string) {
+    const res = await archiveFileAction(id);
+    if (res && "revoked" in res) {
+      window.location.assign("/login");
+      return;
+    }
+    refetch();
+  }
+
   async function trash(id: string) {
     const res = await moveFileToTrashAction(id);
     if (res && "revoked" in res) {
@@ -177,6 +188,7 @@ function SearchResults() {
       { icon: Pencil, label: "Redenumește", onSelect: () => setFileRename(file) },
       { icon: FolderInput, label: "Mută", onSelect: () => setFileMove(file) },
       { icon: Copy, label: "Copiază", onSelect: () => copy(file.id) },
+      { icon: Archive, label: "Arhivează", onSelect: () => archive(file.id) },
       { icon: Info, label: "Detalii", onSelect: () => setFileInfo(file) },
       { icon: Trash2, label: "Mută în coș", onSelect: () => trash(file.id), danger: true },
     ];

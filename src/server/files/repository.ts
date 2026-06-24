@@ -13,6 +13,7 @@ export type FileRow = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  archived_at: string | null;
 };
 
 export type FolderRow = {
@@ -34,6 +35,7 @@ export async function listFilesIn(folderId: string | null): Promise<FileRow[]> {
     .from("files")
     .select("*")
     .is("deleted_at", null)
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
   const { data, error } = await (folderId === null
     ? base.is("folder_id", null)
@@ -75,7 +77,11 @@ export async function searchFiles(
   limit: number,
 ): Promise<FileRow[]> {
   const supabase = await createClient();
-  let q = supabase.from("files").select("*").is("deleted_at", null);
+  let q = supabase
+    .from("files")
+    .select("*")
+    .is("deleted_at", null)
+    .is("archived_at", null);
   for (const t of tokens) q = q.ilike("name", `%${t}%`);
   const { data, error } = await q
     .order("created_at", { ascending: false })
@@ -93,8 +99,22 @@ export async function listAllFiles(limit: number): Promise<FileRow[]> {
     .from("files")
     .select("*")
     .is("deleted_at", null)
+    .is("archived_at", null)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as FileRow[];
+}
+
+// Archived files (archived_at set, not trashed), newest-archived first.
+export async function listArchivedFiles(): Promise<FileRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("files")
+    .select("*")
+    .is("deleted_at", null)
+    .not("archived_at", "is", null)
+    .order("archived_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as FileRow[];
 }
@@ -219,6 +239,7 @@ export async function updateFile(
     name?: string;
     folder_id?: string | null;
     deleted_at?: string | null;
+    archived_at?: string | null;
     size?: number;
     updated_at?: string;
   },

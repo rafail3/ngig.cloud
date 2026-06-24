@@ -767,10 +767,61 @@ export async function copyFile(id: string): Promise<void> {
 }
 
 // Soft delete: hide the file from listings but keep its bytes + row so it can be
-// restored from Trash.
+// restored from Trash. Also clears any archived state, so restoring from Trash
+// returns the file to the drive (not back into the Archive).
 export async function moveFileToTrash(id: string): Promise<void> {
   await requireActiveUser();
-  await repo.updateFile(id, { deleted_at: new Date().toISOString() });
+  await repo.updateFile(id, {
+    deleted_at: new Date().toISOString(),
+    archived_at: null,
+  });
+}
+
+// ---- Archive --------------------------------------------------------------
+
+// Organisational soft-state: archived files leave the drive + global search and
+// live in the Archive view. Kept indefinitely and still count toward quota.
+
+export type ArchiveFile = {
+  id: string;
+  name: string;
+  size: number;
+  mimeType: string | null;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string;
+};
+
+export async function archiveFile(id: string): Promise<void> {
+  await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+  await repo.updateFile(id, { archived_at: new Date().toISOString() });
+}
+
+export async function listArchive(): Promise<ArchiveFile[]> {
+  await requireUserId();
+  const rows = await repo.listArchivedFiles();
+  return rows.map((f) => ({
+    id: f.id,
+    name: f.name,
+    size: f.size,
+    mimeType: f.mime_type,
+    createdAt: f.created_at,
+    updatedAt: f.updated_at,
+    archivedAt: f.archived_at!,
+  }));
+}
+
+// Bring an archived file back to the drive — to its original folder, or to the
+// root if that folder has since been deleted.
+export async function unarchiveFile(id: string): Promise<void> {
+  await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) throw new Error("Fișier inexistent.");
+  let folderId = file.folder_id;
+  if (folderId && !(await repo.getFolder(folderId))) folderId = null;
+  await repo.updateFile(id, { archived_at: null, folder_id: folderId });
 }
 
 // ---- Trash ----------------------------------------------------------------
