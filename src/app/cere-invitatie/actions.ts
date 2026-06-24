@@ -2,7 +2,8 @@
 
 import { headers } from "next/headers";
 import { verifyTurnstile } from "@/lib/turnstile";
-import { sendInviteRequest } from "@/server/email/resend";
+import { sendInviteRequest, sendInviteRequestAck } from "@/server/email/resend";
+import { emailHasAccount } from "@/server/invites/service";
 import type { InviteRequestState } from "@/lib/email-state";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -26,8 +27,28 @@ export async function requestInviteAction(
   if (!EMAIL_RE.test(email)) return { error: "Adresă de email invalidă.", values };
   if (message.length > 1000) return { error: "Mesajul e prea lung (max 1000 caractere).", values };
 
+  // Already have an account? Then there's nothing to request — log in instead.
+  // Best-effort: if the lookup itself fails, don't block a legitimate request.
   try {
+    if (await emailHasAccount(email)) {
+      return {
+        error: "Ai deja un cont cu acest email. Autentifică-te în loc să ceri o invitație.",
+        values,
+      };
+    }
+  } catch {
+    // lookup failed — fall through and let the request proceed
+  }
+
+  try {
+    // The owner notification is what must succeed for the request to count.
     await sendInviteRequest({ name, email, message, ip: ip ?? null });
+    // Acknowledge the requester — best-effort, never fail the request on this.
+    try {
+      await sendInviteRequestAck({ name, email });
+    } catch {
+      // ack is non-critical
+    }
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la trimitere.", values };

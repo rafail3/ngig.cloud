@@ -79,6 +79,17 @@ export async function createInvite(input: {
   throw new Error("Nu am putut genera un cod unic. Reîncearcă.");
 }
 
+// Whether an account already exists for this email (case-insensitive). Used to
+// stop someone who already has an account from requesting an invite.
+export async function emailHasAccount(email: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("email_has_account", {
+    p_email: email,
+  });
+  if (error) throw error;
+  return data === true;
+}
+
 export async function revokeInvite(id: string): Promise<void> {
   const admin = createAdminClient();
   // Only active codes can be revoked (not used, not already revoked).
