@@ -1,9 +1,13 @@
 import "server-only";
+import { randomBytes } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { emailHasAccount } from "@/server/invites/service";
+import { sendEmailChangedNotice, sendEmailActivation } from "@/server/email/resend";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD = 10;
 
 // A real, revocable auth session (one per device login), enriched with the
@@ -51,7 +55,8 @@ export async function getMyProfile(): Promise<MyProfile> {
 
   return {
     id,
-    email,
+    // Fresh from auth (the JWT claim can lag right after an email change).
+    email: u?.user?.email ?? email,
     username: profile?.username ?? "",
     role: profile?.role ?? "user",
     created_at: profile?.created_at ?? "",
@@ -139,4 +144,80 @@ export async function changePassword(
 
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw new Error("Nu am putut schimba parola. Reîncearcă.");
+}
+
+// Change the account email. Applies immediately (login is by username, so a
+// wrong email can't lock anyone out), then sends a security notice to the old
+// address and an activation link to the new one. Until activated, the new email
+// is flagged unconfirmed (admin user-detail shows a warning).
+export async function changeEmail(
+  newEmail: string,
+  currentPassword: string,
+  origin: string,
+): Promise<void> {
+  const { id, email: oldEmail } = await currentUser();
+  const email = newEmail.trim().toLowerCase();
+
+  if (!EMAIL_RE.test(email)) throw new Error("Adresă de email invalidă.");
+  if (email === oldEmail.toLowerCase()) {
+    throw new Error("E același email cu cel actual.");
+  }
+  if (!(await verifyPassword(oldEmail, currentPassword))) {
+    throw new Error("Parola curentă e greșită.");
+  }
+  if (await emailHasAccount(email)) {
+    throw new Error("Există deja un cont cu acest email.");
+  }
+
+  const admin = createAdminClient();
+
+  // Apply immediately; email_confirm keeps Supabase from running its own
+  // confirmation flow — we run our own activation below.
+  const { error: updErr } = await admin.auth.admin.updateUserById(id, {
+    email,
+    email_confirm: true,
+  });
+  if (updErr) {
+    const m = updErr.message?.toLowerCase() ?? "";
+    throw new Error(
+      m.includes("already") || m.includes("registered") || m.includes("exists")
+        ? "Există deja un cont cu acest email."
+        : "Nu am putut schimba emailul. Reîncearcă.",
+    );
+  }
+
+  // Flag the new address unconfirmed until activated via the emailed token.
+  const token = randomBytes(32).toString("hex");
+  await admin
+    .from("profiles")
+    .update({ email_confirmed: false, email_confirm_token: token })
+    .eq("id", id);
+
+  // Notice to the old address + activation link to the new one. Best-effort —
+  // a mail failure must not undo the change that already applied.
+  try {
+    await sendEmailChangedNotice({ oldEmail, newEmail: email });
+  } catch {
+    // non-critical
+  }
+  try {
+    await sendEmailActivation({ email, token, origin });
+  } catch {
+    // non-critical
+  }
+}
+
+// Activate a changed email via its one-time token (from the activation link).
+// Returns true if a matching pending token was found and cleared.
+export async function confirmEmailToken(token: string): Promise<boolean> {
+  const clean = token.trim();
+  if (!clean) return false;
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("profiles")
+    .update({ email_confirmed: true, email_confirm_token: null })
+    .eq("email_confirm_token", clean)
+    .select("id");
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
 }

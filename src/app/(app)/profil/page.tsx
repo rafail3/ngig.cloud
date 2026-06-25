@@ -31,14 +31,14 @@ export default async function ProfilePage() {
         )}
       </header>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat icon={<Mail className="h-4 w-4" />} label="Email" value={me.email} />
         <Stat icon={<ShieldCheck className="h-4 w-4" />} label="Rol" value={me.role} />
         <Stat icon={<CalendarClock className="h-4 w-4" />} label="Cont creat" value={fmt(me.created_at)} />
         <Stat icon={<LogIn className="h-4 w-4" />} label="Ultima logare" value={fmt(me.lastSignIn)} />
       </div>
 
-      <AccountForms currentUsername={me.username} />
+      <AccountForms currentUsername={me.username} currentEmail={me.email} />
 
       <ActiveSessions sessions={sessions} />
     </div>

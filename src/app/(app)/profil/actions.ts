@@ -1,9 +1,11 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
   changeUsername,
   changePassword,
+  changeEmail,
   revokeMySession,
   revokeMyOtherSessions,
 } from "@/server/account/profile";
@@ -36,6 +38,25 @@ export async function changePasswordAction(
     return { ok: "Parolă schimbată." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare.", oldPassword, newPassword };
+  }
+}
+
+export async function changeEmailAction(
+  _prev: AccountState,
+  formData: FormData,
+): Promise<AccountState> {
+  const email = String(formData.get("email") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const h = await headers();
+  const origin = h.get("origin") ?? `https://${h.get("host")}`;
+  try {
+    await changeEmail(email, password, origin);
+    revalidatePath("/profil");
+    return {
+      ok: "Email schimbat. Ți-am trimis un link de activare pe noua adresă.",
+    };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare.", email, password };
   }
 }
 

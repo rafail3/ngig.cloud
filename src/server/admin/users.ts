@@ -5,6 +5,7 @@ export type AdminUser = {
   id: string;
   username: string | null;
   email: string | null;
+  email_confirmed: boolean;
   role: "user" | "admin";
   account_created: string;
   last_sign_in_at: string | null;

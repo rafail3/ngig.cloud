@@ -48,6 +48,13 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Email-change activation link from the inbox: a token-gated page that must be
+  // reachable by anyone (the user is usually NOT logged in when they click it),
+  // and not bounced home for logged-in users either.
+  if (path === "/confirm-email") {
+    return supabaseResponse;
+  }
+
   // Block + forced-sign-out enforcement: kick the user on their next request
   // even if their access token is still valid. account_gate reports the block
   // state and whether the session still exists (sign-out/block delete it).

@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime as fmt } from "@/lib/format-date";
 import { isOnline, isBlocked } from "@/lib/user-presence";
@@ -40,7 +41,22 @@ export function UserDetailBody({ user, isSelf }: { user: AdminUser; isSelf: bool
         <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">Detalii</h2>
           <dl>
-            <Row label="Email" value={<span className="break-all">{user.email ?? "—"}</span>} />
+            <Row
+              label="Email"
+              value={
+                <span className="flex flex-wrap items-center justify-end gap-1.5">
+                  <span className="break-all">{user.email ?? "—"}</span>
+                  {!user.email_confirmed && (
+                    <span
+                      title="Userul nu a confirmat noul email"
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-800/60 bg-amber-950/40 px-2 py-0.5 text-xs font-medium text-amber-300"
+                    >
+                      <AlertTriangle className="h-3 w-3" /> Neconfirmat
+                    </span>
+                  )}
+                </span>
+              }
+            />
             <Row label="Rol" value={<span className="capitalize">{user.role}</span>} />
             <Row label="Status" value={online ? "Online" : "Offline"} />
             <Row label="Cont creat" value={fmt(user.account_created)} />
