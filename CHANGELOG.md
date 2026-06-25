@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.27.0](https://github.com/rafail3/ngig.cloud/compare/v1.26.0...v1.27.0) (2026-06-25)
+
+
+### Features
+
+* **account:** change email with notice to old and activation of new address ([f61dbf8](https://github.com/rafail3/ngig.cloud/commit/f61dbf84f98da1ceaf19bc52ef2778a713765eb1))
+* **account:** change profile email with activation flow ([4190909](https://github.com/rafail3/ngig.cloud/commit/4190909869501c03b6f975fbbc90c90c5957ce5d))
+* **account:** email-change form, activation page, custom inline validation ([0525ed9](https://github.com/rafail3/ngig.cloud/commit/0525ed9d44c2fd3ac489206bfeecfcc692380174))
+* **dashboard:** flag unconfirmed email on the user detail screen ([c221084](https://github.com/rafail3/ngig.cloud/commit/c221084b95df26922ecdf0127e110e5fa61eb9ec))
+
 ## [1.26.0](https://github.com/rafail3/ngig.cloud/compare/v1.25.1...v1.26.0) (2026-06-24)
 
 
