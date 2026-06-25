@@ -4,7 +4,8 @@ export type AccountState = {
   error?: string;
   ok?: string;
   username?: string;
-  password?: string; // current password (username form)
+  password?: string; // current password (username / email form)
   oldPassword?: string;
   newPassword?: string;
+  email?: string; // new email (email form)
 };
