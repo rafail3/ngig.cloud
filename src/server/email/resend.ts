@@ -173,3 +173,76 @@ export async function sendInviteRequestAck(input: {
 
   if (error) throw new Error("Nu am putut trimite confirmarea.");
 }
+
+// Security notice sent to the OLD address when the account email is changed.
+export async function sendEmailChangedNotice(input: {
+  oldEmail: string;
+  newEmail: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Salut,<br/>Emailul contului tău ngig.cloud a fost schimbat în
+      <strong style="color:#fafafa">${escapeHtml(input.newEmail)}</strong>.
+    </p>
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Dacă tu ai făcut schimbarea, nu trebuie să faci nimic. Dacă <strong style="color:#fafafa">nu</strong> ai fost tu, schimbă-ți imediat parola.
+    </p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.oldEmail,
+    subject: "Emailul contului tău a fost schimbat — ngig.cloud",
+    text: [
+      "Salut,",
+      `Emailul contului tău ngig.cloud a fost schimbat în ${input.newEmail}.`,
+      "",
+      "Dacă nu ai fost tu, schimbă-ți imediat parola.",
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Email schimbat", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite notificarea.");
+}
+
+// Activation email sent to the NEW address — clicking the button confirms it.
+export async function sendEmailActivation(input: {
+  email: string;
+  token: string;
+  origin: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const url = `${input.origin}/confirm-email?token=${encodeURIComponent(input.token)}`;
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Salut,<br/>Ai setat această adresă ca email al contului tău ngig.cloud.
+      Confirmă că îți aparține apăsând butonul de mai jos.
+    </p>
+    ${button(url, "Activează emailul")}
+    <p style="margin:16px 0 0;color:#71717a;font-size:12px">Dacă nu tu ai cerut schimbarea, ignoră acest mesaj.</p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: "Confirmă-ți noul email — ngig.cloud",
+    text: [
+      "Salut,",
+      "Ai setat această adresă ca email al contului tău ngig.cloud.",
+      "",
+      `Activează emailul: ${url}`,
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Confirmă-ți emailul", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite emailul de activare.");
+}
