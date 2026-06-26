@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Mail, ShieldCheck, CalendarClock, LogIn } from "lucide-react";
 import { getMyProfile, listMySessions } from "@/server/account/profile";
 import { AccountForms } from "@/components/account/AccountForms";
@@ -5,7 +6,7 @@ import { ActiveSessions } from "@/components/account/ActiveSessions";
 import { formatDateTime as fmt } from "@/lib/format-date";
 
 export const metadata = { title: "Profilul meu" };
-export const dynamic = "force-dynamic";
+export const unstable_instant = { prefetch: "static" };
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
@@ -19,11 +20,13 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
-export default async function ProfilePage() {
+// Profile + sessions are per-user (uncached), so the whole body streams behind
+// <Suspense> while the page container paints instantly.
+async function ProfileContent() {
   const [me, sessions] = await Promise.all([getMyProfile(), listMySessions()]);
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+    <>
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold text-zinc-50 sm:text-2xl">{me.username}</h1>
         {me.role === "admin" && (
@@ -41,6 +44,35 @@ export default async function ProfilePage() {
       <AccountForms currentUsername={me.username} currentEmail={me.email} />
 
       <ActiveSessions sessions={sessions} />
+    </>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <>
+      <div className="h-8 w-40 animate-pulse rounded-lg bg-zinc-900" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-16 animate-pulse rounded-xl border border-zinc-800/80 bg-zinc-900/40" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-56 animate-pulse rounded-2xl border border-zinc-800 bg-zinc-900/40" />
+        ))}
+      </div>
+      <div className="h-40 animate-pulse rounded-2xl border border-zinc-800 bg-zinc-900/40" />
+    </>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+      <Suspense fallback={<ProfileSkeleton />}>
+        <ProfileContent />
+      </Suspense>
     </div>
   );
 }

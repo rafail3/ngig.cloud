@@ -1,12 +1,20 @@
+import { Suspense } from "react";
 import Link from "next/link";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { confirmEmailToken } from "@/server/account/profile";
 
 export const metadata = { title: "Confirmare email" };
-export const dynamic = "force-dynamic";
 
-export default async function ConfirmEmailPage({
+const LoginLink = (
+  <Link href="/login" className="font-medium text-indigo-400 hover:text-indigo-300">
+    Mergi la autentificare
+  </Link>
+);
+
+// Reads the token (dynamic) and activates the email, so the result streams
+// behind <Suspense> while the card frame paints instantly.
+async function ConfirmEmailContent({
   searchParams,
 }: {
   searchParams: Promise<{ token?: string }>;
@@ -20,14 +28,7 @@ export default async function ConfirmEmailPage({
   }
 
   return (
-    <AuthCard
-      subtitle={ok ? "Email confirmat" : "Confirmare email"}
-      footer={
-        <Link href="/login" className="font-medium text-indigo-400 hover:text-indigo-300">
-          Mergi la autentificare
-        </Link>
-      }
-    >
+    <AuthCard subtitle={ok ? "Email confirmat" : "Confirmare email"} footer={LoginLink}>
       <div className="flex flex-col items-center gap-4 text-center">
         {ok ? (
           <>
@@ -48,5 +49,28 @@ export default async function ConfirmEmailPage({
         )}
       </div>
     </AuthCard>
+  );
+}
+
+function ConfirmEmailFallback() {
+  return (
+    <AuthCard subtitle="Confirmare email" footer={LoginLink}>
+      <div className="flex flex-col items-center gap-4 text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-zinc-500" />
+        <p className="text-sm text-zinc-400">Se confirmă emailul…</p>
+      </div>
+    </AuthCard>
+  );
+}
+
+export default function ConfirmEmailPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>;
+}) {
+  return (
+    <Suspense fallback={<ConfirmEmailFallback />}>
+      <ConfirmEmailContent searchParams={searchParams} />
+    </Suspense>
   );
 }

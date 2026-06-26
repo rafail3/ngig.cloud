@@ -1,12 +1,19 @@
+import { Suspense } from "react";
 import { getSettings } from "@/server/admin/settings";
 import { SettingsForm } from "@/components/dashboard/SettingsForm";
+import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Setări" };
-export const dynamic = "force-dynamic";
+export const unstable_instant = { prefetch: "static" };
 
-export default async function SettingsPage() {
+// Settings are uncached, so the form streams behind <Suspense> while the page
+// heading paints instantly.
+async function SettingsContent() {
   const settings = await getSettings();
+  return <SettingsForm settings={settings} />;
+}
 
+export default function SettingsPage() {
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <header>
@@ -16,7 +23,9 @@ export default async function SettingsPage() {
         </p>
       </header>
 
-      <SettingsForm settings={settings} />
+      <Suspense fallback={<ListSkeleton rows={3} />}>
+        <SettingsContent />
+      </Suspense>
     </div>
   );
 }

@@ -36,6 +36,17 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Partial Prerendering: every page ships an instant static shell and streams
+  // its uncached (per-user / B2 / Supabase) data behind <Suspense>. Makes
+  // client navigation between pages feel instant. See reference-nav-performance.
+  cacheComponents: true,
+
+  experimental: {
+    // Adds the "Instant Navs" panel to the Next.js DevTools so we can freeze a
+    // page at its static shell and verify what renders before data streams in.
+    instantNavigationDevToolsToggle: true,
+  },
+
   // Allow accessing the dev server from the LAN (e.g. phone on same Wi-Fi)
   // without Next blocking HMR/font cross-origin requests. Dev-only.
   allowedDevOrigins: ["192.168.1.2"],
