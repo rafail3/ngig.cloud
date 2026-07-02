@@ -25,6 +25,10 @@ jobs:
         if: ${{ steps.release.outputs.pr }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          # Pass the PR JSON via env, not inline ${{ }} in the script — otherwise
+          # an apostrophe or paren in the release notes breaks the shell quoting
+          # (and it's an injection risk). Env values are never parsed by the shell.
+          PR_JSON: ${{ steps.release.outputs.pr }}
         run: |
-          PR_NUMBER=$(echo '${{ steps.release.outputs.pr }}' | jq -r '.number')
+          PR_NUMBER=$(jq -r '.number' <<< "$PR_JSON")
           gh pr merge "$PR_NUMBER" --auto --squash --repo "${{ github.repository }}"
