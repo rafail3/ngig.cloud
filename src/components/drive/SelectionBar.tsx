@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, type ComponentType } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { revalidateDrive } from "@/components/drive/useDriveData";
 import { Archive, Copy, Download, FolderInput, Info, Pencil, Trash2, X } from "lucide-react";
 import {
   getDownloadUrlAction,
@@ -48,7 +48,6 @@ type BarAction = {
    menu); with several it offers the bulk actions (move / download / delete). On
    mobile this is the only action surface — selection is entered by long-press. */
 export function SelectionBar() {
-  const router = useRouter();
   const { selected, count, clear } = useSelection();
   const [moving, setMoving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -88,7 +87,7 @@ export function SelectionBar() {
     if (!error) {
       setMoving(false);
       clear();
-      router.refresh();
+      revalidateDrive();
     }
     return { error };
   }
@@ -108,7 +107,7 @@ export function SelectionBar() {
     setBusy(false);
     setConfirmDel(false);
     clear();
-    router.refresh();
+    revalidateDrive();
   }
 
   // Files only go to the (reversible) trash → act straight away, like the
@@ -141,7 +140,7 @@ export function SelectionBar() {
     setBusy(false);
     if (!res.error) {
       clear();
-      router.refresh();
+      revalidateDrive();
     }
   }
 
@@ -158,7 +157,7 @@ export function SelectionBar() {
     }
     setBusy(false);
     clear();
-    router.refresh();
+    revalidateDrive();
   }
 
   // Per-item actions for a single selection, mirroring the desktop context menu.
@@ -269,7 +268,7 @@ export function SelectionBar() {
               if (!res.error) {
                 setRenaming(null);
                 clear();
-                router.refresh();
+                revalidateDrive();
               }
               return res;
             }}

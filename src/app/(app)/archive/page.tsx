@@ -1,12 +1,8 @@
-import { listArchive } from "@/server/files/service";
-import { ArchiveList } from "@/components/drive/ArchiveList";
+import { ArchiveBoard } from "@/components/drive/ArchiveBoard";
 
 export const metadata = { title: "Arhivă" };
-export const dynamic = "force-dynamic";
 
-export default async function ArchivePage() {
-  const files = await listArchive();
-
+export default function ArchivePage() {
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Arhivă</h1>
@@ -15,7 +11,7 @@ export default async function ArchivePage() {
         intacte și accesibile oricând. Le poți dezarhiva când vrei.
       </p>
 
-      <ArchiveList files={files} />
+      <ArchiveBoard />
     </div>
   );
 }

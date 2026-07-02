@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { revalidateDrive } from "@/components/drive/useDriveData";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { Folder, Trash2, Download, Info, Pencil, FolderInput, Loader2 } from "lucide-react";
 import {
@@ -19,14 +20,13 @@ import { useSelection, selKey, type SelItem } from "./SelectionProvider";
 import { useLongPress } from "./useLongPress";
 import { FolderPickerModal } from "./FolderPickerModal";
 import { RenameModal } from "./RenameModal";
-import { ModalShell, listContainer, listItem, useMounted, useIsTouch, useRowClick } from "./anim";
+import { ModalShell, useMounted, useIsTouch, useRowClick } from "./anim";
 import { useDragActive, usePendingMove, type DragData, type DropData } from "./DriveDndProvider";
 import { useFilter } from "./FilterProvider";
 
 export type FolderItem = { id: string; name: string };
 
 export function FolderList({ folderId }: { folderId: string | null }) {
-  const router = useRouter();
   // Folders to display come pre-filtered (name search) from the filter bar.
   const { folders } = useFilter();
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export function FolderList({ folderId }: { folderId: string | null }) {
         window.location.assign("/login");
         return;
       }
-      router.refresh();
+      revalidateDrive();
     } finally {
       setPendingId(null);
     }
@@ -69,13 +69,8 @@ export function FolderList({ folderId }: { folderId: string | null }) {
 
   return (
     <>
-      <motion.ul
-        variants={listContainer}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
-      >
-        <AnimatePresence initial={false}>
+      {/* Fully static grid — cards replace in place, no enter/exit animation. */}
+      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {folders.map((f) => (
             <FolderCard
               key={f.id}
@@ -89,8 +84,7 @@ export function FolderList({ folderId }: { folderId: string | null }) {
               onDelete={() => setToDelete(f)}
             />
           ))}
-        </AnimatePresence>
-      </motion.ul>
+      </ul>
 
       <AnimatePresence>
         {info && (
@@ -118,7 +112,7 @@ export function FolderList({ folderId }: { folderId: string | null }) {
               const res = await renameFolderAction(toRename.id, name);
               if (!res.error) {
                 setToRename(null);
-                router.refresh();
+                revalidateDrive();
               }
               return res;
             }}
@@ -135,7 +129,7 @@ export function FolderList({ folderId }: { folderId: string | null }) {
               const res = await moveFolderAction(toMove.id, dest);
               if (!res.error) {
                 setToMove(null);
-                router.refresh();
+                revalidateDrive();
               }
               return res;
             }}
@@ -224,9 +218,6 @@ function FolderCard({
       {...(mounted ? attributes : {})}
       {...(mounted ? listeners : {})}
       {...longPress.handlers}
-      layout
-      variants={listItem}
-      exit={{ opacity: 0, scale: 0.96 }}
       whileHover={{ y: -2 }}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
       data-drive-item

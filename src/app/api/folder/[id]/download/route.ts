@@ -3,9 +3,7 @@ import { ZipArchive } from "archiver";
 import * as files from "@/server/files/service";
 import { getObjectStream } from "@/server/storage/b2";
 
-// Node runtime: we stream a zip built from B2 object streams.
-export const runtime = "nodejs";
-
+// Streams a zip built from B2 object streams (Node.js runtime — the default).
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },

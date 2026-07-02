@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { RotateCcw, Trash2, Loader2, X, Trash } from "lucide-react";
 import {
@@ -13,6 +12,7 @@ import { formatBytes } from "@/lib/format";
 import { formatDateShort } from "@/lib/format-date";
 import { fileTypeShort } from "@/lib/file-type";
 import { listContainer, listItem, ModalShell } from "./anim";
+import { revalidateDrive } from "./useDriveData";
 
 export type TrashFile = {
   id: string;
@@ -30,7 +30,6 @@ function expiryLabel(days: number): string {
 }
 
 export function TrashList({ files }: { files: TrashFile[] }) {
-  const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<TrashFile | null>(null);
   const [emptying, setEmptying] = useState(false);
@@ -51,7 +50,7 @@ export function TrashList({ files }: { files: TrashFile[] }) {
     try {
       const res = await restoreFileAction(file.id);
       if (handleRevoked(res)) return;
-      router.refresh();
+      revalidateDrive();
     } finally {
       setBusyId(null);
     }
@@ -64,7 +63,7 @@ export function TrashList({ files }: { files: TrashFile[] }) {
       const res = await deleteFilePermanentlyAction(file.id);
       if (handleRevoked(res)) return;
       setToDelete(null);
-      router.refresh();
+      revalidateDrive();
     } finally {
       setBusyId(null);
     }
@@ -77,7 +76,7 @@ export function TrashList({ files }: { files: TrashFile[] }) {
       const res = await emptyTrashAction();
       if (handleRevoked(res)) return;
       setConfirmEmpty(false);
-      router.refresh();
+      revalidateDrive();
     } finally {
       setEmptying(false);
     }

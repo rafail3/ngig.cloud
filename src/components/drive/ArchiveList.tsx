@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Archive, ArchiveRestore, Download, Trash2, Loader2, X } from "lucide-react";
 import {
@@ -16,11 +15,11 @@ import { listContainer, listItem } from "./anim";
 import { useContextMenu } from "./ContextMenu";
 import { ActionMenu, type MenuAction } from "./ActionMenu";
 import { PreviewModal, type PreviewFile } from "./PreviewModal";
+import { revalidateDrive } from "./useDriveData";
 
 export type ArchiveFile = PreviewFile & { archivedAt: string };
 
 export function ArchiveList({ files }: { files: ArchiveFile[] }) {
-  const router = useRouter();
   const openMenu = useContextMenu();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [preview, setPreview] = useState<ArchiveFile | null>(null);
@@ -49,7 +48,7 @@ export function ArchiveList({ files }: { files: ArchiveFile[] }) {
     try {
       const res = await unarchiveFileAction(file.id);
       if (handleRevoked(res)) return;
-      router.refresh();
+      revalidateDrive();
     } finally {
       setBusyId(null);
     }
@@ -61,7 +60,7 @@ export function ArchiveList({ files }: { files: ArchiveFile[] }) {
     try {
       const res = await moveFileToTrashAction(file.id);
       if (handleRevoked(res)) return;
-      router.refresh();
+      revalidateDrive();
     } finally {
       setBusyId(null);
     }

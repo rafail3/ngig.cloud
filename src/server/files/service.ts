@@ -140,27 +140,28 @@ export async function listFolder(folderId: string | null) {
   const userId = await requireUserId();
   const prefix = `${userId}/`;
 
-  const [folders, files, existing, crumbs] = await Promise.all([
+  // Only the two indexed DB queries block the response. The B2 consistency
+  // check (listKeys over ALL the user's objects — an external call that used to
+  // add its full latency to EVERY folder navigation) now runs entirely in the
+  // background below. Worst case a rare phantom row (B2 object gone, DB row
+  // left) is visible for a few seconds until the prune + the next SWR refresh
+  // drop it — the same degraded behavior the old code already had whenever the
+  // blocking listKeys call failed.
+  const [folders, files, crumbs] = await Promise.all([
     repo.listFoldersIn(folderId),
     repo.listFilesIn(folderId),
-    listKeys(prefix).catch(() => null),
     breadcrumb(folderId),
   ]);
 
-  const visibleFiles = existing
-    ? files.filter((f) => existing.has(f.storage_key))
-    : files;
-
   after(async () => {
     try {
-      if (existing) {
-        // Admin client: the cookie-based user client isn't reliable in after(),
-        // which left phantom rows (B2 object gone, DB row stays) uncleaned.
-        const allKeys = await repo.adminListUserFileKeys(userId);
-        const missing = allKeys.filter((k) => !existing.has(k));
-        if (missing.length > 0) {
-          await repo.adminDeleteFilesByKeys(userId, missing);
-        }
+      const existing = await listKeys(prefix);
+      // Admin client: the cookie-based user client isn't reliable in after(),
+      // which left phantom rows (B2 object gone, DB row stays) uncleaned.
+      const allKeys = await repo.adminListUserFileKeys(userId);
+      const missing = allKeys.filter((k) => !existing.has(k));
+      if (missing.length > 0) {
+        await repo.adminDeleteFilesByKeys(userId, missing);
       }
     } catch {
       // best-effort prune
@@ -172,7 +173,7 @@ export async function listFolder(folderId: string | null) {
     }
   });
 
-  return { folders, files: visibleFiles, breadcrumb: crumbs };
+  return { folders, files, breadcrumb: crumbs };
 }
 
 // ---- Global search --------------------------------------------------------
