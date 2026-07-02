@@ -45,6 +45,16 @@ const nextConfig: NextConfig = {
     // Adds the "Instant Navs" panel to the Next.js DevTools so we can freeze a
     // page at its static shell and verify what renders before data streams in.
     instantNavigationDevToolsToggle: true,
+
+    // Keep visited pages' rendered segments in the client router cache so going
+    // back to a page (within the window) is instant — no skeleton, no server
+    // roundtrip. By default dynamic segments aren't cached (TTL 0), which is why
+    // every revisit re-streamed. Mutations still clear this cache immediately
+    // (revalidatePath / updateTag), so the user's own changes stay fresh.
+    staleTimes: {
+      dynamic: 300,
+      static: 300,
+    },
   },
 
   // Allow accessing the dev server from the LAN (e.g. phone on same Wi-Fi)

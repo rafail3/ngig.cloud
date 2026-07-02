@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { revalidateDrive } from "@/components/drive/useDriveData";
 import { useDraggable } from "@dnd-kit/core";
 import {
   Loader2,
@@ -37,7 +37,7 @@ import { useContextMenu } from "./ContextMenu";
 import { useSelection, selKey, type SelItem } from "./SelectionProvider";
 import { useLongPress } from "./useLongPress";
 import { RenameModal } from "./RenameModal";
-import { listContainer, listItem, useMounted, useIsTouch, useRowClick } from "./anim";
+import { useMounted, useIsTouch, useRowClick } from "./anim";
 import { useDragActive, usePendingMove, type DragData } from "./DriveDndProvider";
 import { useFilter } from "./FilterProvider";
 
@@ -58,9 +58,6 @@ function UploadingRow({ job }: { job: UploadJob }) {
   const pct = job.size > 0 ? Math.min(100, Math.round((job.sent / job.size) * 100)) : 0;
   return (
     <motion.li
-      layout
-      variants={listItem}
-      exit={{ opacity: 0, scale: 0.97 }}
       className="px-4 py-3 opacity-55"
     >
       <div className="flex items-center justify-between gap-4">
@@ -105,7 +102,6 @@ function isModified(f: { createdAt: string; updatedAt: string }): boolean {
 }
 
 export function FileList({ folderId }: { folderId: string | null }) {
-  const router = useRouter();
   const { jobs } = useUploads();
   // `files` is filtered for display; `rawFiles` is the full set, used only to
   // tell when an upload's real row has arrived (so its ghost can disappear).
@@ -149,7 +145,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
         setErr(res.error);
         return;
       }
-      router.refresh();
+      revalidateDrive();
     } finally {
       setPendingId(null);
     }
@@ -163,7 +159,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
         window.location.assign("/login");
         return;
       }
-      router.refresh();
+      revalidateDrive();
     } finally {
       setPendingId(null);
     }
@@ -177,7 +173,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
         window.location.assign("/login");
         return;
       }
-      router.refresh();
+      revalidateDrive();
     } finally {
       setPendingId(null);
     }
@@ -201,13 +197,10 @@ export function FileList({ folderId }: { folderId: string | null }) {
         </div>
       )}
 
-      <motion.ul
-        variants={listContainer}
-        initial="hidden"
-        animate="show"
-        className="divide-y divide-zinc-900 overflow-hidden rounded-xl border border-zinc-900"
-      >
-        <AnimatePresence initial={false}>
+      {/* Fully static list — rows replace in place with no enter/exit animation.
+          Opening a folder shows its files directly: no entrance slide, and no
+          "ghost" of the previous folder's rows animating out over the new ones. */}
+      <ul className="divide-y divide-zinc-900 overflow-hidden rounded-xl border border-zinc-900">
           {uploading.map((job) => (
             <UploadingRow key={job.id} job={job} />
           ))}
@@ -231,8 +224,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
               onTrash={() => trash(f)}
             />
           ))}
-        </AnimatePresence>
-      </motion.ul>
+      </ul>
 
       <AnimatePresence>
         {preview && (
@@ -245,7 +237,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
               setEditIntent(false);
             }}
             onDownload={() => download(preview.id)}
-            onSaved={() => router.refresh()}
+            onSaved={() => revalidateDrive()}
           />
         )}
 
@@ -276,7 +268,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
               const res = await renameFileAction(toRename.id, name);
               if (!res.error) {
                 setToRename(null);
-                router.refresh();
+                revalidateDrive();
               }
               return res;
             }}
@@ -292,7 +284,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
               const res = await moveFileAction(toMove.id, dest);
               if (!res.error) {
                 setToMove(null);
-                router.refresh();
+                revalidateDrive();
               }
               return res;
             }}
@@ -380,9 +372,6 @@ function FileRow({
       {...(mounted ? attributes : {})}
       {...(mounted ? listeners : {})}
       {...longPress.handlers}
-      layout
-      variants={listItem}
-      exit={{ opacity: 0, scale: 0.97 }}
       data-drive-item
       onClick={(e) => {
         if (longPress.consumedClick()) return;

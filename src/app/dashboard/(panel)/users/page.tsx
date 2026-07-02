@@ -4,7 +4,6 @@ import { UsersTable } from "@/components/dashboard/UsersTable";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Useri" };
-export const unstable_instant = { prefetch: "static" };
 
 // The user list is uncached admin data, so it streams behind <Suspense> while
 // the page heading paints instantly.

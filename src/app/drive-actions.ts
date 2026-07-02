@@ -352,3 +352,50 @@ export async function unarchiveFileAction(id: string): Promise<Revoked | void> {
     throw e;
   }
 }
+
+// ---- Reads for the client-side SWR drive layer --------------------------------
+// The drive pages fetch their data on the client via SWR (see useDriveData) so
+// navigation is instant from the in-memory cache and the data refreshes silently
+// in the background — no skeleton on revisit, no skeleton after a mutation.
+
+export type DriveFolderData = Awaited<ReturnType<typeof files.listFolder>> & {
+  used: number;
+  quota: number | null;
+};
+
+export async function getFolderAction(
+  folderId: string | null,
+): Promise<DriveFolderData | Revoked> {
+  try {
+    const [folder, usage] = await Promise.all([
+      files.listFolder(folderId),
+      files.myUsage(),
+    ]);
+    return { ...folder, used: usage.used, quota: usage.quota };
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function getArchiveAction(): Promise<
+  Awaited<ReturnType<typeof files.listArchive>> | Revoked
+> {
+  try {
+    return await files.listArchive();
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function getTrashAction(): Promise<
+  Awaited<ReturnType<typeof files.listTrash>> | Revoked
+> {
+  try {
+    return await files.listTrash();
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}

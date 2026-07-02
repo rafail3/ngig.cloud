@@ -7,8 +7,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
 import { startUpload, resumeUpload } from "@/lib/upload/uploader";
+import { revalidateDrive } from "@/components/drive/useDriveData";
 import { idbPut, idbUpdate, idbDelete, idbGetAll } from "@/lib/upload/store";
 
 export type UploadStatus =
@@ -80,7 +80,6 @@ function toPublic(map: Map<string, InternalJob>): UploadJob[] {
 }
 
 export function UploadProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const jobsRef = useRef<Map<string, InternalJob>>(new Map());
   const queueRef = useRef<string[]>([]);
   const runningRef = useRef(0);
@@ -150,6 +149,9 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         queueRef.current.push(rec.id);
       }
       snapshot();
+      // pump is a hoisted function declaration — defined by the time this mount
+      // effect runs; it only touches stable refs, so the closure is safe.
+      // eslint-disable-next-line react-hooks/immutability
       pump();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -242,7 +244,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         job.sent = job.size;
         job.etaSec = 0;
         job.status = "done";
-        router.refresh(); // reflect the new file in the drive list
+        revalidateDrive(); // reflect the new file in the drive list
       }
     } catch (e) {
       job.status = "error";

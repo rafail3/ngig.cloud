@@ -6,7 +6,6 @@ import { ActiveSessions } from "@/components/account/ActiveSessions";
 import { formatDateTime as fmt } from "@/lib/format-date";
 
 export const metadata = { title: "Profilul meu" };
-export const unstable_instant = { prefetch: "static" };
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (

@@ -1,17 +1,6 @@
-import { Suspense } from "react";
-import { listArchive } from "@/server/files/service";
-import { ArchiveList } from "@/components/drive/ArchiveList";
-import { ListSkeleton } from "@/components/drive/ListSkeleton";
+import { ArchiveBoard } from "@/components/drive/ArchiveBoard";
 
 export const metadata = { title: "Arhivă" };
-export const unstable_instant = { prefetch: "static" };
-
-// The archived-files query is per-user (uncached), so it streams behind a
-// <Suspense> boundary while the page heading paints instantly.
-async function ArchiveContent() {
-  const files = await listArchive();
-  return <ArchiveList files={files} />;
-}
 
 export default function ArchivePage() {
   return (
@@ -22,9 +11,7 @@ export default function ArchivePage() {
         intacte și accesibile oricând. Le poți dezarhiva când vrei.
       </p>
 
-      <Suspense fallback={<ListSkeleton />}>
-        <ArchiveContent />
-      </Suspense>
+      <ArchiveBoard />
     </div>
   );
 }

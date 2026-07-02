@@ -5,12 +5,6 @@ import { InvitesTable } from "@/components/dashboard/InvitesTable";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Invite codes" };
-// The static shell is identical regardless of the prefill `email` param — it
-// only feeds the (streamed) generator. Declare it absent for instant validation.
-export const unstable_instant = {
-  prefetch: "static",
-  samples: [{ searchParams: { email: null } }],
-};
 
 // Reads the (dynamic) email search param and the uncached invite history, so it
 // streams behind <Suspense> while the page heading paints instantly.

@@ -1,17 +1,7 @@
-import { Suspense } from "react";
-import { listTrash, TRASH_RETENTION_DAYS } from "@/server/files/service";
-import { TrashList } from "@/components/drive/TrashList";
-import { ListSkeleton } from "@/components/drive/ListSkeleton";
+import { TRASH_RETENTION_DAYS } from "@/server/files/service";
+import { TrashBoard } from "@/components/drive/TrashBoard";
 
 export const metadata = { title: "Coș" };
-export const unstable_instant = { prefetch: "static" };
-
-// The trashed-files query is per-user (uncached), so it streams behind a
-// <Suspense> boundary while the page heading paints instantly.
-async function TrashContent() {
-  const files = await listTrash();
-  return <TrashList files={files} />;
-}
 
 export default function TrashPage() {
   return (
@@ -22,9 +12,7 @@ export default function TrashPage() {
         automat. Le poți restaura sau șterge definitiv oricând.
       </p>
 
-      <Suspense fallback={<ListSkeleton />}>
-        <TrashContent />
-      </Suspense>
+      <TrashBoard />
     </div>
   );
 }

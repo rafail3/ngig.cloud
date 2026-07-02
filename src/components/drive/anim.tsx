@@ -101,11 +101,14 @@ const scrimTransition: Transition = { duration: 0.18, ease: "easeOut" };
 // Staggered list entrance (folder grid / file rows).
 export const listContainer: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.035, delayChildren: 0.02 } },
+  show: { transition: { staggerChildren: 0.025 } },
 };
+// Fade only — NO vertical movement. Any y-translate on folder navigation read as
+// a quick "flash from below" because the whole list re-enters on every nav; a
+// pure opacity fade is consistent and never appears to jump.
 export const listItem: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 500, damping: 34 } },
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.18, ease: "easeOut" } },
 };
 
 // Entrance pop for portal menus (kebab). Spread onto a motion element.

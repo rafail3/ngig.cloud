@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { revalidateDrive } from "@/components/drive/useDriveData";
 import {
   DndContext,
   DragOverlay,
@@ -173,7 +174,7 @@ export function DriveDndProvider({
         setErr(res.error);
         return;
       }
-      router.refresh();
+      revalidateDrive();
     } finally {
       setPending((prev) => {
         const next = new Set(prev);

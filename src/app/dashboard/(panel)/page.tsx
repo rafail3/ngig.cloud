@@ -14,7 +14,6 @@ import {
 } from "@/components/dashboard/OverviewCharts";
 
 export const metadata = { title: "Dashboard — Overview" };
-export const unstable_instant = { prefetch: "static" };
 
 function Kpi({
   icon,

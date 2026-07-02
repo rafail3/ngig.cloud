@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MotionConfig } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { UploadProvider } from "@/components/drive/UploadProvider";
 import { UploadPanel } from "@/components/drive/UploadPanel";
 import { ContextMenuProvider } from "@/components/drive/ContextMenu";
+import { prefetchDrive } from "@/components/drive/useDriveData";
 
 type ShellUser = { username: string; role: string; email: string };
 
@@ -54,6 +55,13 @@ export function AppShell({
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const pathname = usePathname();
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin");
+
+  // Warm the drive data caches (root folder / archive / trash) in the
+  // background once per session, so the first click on any drive section
+  // shows its data instantly instead of a skeleton.
+  useEffect(() => {
+    prefetchDrive();
+  }, []);
 
   function toggleCollapsed() {
     const next = !collapsed;

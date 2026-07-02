@@ -4,10 +4,8 @@ import { SettingsForm } from "@/components/dashboard/SettingsForm";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Setări" };
-export const unstable_instant = { prefetch: "static" };
 
-// Settings are uncached, so the form streams behind <Suspense> while the page
-// heading paints instantly.
+// Settings stream behind <Suspense> while the page heading paints instantly.
 async function SettingsContent() {
   const settings = await getSettings();
   return <SettingsForm settings={settings} />;

@@ -7,14 +7,6 @@ import { getUser } from "@/server/admin/users";
 import { UserDetailBody } from "@/components/dashboard/UserDetailBody";
 import { UserDetailSkeleton } from "@/components/dashboard/UserDetailSkeleton";
 
-// The static shell (back link) is identical for every user — `id` only selects
-// which detail body streams in. Declare a placeholder so instant validation
-// knows the shell doesn't vary by it.
-export const unstable_instant = {
-  prefetch: "static",
-  samples: [{ params: { id: "_" } }],
-};
-
 // `id` (dynamic param), the user lookup and the self-check are all per-request,
 // so they resolve inside <Suspense> while the back-link header paints instantly.
 async function UserDetailContent({ params }: { params: Promise<{ id: string }> }) {

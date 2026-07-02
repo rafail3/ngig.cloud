@@ -29,6 +29,7 @@
     "recharts": "^3.8.1",
     "resend": "^6.12.4",
     "shiki": "^4.2.0",
+    "swr": "^2.4.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

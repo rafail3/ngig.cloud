@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
+import { revalidateDrive } from "@/components/drive/useDriveData";
 import { Upload, FolderPlus, UploadCloud } from "lucide-react";
 import { useUploads, type UploadItem } from "./UploadProvider";
 import { ensureFolderAction, createFolderAction } from "@/app/drive-actions";
@@ -46,7 +46,6 @@ async function entriesFromDrop(dt: DataTransfer): Promise<Entry[]> {
 }
 
 export function UploadArea({ folderId }: { folderId: string | null }) {
-  const router = useRouter();
   const { enqueue } = useUploads();
   const filesRef = useRef<HTMLInputElement>(null);
   const folderRef = useRef<HTMLInputElement>(null);
@@ -91,7 +90,7 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
     if (items.length) {
       enqueue(items);
       // Folders may have been created — refresh so they show up.
-      if (entries.some((e) => e.rel.includes("/"))) router.refresh();
+      if (entries.some((e) => e.rel.includes("/"))) revalidateDrive();
     }
   }
 
@@ -182,7 +181,7 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
             onClose={() => setCreating(false)}
             onCreated={() => {
               setCreating(false);
-              router.refresh();
+              revalidateDrive();
             }}
           />
         )}
