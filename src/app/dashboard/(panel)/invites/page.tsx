@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { listInvites } from "@/server/invites/service";
 import { InviteGenerator } from "@/components/dashboard/InviteGenerator";
 import { InvitesTable } from "@/components/dashboard/InvitesTable";
@@ -13,6 +14,7 @@ async function InvitesContent({
 }: {
   searchParams: Promise<{ email?: string }>;
 }) {
+  await connection();
   const { email } = await searchParams;
   const invites = await listInvites();
 

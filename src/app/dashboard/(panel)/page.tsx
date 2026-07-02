@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { Files, HardDrive, Users, Activity } from "lucide-react";
 import {
   getOverview,
@@ -38,6 +39,7 @@ function Kpi({
 // The stats are uncached aggregates, so the KPIs and charts stream behind
 // <Suspense> while the page heading paints instantly.
 async function OverviewContent() {
+  await connection();
   const [overview, fileTypes, uploads, logins] = await Promise.all([
     getOverview(),
     getFileTypes(),

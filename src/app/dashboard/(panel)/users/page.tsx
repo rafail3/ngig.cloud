@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { listUsers } from "@/server/admin/users";
 import { UsersTable } from "@/components/dashboard/UsersTable";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
@@ -8,6 +9,7 @@ export const metadata = { title: "Dashboard — Useri" };
 // The user list is uncached admin data, so it streams behind <Suspense> while
 // the page heading paints instantly.
 async function UsersContent() {
+  await connection();
   const users = await listUsers();
   return (
     <section className="flex flex-col gap-3">
