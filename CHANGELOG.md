@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.0.0](https://github.com/rafail3/ngig.cloud/compare/v1.27.0...v2.0.0) (2026-07-02)
+
+
+### Features
+
+* **drive:** client-side SWR data layer for instant, fluid navigation ([4f3c196](https://github.com/rafail3/ngig.cloud/commit/4f3c196a8c7e864256c16c3b5097dc9fd528e786))
+* **nav:** instant navigation — PPR shells + client-side SWR drive ([6119054](https://github.com/rafail3/ngig.cloud/commit/6119054ac0eef7d52a3b986595624ad1261253db))
+* **nav:** partial prerendering for instant page shells ([c19527f](https://github.com/rafail3/ngig.cloud/commit/c19527f512590106f899c11bb6a65037b48f3e6f))
+
+
+### Bug Fixes
+
+* **dashboard:** render admin pages at request time so the build doesn't need runtime secrets ([70bae01](https://github.com/rafail3/ngig.cloud/commit/70bae011fd33f0a1216bf7ad7f93dd6ab7dd6fdf))
+
 ## [1.27.0](https://github.com/rafail3/ngig.cloud/compare/v1.26.0...v1.27.0) (2026-06-25)
 
 
