@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { sendInviteRequest, sendInviteRequestAck } from "@/server/email/resend";
-import { emailHasAccount } from "@/server/invites/service";
+import { createInviteRequest, emailHasAccount } from "@/server/invites/service";
 import type { InviteRequestState } from "@/lib/email-state";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -38,6 +38,17 @@ export async function requestInviteAction(
     }
   } catch {
     // lookup failed — fall through and let the request proceed
+  }
+
+  // Persist the request first — it's the source of truth the dashboard reads.
+  // A duplicate pending request for the same email is politely rejected.
+  try {
+    const result = await createInviteRequest({ name, email, message: message || null, ip: ip ?? null });
+    if (result === "duplicate") {
+      return { error: "Ai deja o cerere de invitație în așteptare. Revenim în curând.", values };
+    }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvarea cererii.", values };
   }
 
   try {
