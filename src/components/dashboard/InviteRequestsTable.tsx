@@ -35,26 +35,34 @@ function StatusBadge({ status }: { status: InviteRequestStatus }) {
   );
 }
 
-function CodeCell({ code }: { code: string }) {
+// Highlighted invite code + a distinct, comfortably-sized copy button.
+// The code sits in a bordered mono box that scrolls internally on narrow
+// screens, so a long code never overflows the layout (fully responsive).
+function CodeChip({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <button
-      type="button"
-      onClick={async () => {
-        await navigator.clipboard.writeText(code);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}
-      title="Copiază codul"
-      className="group flex w-full items-center gap-2 text-left font-mono text-xs text-zinc-100 transition hover:text-zinc-50"
-    >
-      <span className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap">{code}</span>
-      {copied ? (
-        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-      ) : (
-        <Copy className="h-3.5 w-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-300" />
-      )}
-    </button>
+    <div className="flex w-full items-stretch gap-2">
+      <code className="flex min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded-lg border border-indigo-500/30 bg-zinc-950 px-3 py-2 font-mono text-sm tracking-tight text-indigo-300">
+        {code}
+      </code>
+      <button
+        type="button"
+        onClick={async () => {
+          await navigator.clipboard.writeText(code);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+        aria-label={copied ? "Copiat" : "Copiază codul"}
+        title="Copiază codul"
+        className={`flex min-h-[40px] w-11 shrink-0 items-center justify-center rounded-lg border transition ${
+          copied
+            ? "border-emerald-700/60 bg-emerald-950/40 text-emerald-400"
+            : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-indigo-500/50 hover:text-indigo-300"
+        }`}
+      >
+        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+      </button>
+    </div>
   );
 }
 
@@ -244,7 +252,7 @@ export function InviteRequestsTable({ requests }: { requests: InviteRequestRow[]
                 <td className="px-4 py-3">
                   {req.status === "approved" && req.invite_code ? (
                     <div className="flex flex-col items-end gap-2">
-                      <div className="w-full max-w-[220px]"><CodeCell code={req.invite_code} /></div>
+                      <CodeChip code={req.invite_code} />
                       <DeleteButton id={req.id} email={req.email} />
                     </div>
                   ) : (
@@ -289,8 +297,8 @@ export function InviteRequestsTable({ requests }: { requests: InviteRequestRow[]
 
             {req.status === "approved" && req.invite_code && (
               <div className="mt-3">
-                <p className="text-xs text-zinc-500">Cod generat</p>
-                <div className="mt-0.5"><CodeCell code={req.invite_code} /></div>
+                <p className="mb-1 text-xs text-zinc-500">Cod generat</p>
+                <CodeChip code={req.invite_code} />
               </div>
             )}
 
