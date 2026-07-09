@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.0](https://github.com/rafail3/ngig.cloud/compare/v2.0.0...v2.1.0) (2026-07-09)
+
+
+### Features
+
+* **dashboard:** highlighted invite code chip with copy button ([ab3940c](https://github.com/rafail3/ngig.cloud/commit/ab3940c47527b5d713340347ec27556beffdac7d))
+* **dashboard:** invite requests page with approve/reject/delete ([060018d](https://github.com/rafail3/ngig.cloud/commit/060018d2042cd9da9e0cd0b659da5f910d209733))
+* **dashboard:** invite requests page with approve/reject/delete ([23ac5a9](https://github.com/rafail3/ngig.cloud/commit/23ac5a97369e1d8c7038d6c815c9754f95600614))
+* **db:** invite_requests table for dashboard invite requests ([12ace85](https://github.com/rafail3/ngig.cloud/commit/12ace859deedbf9d3fcbbdcd0df3ab6a971e76c6))
+* **email:** wider email card ([07cf1e6](https://github.com/rafail3/ngig.cloud/commit/07cf1e6ec1dcefc7de06eb11d353e5f9fa1b0430))
+* **invites:** clearer polite subject on rejection email ([fdb5589](https://github.com/rafail3/ngig.cloud/commit/fdb558936b2b94c8f4791ce02c84fba1a9963ec0))
+* **invites:** email requester on reject; float email card on client bg ([fbdcbe6](https://github.com/rafail3/ngig.cloud/commit/fbdcbe640f0e44e25db3d1e154a0b0f0c92b2455))
+* **invites:** persist invite requests + approve/reject/delete service ([cda81fe](https://github.com/rafail3/ngig.cloud/commit/cda81fe4cc99199a19d61d6c10a307a695060d14))
+
 ## [2.0.0](https://github.com/rafail3/ngig.cloud/compare/v1.27.0...v2.0.0) (2026-07-02)
 
 
