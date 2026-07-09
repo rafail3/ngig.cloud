@@ -24,7 +24,7 @@ function dashboardInviteUrl(email: string): string {
 function shell(title: string, inner: string): string {
   return `
   <div style="margin:0;padding:24px;background:transparent;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-    <div style="max-width:480px;margin:0 auto;background:#18181b;border:1px solid #27272a;border-radius:16px;overflow:hidden">
+    <div style="max-width:600px;margin:0 auto;background:#18181b;border:1px solid #27272a;border-radius:16px;overflow:hidden">
       <div style="padding:24px 28px;border-bottom:1px solid #27272a">
         <img src="https://ngig.cloud/ngig-mark.png" alt="" width="34" height="34" style="vertical-align:middle;border-radius:8px" />
         <span style="margin-left:10px;font-size:20px;font-weight:800;color:#fafafa;vertical-align:middle">ngig<span style="color:#818cf8">.cloud</span></span>
