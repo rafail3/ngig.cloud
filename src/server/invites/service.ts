@@ -228,10 +228,15 @@ export async function approveInviteRequest(
   return { code: invite.code, email: req.email, name: req.name };
 }
 
-// Reject a pending request (kept in history with status rejected).
-export async function rejectInviteRequest(id: string, adminId: string): Promise<void> {
+// Reject a pending request (kept in history with status rejected). Returns the
+// requester's email/name so the caller can notify them. Only a pending request
+// can be rejected.
+export async function rejectInviteRequest(
+  id: string,
+  adminId: string,
+): Promise<{ email: string; name: string }> {
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data, error } = await admin
     .from("invite_requests")
     .update({
       status: "rejected",
@@ -239,8 +244,11 @@ export async function rejectInviteRequest(id: string, adminId: string): Promise<
       handled_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .select("email, name")
+    .single();
   if (error) throw error;
+  return { email: data.email, name: data.name };
 }
 
 export async function deleteInviteRequest(id: string): Promise<void> {

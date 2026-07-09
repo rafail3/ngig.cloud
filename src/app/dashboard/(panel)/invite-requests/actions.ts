@@ -7,7 +7,7 @@ import {
   rejectInviteRequest,
   deleteInviteRequest,
 } from "@/server/invites/service";
-import { sendInviteCode } from "@/server/email/resend";
+import { sendInviteCode, sendInviteRejected } from "@/server/email/resend";
 
 export async function approveRequestAction(formData: FormData) {
   const adminId = await requireAdmin();
@@ -28,7 +28,14 @@ export async function rejectRequestAction(formData: FormData) {
   const adminId = await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
-  await rejectInviteRequest(id, adminId);
+
+  const { email, name } = await rejectInviteRequest(id, adminId);
+  // Notify the requester — best-effort, the rejection already stands.
+  try {
+    await sendInviteRejected({ email, name });
+  } catch {
+    // non-critical
+  }
   revalidatePath("/dashboard/invite-requests");
 }
 

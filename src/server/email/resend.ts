@@ -18,9 +18,12 @@ function dashboardInviteUrl(email: string): string {
 }
 
 // Shared email shell — branded card, works in Gmail/Outlook (inline styles).
+// The outer wrapper is transparent (no dark backdrop): the rounded card floats
+// on the client's own background, so there's no hard black rectangle bleeding
+// to the edge on a white inbox. (True gradient fades aren't reliable in Gmail.)
 function shell(title: string, inner: string): string {
   return `
-  <div style="margin:0;padding:24px;background:#0a0a0b;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <div style="margin:0;padding:24px;background:transparent;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
     <div style="max-width:480px;margin:0 auto;background:#18181b;border:1px solid #27272a;border-radius:16px;overflow:hidden">
       <div style="padding:24px 28px;border-bottom:1px solid #27272a">
         <img src="https://ngig.cloud/ngig-mark.png" alt="" width="34" height="34" style="vertical-align:middle;border-radius:8px" />
@@ -172,6 +175,45 @@ export async function sendInviteRequestAck(input: {
   });
 
   if (error) throw new Error("Nu am putut trimite confirmarea.");
+}
+
+// Sent TO the requester when the admin rejects their invite request.
+// Best-effort — its failure must not fail the reject action.
+export async function sendInviteRejected(input: {
+  name: string;
+  email: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const greeting = input.name ? `Salut ${escapeHtml(input.name)},` : "Salut,";
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      ${greeting}<br/>Îți mulțumim pentru interesul față de ngig.cloud.
+    </p>
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      De data aceasta nu putem aproba cererea ta de invitație. Poți încerca din
+      nou mai târziu.
+    </p>
+    <p style="margin:0;color:#71717a;font-size:12px">— ngig.cloud</p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: "Despre cererea ta de invitație — ngig.cloud",
+    text: [
+      greeting.replace(/<[^>]+>/g, ""),
+      "Îți mulțumim pentru interesul față de ngig.cloud.",
+      "",
+      "De data aceasta nu putem aproba cererea ta de invitație. Poți încerca din nou mai târziu.",
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Cerere de invitație", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite răspunsul.");
 }
 
 // Security notice sent to the OLD address when the account email is changed.
