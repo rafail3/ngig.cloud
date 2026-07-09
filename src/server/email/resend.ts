@@ -201,7 +201,7 @@ export async function sendInviteRejected(input: {
   const { error } = await resend.emails.send({
     from: FROM,
     to: input.email,
-    subject: "Despre cererea ta de invitație — ngig.cloud",
+    subject: "Cererea ta de invitație nu a putut fi aprobată — ngig.cloud",
     text: [
       greeting.replace(/<[^>]+>/g, ""),
       "Îți mulțumim pentru interesul față de ngig.cloud.",
