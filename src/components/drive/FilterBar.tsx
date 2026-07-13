@@ -30,31 +30,33 @@ import {
   type SizeRange,
 } from "./FilterProvider";
 
-const TYPE_OPTIONS: { key: FileCategory; label: string; icon: LucideIcon }[] = [
-  { key: "image", label: "Imagini", icon: ImageIcon },
-  { key: "document", label: "Documente", icon: FileText },
-  { key: "spreadsheet", label: "Foi de calcul", icon: Table },
-  { key: "presentation", label: "Prezentări", icon: Presentation },
-  { key: "code", label: "Cod", icon: Code },
-  { key: "video", label: "Video", icon: Video },
-  { key: "audio", label: "Audio", icon: Music },
-  { key: "archive", label: "Arhive", icon: Archive },
-  { key: "other", label: "Altele", icon: FileIcon },
+// `short` is what the chip shows (kept compact so all chips fit one row on
+// mobile); `label` is the full text shown inside the dropdown.
+const TYPE_OPTIONS: { key: FileCategory; label: string; short: string; icon: LucideIcon }[] = [
+  { key: "image", label: "Imagini", short: "Imagini", icon: ImageIcon },
+  { key: "document", label: "Documente", short: "Docs", icon: FileText },
+  { key: "spreadsheet", label: "Foi de calcul", short: "Foi", icon: Table },
+  { key: "presentation", label: "Prezentări", short: "Prez.", icon: Presentation },
+  { key: "code", label: "Cod", short: "Cod", icon: Code },
+  { key: "video", label: "Video", short: "Video", icon: Video },
+  { key: "audio", label: "Audio", short: "Audio", icon: Music },
+  { key: "archive", label: "Arhive", short: "Arhive", icon: Archive },
+  { key: "other", label: "Altele", short: "Altele", icon: FileIcon },
 ];
 
-const DATE_OPTIONS: { key: DateRange; label: string }[] = [
-  { key: "any", label: "Oricând" },
-  { key: "today", label: "Azi" },
-  { key: "7d", label: "Ultimele 7 zile" },
-  { key: "30d", label: "Ultimele 30 de zile" },
-  { key: "365d", label: "Ultimul an" },
+const DATE_OPTIONS: { key: DateRange; label: string; short: string }[] = [
+  { key: "any", label: "Oricând", short: "Oricând" },
+  { key: "today", label: "Azi", short: "Azi" },
+  { key: "7d", label: "Ultimele 7 zile", short: "7 zile" },
+  { key: "30d", label: "Ultimele 30 de zile", short: "30 zile" },
+  { key: "365d", label: "Ultimul an", short: "1 an" },
 ];
 
-const SIZE_OPTIONS: { key: SizeRange; label: string }[] = [
-  { key: "any", label: "Orice mărime" },
-  { key: "small", label: "Mici (sub 1 MB)" },
-  { key: "medium", label: "Medii (1–100 MB)" },
-  { key: "large", label: "Mari (peste 100 MB)" },
+const SIZE_OPTIONS: { key: SizeRange; label: string; short: string }[] = [
+  { key: "any", label: "Orice mărime", short: "Mărime" },
+  { key: "small", label: "Mici (sub 1 MB)", short: "Mici" },
+  { key: "medium", label: "Medii (1–100 MB)", short: "Medii" },
+  { key: "large", label: "Mari (peste 100 MB)", short: "Mari" },
 ];
 
 export function FilterBar() {
@@ -77,10 +79,10 @@ export function FilterBar() {
     f.types.size === 0
       ? "Tip"
       : f.types.size === 1
-        ? TYPE_OPTIONS.find((t) => f.types.has(t.key))?.label ?? "Tip"
+        ? TYPE_OPTIONS.find((t) => f.types.has(t.key))?.short ?? "Tip"
         : `Tip · ${f.types.size}`;
-  const dateLabel = DATE_OPTIONS.find((d) => d.key === f.date)?.label ?? "Dată";
-  const sizeLabel = SIZE_OPTIONS.find((s) => s.key === f.size)?.label ?? "Mărime";
+  const dateLabel = DATE_OPTIONS.find((d) => d.key === f.date)?.short ?? "Oricând";
+  const sizeLabel = SIZE_OPTIONS.find((s) => s.key === f.size)?.short ?? "Mărime";
 
   const activeFilters =
     f.types.size + (f.date !== "any" ? 1 : 0) + (f.size !== "any" ? 1 : 0);
@@ -156,7 +158,7 @@ export function FilterBar() {
             className={revealed ? "" : "overflow-hidden"}
           >
             <div className="pt-3">
-             <div className="flex flex-wrap items-center gap-2">
+             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               {/* Type — multi-select; closes after each pick */}
               <Dropdown label={typeLabel} icon={Shapes} active={f.types.size > 0} align="left">
                 {(close) => (
@@ -296,7 +298,7 @@ function Dropdown({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition ${
+        className={`flex items-center gap-1 rounded-full border px-2.5 py-2 text-sm transition sm:gap-1.5 sm:px-3.5 ${
           active
             ? "border-indigo-500/60 bg-indigo-500/10 text-zinc-100"
             : "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100"
