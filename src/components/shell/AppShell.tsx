@@ -76,26 +76,28 @@ export function AppShell({
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
       {/* ===== Top navbar (always visible, full width) ===== */}
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/95 px-3 backdrop-blur sm:px-5">
-        {/* left: hamburger (mobile) + logo */}
-        <div className="flex items-center gap-2">
+        {/* left: hamburger (mobile) + logo. shrink-0 so the logo keeps its
+            aspect ratio and never gets squished by the flex row on narrow
+            screens. */}
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={() => setSidebarOpen((v) => !v)}
             aria-label="Meniu"
-            className="rounded-md p-2 text-zinc-300 hover:bg-zinc-900 md:hidden"
+            className="-ml-1 rounded-md p-2 text-zinc-300 hover:bg-zinc-900 md:hidden"
           >
             <Menu className="h-5 w-5" />
           </button>
           {/* White-wordmark logo for dark mode, black-wordmark for light. CSS
               swap (not JS) so it never flashes the wrong one. Click → home. */}
-          <Link href="/" aria-label="Acasă" className="flex items-center">
+          <Link href="/" aria-label="Acasă" className="flex shrink-0 items-center">
             <Image
               src="/ngig-logo.png"
               alt="ngig.cloud"
               width={352}
               height={96}
               priority
-              className="hidden h-9 w-auto dark:block sm:h-10"
+              className="hidden h-8 w-auto shrink-0 dark:block sm:h-10"
             />
             <Image
               src="/ngig-logo-light.png"
@@ -103,13 +105,14 @@ export function AppShell({
               width={352}
               height={96}
               priority
-              className="block h-9 w-auto dark:hidden sm:h-10"
+              className="block h-8 w-auto shrink-0 dark:hidden sm:h-10"
             />
           </Link>
         </div>
 
-        {/* right: theme toggle + user menu + logout */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        {/* right: theme toggle + user menu + logout. shrink-0 keeps the group
+            intact; tighter gaps pull the theme icon closer to the profile. */}
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <ThemeToggle />
           <div className="relative">
             <button
@@ -117,7 +120,7 @@ export function AppShell({
               onClick={() => setMenuOpen((v) => !v)}
               className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-50"
             >
-              <span className="max-w-[88px] truncate font-medium sm:max-w-[140px]">{user.username}</span>
+              <span className="max-w-[72px] truncate font-medium sm:max-w-[140px]">{user.username}</span>
               {user.role === "admin" && (
                 <span className="hidden rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] uppercase text-indigo-300 sm:inline">
                   admin
