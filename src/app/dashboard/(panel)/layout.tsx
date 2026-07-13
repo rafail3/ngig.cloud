@@ -3,6 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/shell/DashboardShell";
 import { DashboardShellSkeleton } from "@/components/shell/DashboardShellSkeleton";
 import { Forbidden } from "@/components/shell/Forbidden";
+import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
+
+// Every dashboard data source — so any admin page/action updates live.
+const DASHBOARD_TABLES = [
+  "profiles",
+  "invite_codes",
+  "invite_requests",
+  "app_settings",
+  "login_audit",
+];
 
 // Too dynamic to be the instant entry point: it reads auth on every request.
 // Exempt the layout from instant validation; the per-page static shells under
@@ -41,6 +51,7 @@ async function Shell({
 
     return (
       <DashboardShell user={{ username: profile.username ?? "", email }}>
+        <RealtimeRefresh tables={DASHBOARD_TABLES} />
         {children}
         {modal}
       </DashboardShell>
