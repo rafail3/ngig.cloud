@@ -6,6 +6,7 @@ import { UploadArea } from "@/components/drive/UploadArea";
 import { Breadcrumb } from "@/components/drive/Breadcrumb";
 import { FolderList } from "@/components/drive/FolderList";
 import { FileList } from "@/components/drive/FileList";
+import { SuggestedFiles } from "@/components/drive/SuggestedFiles";
 import { DriveEmpty } from "@/components/drive/DriveEmpty";
 import { FolderInfoButton } from "@/components/drive/FolderInfoButton";
 import { DriveDndProvider, CurrentFolderDropZone } from "@/components/drive/DriveDndProvider";
@@ -105,6 +106,10 @@ export function DriveBoard() {
           <div className="mb-6">
             <UploadArea folderId={folderId} />
           </div>
+
+          {/* Suggested (recent) files — only on the home root, hidden while
+              searching/filtering. */}
+          {folderId === null && <SuggestedFiles />}
 
           <SelectionBar />
 
