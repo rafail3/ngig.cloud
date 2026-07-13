@@ -3,6 +3,7 @@ import { Mail, ShieldCheck, CalendarClock, LogIn } from "lucide-react";
 import { getMyProfile, listMySessions } from "@/server/account/profile";
 import { AccountForms } from "@/components/account/AccountForms";
 import { ActiveSessions } from "@/components/account/ActiveSessions";
+import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
 import { formatDateTime as fmt } from "@/lib/format-date";
 
 export const metadata = { title: "Profilul meu" };
@@ -26,6 +27,8 @@ async function ProfileContent() {
 
   return (
     <>
+      {/* Own profile updates (e.g. email change) reflect live across tabs. */}
+      <RealtimeRefresh tables={["profiles"]} />
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold text-zinc-50 sm:text-2xl">{me.username}</h1>
         {me.role === "admin" && (
