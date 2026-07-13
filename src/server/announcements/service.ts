@@ -33,7 +33,7 @@ export function normalizeLink(raw: string): string | null {
 const CHUNK = 500;
 
 // Create an announcement and fan it out as a notification to every account
-// except the sender. Returns how many recipients it reached.
+// (including the sending admin). Returns how many recipients it reached.
 export async function createAnnouncement(
   input: { title: string; body: string; link: string | null },
   senderId: string,
@@ -53,11 +53,10 @@ export async function createAnnouncement(
   if (annErr) throw annErr;
   const announcementId = ann.id as string;
 
-  // Every account except the sender.
+  // Every account, the sender included.
   const { data: users, error: usersErr } = await admin
     .from("profiles")
-    .select("id")
-    .neq("id", senderId);
+    .select("id");
   if (usersErr) throw usersErr;
   const recipients = (users ?? []).map((u) => u.id as string);
 
