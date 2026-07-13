@@ -137,19 +137,9 @@ export async function signOutUser(id: string): Promise<void> {
   });
 }
 
-// Notification copy describing the user's new effective limits (null = default).
-function limitsBody(limits: {
-  max_file_size: number | null;
-  max_total_size: number | null;
-}): string {
-  if (limits.max_file_size == null && limits.max_total_size == null) {
-    return "Limitele tale de spațiu au fost resetate la valorile implicite.";
-  }
-  const total =
-    limits.max_total_size != null ? formatBytes(limits.max_total_size) : "implicit";
-  const file =
-    limits.max_file_size != null ? formatBytes(limits.max_file_size) : "implicit";
-  return `Limitele tale au fost actualizate: spațiu total ${total}, fișier maxim ${file}.`;
+// Human value for one limit in the notification copy (null = platform default).
+function limitValue(bytes: number | null): string {
+  return bytes != null ? formatBytes(bytes) : "implicit";
 }
 
 // null = remove the per-user override (falls back to global / unlimited).
@@ -158,14 +148,33 @@ export async function setUserLimits(
   limits: { max_file_size: number | null; max_total_size: number | null },
 ): Promise<void> {
   const admin = createAdminClient();
+
+  // Read the current limits first so the notification names ONLY what actually
+  // changed (the form always submits both fields, but usually one was touched).
+  const { data: prev } = await admin
+    .from("profiles")
+    .select("max_file_size, max_total_size")
+    .eq("id", id)
+    .single();
+
   const { error } = await admin.from("profiles").update(limits).eq("id", id);
   if (error) throw error;
+
+  const changes: string[] = [];
+  if ((prev?.max_total_size ?? null) !== limits.max_total_size) {
+    changes.push(`spațiu total: ${limitValue(limits.max_total_size)}`);
+  }
+  if ((prev?.max_file_size ?? null) !== limits.max_file_size) {
+    changes.push(`fișier maxim: ${limitValue(limits.max_file_size)}`);
+  }
+  // Nothing actually changed — don't notify about a no-op save.
+  if (changes.length === 0) return;
 
   await notifyUserSafe({
     userId: id,
     type: "limits_changed",
     title: "📏 Limite de spațiu actualizate",
-    body: limitsBody(limits),
+    body: `Limite actualizate — ${changes.join("; ")}.`,
     link: "/",
   });
 }

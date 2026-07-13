@@ -106,3 +106,35 @@ export async function markAllNotificationsRead(): Promise<void> {
     .is("read_at", null);
   if (error) throw error;
 }
+
+// Resolve the signed-in user's id from the session (server-side, trusted).
+async function currentUserId(): Promise<string> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const uid = data?.claims?.sub as string | undefined;
+  if (!uid) throw new Error("Neautentificat.");
+  return uid;
+}
+
+// Delete one of the caller's notifications. There's no RLS delete policy on the
+// table (inserts are service-role, selects/updates are self-scoped), so we use
+// the admin client but scope the delete to BOTH the row id and the verified
+// caller — a user can only ever delete their own rows.
+export async function deleteMyNotification(id: string): Promise<void> {
+  const uid = await currentUserId();
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("notifications")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", uid);
+  if (error) throw error;
+}
+
+// Clear the caller's entire notification history.
+export async function clearMyNotifications(): Promise<void> {
+  const uid = await currentUserId();
+  const admin = createAdminClient();
+  const { error } = await admin.from("notifications").delete().eq("user_id", uid);
+  if (error) throw error;
+}
