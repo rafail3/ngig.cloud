@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.9.0](https://github.com/rafail3/ngig.cloud/compare/v2.8.0...v2.9.0) (2026-07-13)
+
+
+### Features
+
+* **notifications:** in-app notification bell (50a infra) ([534e5b4](https://github.com/rafail3/ngig.cloud/commit/534e5b44db2fc014f4c292c27e357f6dc6c64ffc))
+* **notifications:** in-app notification bell with realtime feed ([648636f](https://github.com/rafail3/ngig.cloud/commit/648636fcfffd1bff339bb70cd7b85f3a77e979fe))
+
+
+### Bug Fixes
+
+* **drive:** filter chips stretch to fill the row, normal size ([cb684d5](https://github.com/rafail3/ngig.cloud/commit/cb684d54f1f837c9674efa386d2ff6f71869665b))
+* **drive:** keep filter chips on one row and fit dropdowns on mobile ([97858f7](https://github.com/rafail3/ngig.cloud/commit/97858f7c4baa5574db03f73822c7d1b53a43ae63))
+* **drive:** one-row filter chips at all sizes; solid sticky search bar ([53b5b2d](https://github.com/rafail3/ngig.cloud/commit/53b5b2df4f018174e97b80e6634d039a75abade4))
+* **preview:** fit documents to screen width on mobile ([f39e143](https://github.com/rafail3/ngig.cloud/commit/f39e1434c524d53e90e83557d71024b3b7ef5538))
+* **ui:** mobile preview fit + filter bar and dropdown fixes ([9126c8a](https://github.com/rafail3/ngig.cloud/commit/9126c8ad7b4361b09feb36bc11483bb2b637919b))
+* **ui:** reliable click-outside for dropdowns; tidy filter chips on mobile ([16ae7f7](https://github.com/rafail3/ngig.cloud/commit/16ae7f7982143860a1bc4dd8bfaff8ea82d4cee9))
+
 ## [2.8.0](https://github.com/rafail3/ngig.cloud/compare/v2.7.0...v2.8.0) (2026-07-13)
 
 
