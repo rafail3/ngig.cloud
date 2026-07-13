@@ -42,6 +42,14 @@ export function AnnouncementComposer() {
     setConfirm(true);
   }
 
+  // Submit the form programmatically, then close the dialog. requestSubmit()
+  // dispatches the submit synchronously (running the action) before the modal
+  // unmounts, so closing it here can't cancel the send.
+  function submitForm() {
+    formRef.current?.requestSubmit();
+    setConfirm(false);
+  }
+
   return (
     <form
       ref={formRef}
@@ -123,7 +131,11 @@ export function AnnouncementComposer() {
       </div>
 
       {confirm && (
-        <ConfirmSend pending={pending} onClose={() => setConfirm(false)} />
+        <ConfirmSend
+          pending={pending}
+          onConfirm={submitForm}
+          onClose={() => setConfirm(false)}
+        />
       )}
     </form>
   );
@@ -133,9 +145,11 @@ export function AnnouncementComposer() {
 // submit inside the form, so it sends with the composed field values.
 function ConfirmSend({
   pending,
+  onConfirm,
   onClose,
 }: {
   pending: boolean;
+  onConfirm: () => void;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -174,9 +188,9 @@ function ConfirmSend({
             Anulează
           </button>
           <button
-            type="submit"
+            type="button"
             disabled={pending}
-            onClick={onClose}
+            onClick={onConfirm}
             className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
           >
             <Send className="h-4 w-4" />
