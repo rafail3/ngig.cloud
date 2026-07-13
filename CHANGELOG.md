@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.4.0](https://github.com/rafail3/ngig.cloud/compare/v2.3.0...v2.4.0) (2026-07-13)
+
+
+### Features
+
+* **auth:** faster Turnstile check + security-verification button label ([99c510c](https://github.com/rafail3/ngig.cloud/commit/99c510cc4aa9c1912f77d6e0039539375924ee5d))
+* **auth:** run Turnstile invisibly in the background ([e8174c9](https://github.com/rafail3/ngig.cloud/commit/e8174c9ef7ce5517ca88cfef4df489a65a6def2d))
+* **auth:** run Turnstile invisibly in the background ([de84bde](https://github.com/rafail3/ngig.cloud/commit/de84bde5d93ff7231a4e9f76fb8ab577faf4c75b))
+
+
+### Bug Fixes
+
+* **auth:** gate submit on Turnstile token with a button spinner ([84592d6](https://github.com/rafail3/ngig.cloud/commit/84592d6e9e62326376e2deec8507685e51e85011))
+
 ## [2.3.0](https://github.com/rafail3/ngig.cloud/compare/v2.2.0...v2.3.0) (2026-07-13)
 
 
