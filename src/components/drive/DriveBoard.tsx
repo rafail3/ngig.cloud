@@ -69,8 +69,12 @@ export function DriveBoard() {
         updatedAt: f.updated_at,
       }))}
     >
-      {/* Search + filters sit above everything else on the page. */}
-      <FilterBar />
+      {/* Search + filters stick to the top (just under the navbar) as you
+          scroll, with a soft fade into the content below. */}
+      <div className="sticky top-16 z-30 -mx-4 bg-zinc-950/90 px-4 pb-3 pt-3 backdrop-blur sm:-mx-6 sm:px-6">
+        <FilterBar />
+        <div className="pointer-events-none absolute inset-x-0 top-full h-5 bg-gradient-to-b from-zinc-950/90 to-transparent" />
+      </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -120,6 +124,11 @@ export function DriveBoard() {
                   visible meanwhile), so there's no unmount/remount and no layout
                   collapse — the source of the navigation flash. */}
               <div className="flex flex-col gap-4">
+                {folderId === null && !empty && (
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                    Folderele și fișierele tale
+                  </h2>
+                )}
                 <FolderList folderId={folderId} />
                 <FileList folderId={folderId} />
                 {empty && <DriveEmpty folderId={folderId} />}

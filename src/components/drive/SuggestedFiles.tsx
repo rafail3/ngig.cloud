@@ -31,7 +31,7 @@ export function SuggestedFiles() {
   }
 
   return (
-    <section className="mb-6">
+    <section className="mb-6 border-b border-zinc-800 pb-6">
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
         Fișiere sugerate
       </h2>
