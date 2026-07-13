@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isTypeEnabled } from "./catalog";
 
 export type NotificationRow = {
   id: string;
@@ -23,6 +24,8 @@ type NewNotification = {
 export async function createNotification(
   input: NewNotification & { userId: string },
 ): Promise<void> {
+  // Respect the admin's per-type switch (types are on by default).
+  if (!(await isTypeEnabled(input.type))) return;
   const admin = createAdminClient();
   const { error } = await admin.from("notifications").insert({
     user_id: input.userId,
@@ -58,6 +61,7 @@ export async function notifyAdminsSafe(input: NewNotification): Promise<void> {
 
 // Notify every admin (used for platform-status events, e.g. a new invite request).
 export async function notifyAdmins(input: NewNotification): Promise<void> {
+  if (!(await isTypeEnabled(input.type))) return;
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("profiles")

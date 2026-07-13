@@ -10,6 +10,7 @@ import {
   Inbox,
   Users,
   Megaphone,
+  Bell,
   Settings,
   LogOut,
   Menu,
@@ -40,6 +41,7 @@ const NAV: NavItem[] = [
   { href: "/invite-requests", label: "Cereri invitații", icon: <Inbox className="h-5 w-5" /> },
   { href: "/users", label: "Useri", icon: <Users className="h-5 w-5" /> },
   { href: "/announcements", label: "Anunțuri", icon: <Megaphone className="h-5 w-5" /> },
+  { href: "/notifications", label: "Notificări", icon: <Bell className="h-5 w-5" /> },
   { href: "/settings", label: "Setări", icon: <Settings className="h-5 w-5" /> },
 ];
 
