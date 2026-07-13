@@ -158,7 +158,7 @@ export function FilterBar() {
             className={revealed ? "" : "overflow-hidden"}
           >
             <div className="pt-3">
-             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+             <div className="flex items-center gap-2">
               {/* Type — multi-select; closes after each pick */}
               <Dropdown label={typeLabel} icon={Shapes} active={f.types.size > 0} align="left">
                 {(close) => (
@@ -294,21 +294,22 @@ function Dropdown({
   useClickOutside(ref, close, open);
 
   return (
-    <div ref={ref} data-keep-selection className="relative shrink-0">
+    <div ref={ref} data-keep-selection className="relative min-w-0 flex-1">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1 rounded-full border px-2.5 py-2 text-sm transition sm:gap-1.5 sm:px-3.5 ${
+        className={`flex w-full items-center justify-between gap-1.5 rounded-full border px-3.5 py-2 text-sm transition ${
           active
             ? "border-indigo-500/60 bg-indigo-500/10 text-zinc-100"
             : "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100"
         }`}
       >
-        {/* Leading icon hidden on mobile so all three chips fit on one row. */}
-        {Icon && <Icon className="hidden h-4 w-4 text-zinc-400 sm:block" />}
-        <span>{label}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          {Icon && <Icon className="hidden h-4 w-4 shrink-0 text-zinc-400 sm:block" />}
+          <span className="truncate">{label}</span>
+        </span>
         <ChevronDown
-          className={`h-3.5 w-3.5 text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-3.5 w-3.5 shrink-0 text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
 
