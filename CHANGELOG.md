@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.0](https://github.com/rafail3/ngig.cloud/compare/v2.5.0...v2.6.0) (2026-07-13)
+
+
+### Features
+
+* **drive:** live-sync files and folders via Supabase Realtime ([f44c7fc](https://github.com/rafail3/ngig.cloud/commit/f44c7fcb09fe35f9954bb2a906dd934b9fc6201e))
+* **drive:** live-sync files and folders via Supabase Realtime ([3651529](https://github.com/rafail3/ngig.cloud/commit/3651529bda9a674a943e623b233ae0e69abe2b51))
+
 ## [2.5.0](https://github.com/rafail3/ngig.cloud/compare/v2.4.0...v2.5.0) (2026-07-13)
 
 
