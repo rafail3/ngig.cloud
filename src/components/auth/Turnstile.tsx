@@ -60,10 +60,12 @@ export function Turnstile({ resetSignal }: { resetSignal?: unknown }) {
     const render = () => {
       if (cancelled || idRef.current || !window.turnstile || !ref.current) return;
       try {
+        // Invisible widget type (configured on the sitekey in the Cloudflare
+        // dashboard): never shows UI, runs the check in the background, and
+        // injects the hidden cf-turnstile-response input for the server action.
+        // theme/size/appearance are irrelevant for invisible widgets.
         idRef.current = window.turnstile.render(ref.current, {
           sitekey: siteKey,
-          theme: "dark",
-          size: "flexible",
         });
       } catch {
         // widget container not ready yet — the poll will retry
@@ -96,9 +98,8 @@ export function Turnstile({ resetSignal }: { resetSignal?: unknown }) {
   }, []);
 
   if (!siteKey) return null;
-  return (
-    <div className="w-full">
-      <div ref={ref} className="w-full" />
-    </div>
-  );
+  // sr-only keeps the invisible widget out of the layout flow, so the forms
+  // stay compact (no reserved row/gap). Cloudflare still runs the check and
+  // injects the hidden token input inside this element (which is in the form).
+  return <div ref={ref} className="sr-only" />;
 }
