@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.0](https://github.com/rafail3/ngig.cloud/compare/v2.6.0...v2.7.0) (2026-07-13)
+
+
+### Features
+
+* **realtime:** live-sync the whole dashboard and profile ([322e2bf](https://github.com/rafail3/ngig.cloud/commit/322e2bf6c9b4b242748878eabe9dafed0b70cda3))
+* **realtime:** live-sync the whole dashboard and profile ([beb64ad](https://github.com/rafail3/ngig.cloud/commit/beb64ad3ecf88e883ff725b7ee0c9376ee90d56c))
+
 ## [2.6.0](https://github.com/rafail3/ngig.cloud/compare/v2.5.0...v2.6.0) (2026-07-13)
 
 
