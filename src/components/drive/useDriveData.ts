@@ -100,9 +100,14 @@ export function useDriveRealtime() {
     let cancelled = false;
 
     void (async () => {
-      const { data } = await supabase.auth.getClaims();
-      const uid = data?.claims?.sub as string | undefined;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const uid = session?.user?.id;
       if (!uid || cancelled) return;
+      // Auth the realtime socket with the user's JWT so RLS-filtered changes
+      // are delivered (an anon socket has auth.uid() null and gets nothing).
+      if (session.access_token) supabase.realtime.setAuth(session.access_token);
       const onChange = () => {
         void revalidateDrive();
       };
