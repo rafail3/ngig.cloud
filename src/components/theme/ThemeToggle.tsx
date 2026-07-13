@@ -14,9 +14,10 @@ export function ThemeToggle() {
   const { theme, resolved, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
 
-  // Trigger icon: explicit choice shows its icon; "system" shows a monitor.
-  const TriggerIcon =
-    theme === "system" ? Monitor : resolved === "dark" ? Moon : Sun;
+  // Trigger icon always reflects the EFFECTIVE theme (moon/sun) — even in
+  // "system" mode we show the resolved icon, never the monitor. The monitor
+  // stays only as the "Sistem" option inside the dropdown.
+  const TriggerIcon = resolved === "dark" ? Moon : Sun;
 
   return (
     <div className="relative">

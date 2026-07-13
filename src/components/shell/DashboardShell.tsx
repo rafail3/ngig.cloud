@@ -54,25 +54,26 @@ export function DashboardShell({
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
       {/* ===== Top navbar ===== */}
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/95 px-3 backdrop-blur sm:px-5">
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <button
             type="button"
             onClick={() => setSidebarOpen((v) => !v)}
             aria-label="Meniu"
-            className="rounded-md p-2 text-zinc-300 hover:bg-zinc-900 md:hidden"
+            className="-ml-1 rounded-md p-2 text-zinc-300 hover:bg-zinc-900 md:hidden"
           >
             <Menu className="h-5 w-5" />
           </button>
           {/* White-wordmark logo for dark mode, black-wordmark for light.
+              shrink-0 keeps its aspect ratio on narrow screens.
               Click → dashboard overview. */}
-          <Link href="/" aria-label="Overview" className="flex items-center">
+          <Link href="/" aria-label="Overview" className="flex shrink-0 items-center">
             <Image
               src="/ngig-logo.png"
               alt="ngig.cloud"
               width={352}
               height={96}
               priority
-              className="hidden h-9 w-auto dark:block sm:h-10"
+              className="hidden h-8 w-auto shrink-0 dark:block sm:h-10"
             />
             <Image
               src="/ngig-logo-light.png"
@@ -80,16 +81,16 @@ export function DashboardShell({
               width={352}
               height={96}
               priority
-              className="block h-9 w-auto dark:hidden sm:h-10"
+              className="block h-8 w-auto shrink-0 dark:hidden sm:h-10"
             />
           </Link>
-          <span className="ml-1 hidden rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300 sm:inline">
+          <span className="hidden rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300 sm:inline">
             admin
           </span>
         </div>
 
         {/* right: theme toggle + user menu + logout */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <ThemeToggle />
           <div className="relative">
             <button
@@ -97,7 +98,7 @@ export function DashboardShell({
               onClick={() => setMenuOpen((v) => !v)}
               className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-50"
             >
-              <span className="max-w-[120px] truncate font-medium">{user.username}</span>
+              <span className="max-w-[80px] truncate font-medium sm:max-w-[120px]">{user.username}</span>
               <ChevronDown className={`h-4 w-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
             </button>
 
