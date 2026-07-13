@@ -79,7 +79,7 @@ export function AppShell({
         {/* left: hamburger (mobile) + logo. shrink-0 so the logo keeps its
             aspect ratio and never gets squished by the flex row on narrow
             screens. */}
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <button
             type="button"
             onClick={() => setSidebarOpen((v) => !v)}
@@ -112,7 +112,7 @@ export function AppShell({
 
         {/* right: theme toggle + user menu + logout. shrink-0 keeps the group
             intact; tighter gaps pull the theme icon closer to the profile. */}
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <ThemeToggle />
           <div className="relative">
             <button

@@ -54,7 +54,7 @@ export function DashboardShell({
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
       {/* ===== Top navbar ===== */}
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/95 px-3 backdrop-blur sm:px-5">
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <button
             type="button"
             onClick={() => setSidebarOpen((v) => !v)}
@@ -90,7 +90,7 @@ export function DashboardShell({
         </div>
 
         {/* right: theme toggle + user menu + logout */}
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <ThemeToggle />
           <div className="relative">
             <button
