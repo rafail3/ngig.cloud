@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { dashboardSignOut } from "@/app/dashboard/actions";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { useClickOutside } from "@/lib/useClickOutside";
 
 type ShellUser = { username: string; email: string };
 
@@ -48,6 +49,8 @@ export function DashboardShell({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
   const pathname = usePathname();
 
   return (
@@ -92,7 +95,7 @@ export function DashboardShell({
         {/* right: theme toggle + user menu + logout */}
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <ThemeToggle />
-          <div className="relative">
+          <div ref={menuRef} className="relative">
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
@@ -103,8 +106,6 @@ export function DashboardShell({
             </button>
 
             {menuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                 <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
                   <div className="border-b border-zinc-800 px-4 py-3">
                     <p className="truncate text-sm font-semibold text-zinc-100">{user.username}</p>
@@ -122,7 +123,6 @@ export function DashboardShell({
                     </div>
                   </div>
                 </div>
-              </>
             )}
           </div>
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { useClickOutside } from "@/lib/useClickOutside";
 import {
   Search,
   X,
@@ -154,7 +155,8 @@ export function FilterBar() {
             // dropdown popovers below the buttons aren't cut off.
             className={revealed ? "" : "overflow-hidden"}
           >
-            <div className="flex flex-wrap items-center gap-2 pt-3">
+            <div className="pt-3">
+             <div className="flex flex-wrap items-center gap-2">
               {/* Type — multi-select; closes after each pick */}
               <Dropdown label={typeLabel} icon={Shapes} active={f.types.size > 0} align="left">
                 {(close) => (
@@ -187,7 +189,7 @@ export function FilterBar() {
               </Dropdown>
 
               {/* Date — single-select */}
-              <Dropdown label={dateLabel} icon={CalendarDays} active={f.date !== "any"}>
+              <Dropdown label={dateLabel} icon={CalendarDays} active={f.date !== "any"} align="left">
                 {(close) => (
                   <RadioList
                     options={DATE_OPTIONS}
@@ -214,11 +216,15 @@ export function FilterBar() {
                 )}
               </Dropdown>
 
+             </div>
+
+              {/* Reset sits on its own row below the chips, so adding it never
+                  pushes the filter chips onto a second line. */}
               {f.active && (
                 <button
                   type="button"
                   onClick={f.reset}
-                  className="ml-auto rounded-full px-2.5 py-1 text-sm text-indigo-400 transition hover:text-indigo-300"
+                  className="mt-2 rounded-full px-2.5 py-1 text-sm text-indigo-400 transition hover:text-indigo-300"
                 >
                   Resetează
                 </button>
@@ -282,9 +288,11 @@ function Dropdown({
 }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, close, open);
 
   return (
-    <div data-keep-selection className="relative shrink-0">
+    <div ref={ref} data-keep-selection className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -304,22 +312,17 @@ function Dropdown({
 
       <AnimatePresence>
         {open && (
-          <>
-            {/* Backdrop catches outside clicks. Inside the data-keep-selection
-                wrapper, so dismissing it never clears the file selection. */}
-            <div className="fixed inset-0 z-40" onClick={close} />
-            <motion.div
-              initial={{ opacity: 0, y: -4, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -4, scale: 0.98 }}
-              transition={{ duration: 0.14, ease: "easeOut" }}
-              className={`absolute z-50 mt-1.5 max-w-[calc(100vw-1.5rem)] rounded-xl border border-zinc-800 bg-zinc-950/95 p-1.5 shadow-xl shadow-black/30 backdrop-blur ${
-                align === "left" ? "left-0" : "right-0"
-              }`}
-            >
-              {typeof children === "function" ? children(close) : children}
-            </motion.div>
-          </>
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.14, ease: "easeOut" }}
+            className={`absolute z-50 mt-1.5 max-w-[calc(100vw-1.5rem)] rounded-xl border border-zinc-800 bg-zinc-950/95 p-1.5 shadow-xl shadow-black/30 backdrop-blur ${
+              align === "left" ? "left-0" : "right-0"
+            }`}
+          >
+            {typeof children === "function" ? children(close) : children}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

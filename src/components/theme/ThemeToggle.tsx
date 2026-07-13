@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Sun, Moon, Monitor, Check } from "lucide-react";
 import { useTheme, type Theme } from "./ThemeProvider";
+import { useClickOutside } from "@/lib/useClickOutside";
 
 const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Luminos", icon: Sun },
@@ -13,6 +14,8 @@ const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
 export function ThemeToggle() {
   const { theme, resolved, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, () => setOpen(false), open);
 
   // Trigger icon always reflects the EFFECTIVE theme (moon/sun) — even in
   // "system" mode we show the resolved icon, never the monitor. The monitor
@@ -20,7 +23,7 @@ export function ThemeToggle() {
   const TriggerIcon = resolved === "dark" ? Moon : Sun;
 
   return (
-    <div className="relative">
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -32,9 +35,6 @@ export function ThemeToggle() {
       </button>
 
       {open && (
-        <>
-          {/* click-away backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
             {OPTIONS.map((o) => {
               const active = theme === o.value;
@@ -60,7 +60,6 @@ export function ThemeToggle() {
               );
             })}
           </div>
-        </>
       )}
     </div>
   );
