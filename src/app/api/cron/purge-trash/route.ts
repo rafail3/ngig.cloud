@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { purgeExpiredTrash } from "@/server/files/service";
+import { purgeOldNotifications } from "@/server/notifications/service";
 
-// Daily cron (see vercel.json) that permanently removes trashed files past the
-// retention window. Vercel sends `Authorization: Bearer ${CRON_SECRET}` when the
-// CRON_SECRET env var is set; we reject anything else so the endpoint can't be
-// triggered by the public.
+// Daily cron (see vercel.json) that runs the retention-window cleanups:
+// permanently remove trashed files past their window, and delete notifications
+// older than their retention. Vercel sends `Authorization: Bearer
+// ${CRON_SECRET}` when the CRON_SECRET env var is set; we reject anything else
+// so the endpoint can't be triggered by the public.
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
@@ -12,5 +14,6 @@ export async function GET(request: Request) {
   }
 
   const purged = await purgeExpiredTrash();
-  return NextResponse.json({ purged });
+  const notifications = await purgeOldNotifications();
+  return NextResponse.json({ purged, notifications });
 }

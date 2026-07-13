@@ -137,11 +137,6 @@ export async function signOutUser(id: string): Promise<void> {
   });
 }
 
-// Human value for one limit in the notification copy (null = platform default).
-function limitValue(bytes: number | null): string {
-  return bytes != null ? formatBytes(bytes) : "implicit";
-}
-
 // null = remove the per-user override (falls back to global / unlimited).
 export async function setUserLimits(
   id: string,
@@ -149,8 +144,9 @@ export async function setUserLimits(
 ): Promise<void> {
   const admin = createAdminClient();
 
-  // Read the current limits first so the notification names ONLY what actually
-  // changed (the form always submits both fields, but usually one was touched).
+  // Read the current limits first so the notification describes ONLY what
+  // actually changed (the form always submits both fields, but usually one was
+  // touched).
   const { data: prev } = await admin
     .from("profiles")
     .select("max_file_size, max_total_size")
@@ -160,21 +156,30 @@ export async function setUserLimits(
   const { error } = await admin.from("profiles").update(limits).eq("id", id);
   if (error) throw error;
 
-  const changes: string[] = [];
+  // One clear, professional sentence per changed limit.
+  const sentences: string[] = [];
   if ((prev?.max_total_size ?? null) !== limits.max_total_size) {
-    changes.push(`spațiu total: ${limitValue(limits.max_total_size)}`);
+    sentences.push(
+      limits.max_total_size != null
+        ? `Limita ta de spațiu total de stocare a fost actualizată la ${formatBytes(limits.max_total_size)}.`
+        : "Limita ta de spațiu total de stocare a fost resetată la valoarea implicită.",
+    );
   }
   if ((prev?.max_file_size ?? null) !== limits.max_file_size) {
-    changes.push(`fișier maxim: ${limitValue(limits.max_file_size)}`);
+    sentences.push(
+      limits.max_file_size != null
+        ? `Limita pentru dimensiunea maximă a unui fișier încărcat a fost actualizată la ${formatBytes(limits.max_file_size)}.`
+        : "Limita pentru dimensiunea maximă a unui fișier încărcat a fost resetată la valoarea implicită.",
+    );
   }
   // Nothing actually changed — don't notify about a no-op save.
-  if (changes.length === 0) return;
+  if (sentences.length === 0) return;
 
   await notifyUserSafe({
     userId: id,
     type: "limits_changed",
     title: "📏 Limite de spațiu actualizate",
-    body: `Limite actualizate — ${changes.join("; ")}.`,
+    body: sentences.join(" "),
     link: "/",
   });
 }

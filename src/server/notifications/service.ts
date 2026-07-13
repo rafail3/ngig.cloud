@@ -138,3 +138,24 @@ export async function clearMyNotifications(): Promise<void> {
   const { error } = await admin.from("notifications").delete().eq("user_id", uid);
   if (error) throw error;
 }
+
+// How long a notification is kept before the daily cron removes it. Long enough
+// that security-relevant notices (password changed, account blocked) survive a
+// few days away, short enough to keep the feed tidy.
+export const NOTIFICATION_RETENTION_DAYS = 7;
+
+// Cron-only: delete notifications older than the retention window, across ALL
+// users. Runs without a user session (admin/service-role client).
+export async function purgeOldNotifications(): Promise<number> {
+  const cutoff = new Date(
+    Date.now() - NOTIFICATION_RETENTION_DAYS * 86_400_000,
+  ).toISOString();
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("notifications")
+    .delete()
+    .lt("created_at", cutoff)
+    .select("id");
+  if (error) throw error;
+  return data?.length ?? 0;
+}
