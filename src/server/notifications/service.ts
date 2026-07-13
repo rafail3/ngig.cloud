@@ -34,6 +34,28 @@ export async function createNotification(
   if (error) throw error;
 }
 
+// Best-effort variant: never throws. Notifications are always secondary to the
+// action that triggers them, so a notification failure must never break (or roll
+// back) the real work. Use these at call sites instead of wrapping each in a
+// try/catch of its own.
+export async function notifyUserSafe(
+  input: NewNotification & { userId: string },
+): Promise<void> {
+  try {
+    await createNotification(input);
+  } catch {
+    // non-critical
+  }
+}
+
+export async function notifyAdminsSafe(input: NewNotification): Promise<void> {
+  try {
+    await notifyAdmins(input);
+  } catch {
+    // non-critical
+  }
+}
+
 // Notify every admin (used for platform-status events, e.g. a new invite request).
 export async function notifyAdmins(input: NewNotification): Promise<void> {
   const admin = createAdminClient();

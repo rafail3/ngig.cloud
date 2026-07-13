@@ -1,5 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyUserSafe, notifyAdminsSafe } from "@/server/notifications/service";
+import { formatBytes } from "@/lib/format";
 
 export type AdminUser = {
   id: string;
@@ -34,6 +36,16 @@ const BLOCK_MS: Record<BlockDuration, number> = {
   "168h": 168 * HOUR,
   "720h": 720 * HOUR,
   permanent: 100 * 365 * 24 * HOUR,
+};
+
+// Human labels for the notification copy the blocked user sees.
+const BLOCK_LABEL: Record<BlockDuration, string> = {
+  "1h": "1 oră",
+  "24h": "24 de ore",
+  "72h": "3 zile",
+  "168h": "7 zile",
+  "720h": "30 de zile",
+  permanent: "permanent",
 };
 
 export async function listUsers(): Promise<AdminUser[]> {
@@ -74,6 +86,18 @@ export async function blockUser(
     })
     .eq("id", id);
   await revokeSessions(admin, id);
+
+  // The user is signed out now, but the notification waits in their feed for the
+  // next time they can log in (permanent blocks aside).
+  await notifyUserSafe({
+    userId: id,
+    type: "account_blocked",
+    title: "🛡️ Cont blocat",
+    body:
+      `Contul tău a fost blocat (${BLOCK_LABEL[duration]}).` +
+      (reason ? ` Motiv: ${reason}` : ""),
+    link: "/profil",
+  });
 }
 
 export async function unblockUser(id: string): Promise<void> {
@@ -84,6 +108,14 @@ export async function unblockUser(id: string): Promise<void> {
     .eq("id", id);
   // Also lift any leftover native Supabase ban (from earlier ban-based blocks).
   await admin.auth.admin.updateUserById(id, { ban_duration: "none" });
+
+  await notifyUserSafe({
+    userId: id,
+    type: "account_unblocked",
+    title: "🔓 Cont deblocat",
+    body: "Contul tău a fost deblocat. Bine ai revenit!",
+    link: "/profil",
+  });
 }
 
 // Instant forced sign-out: stamp force_logout_at (middleware rejects older
@@ -95,6 +127,29 @@ export async function signOutUser(id: string): Promise<void> {
     .update({ force_logout_at: new Date().toISOString() })
     .eq("id", id);
   await revokeSessions(admin, id);
+
+  await notifyUserSafe({
+    userId: id,
+    type: "forced_signout",
+    title: "📤 Sesiuni deconectate",
+    body: "Un administrator a deconectat toate sesiunile contului tău. Va trebui să te autentifici din nou.",
+    link: "/profil",
+  });
+}
+
+// Notification copy describing the user's new effective limits (null = default).
+function limitsBody(limits: {
+  max_file_size: number | null;
+  max_total_size: number | null;
+}): string {
+  if (limits.max_file_size == null && limits.max_total_size == null) {
+    return "Limitele tale de spațiu au fost resetate la valorile implicite.";
+  }
+  const total =
+    limits.max_total_size != null ? formatBytes(limits.max_total_size) : "implicit";
+  const file =
+    limits.max_file_size != null ? formatBytes(limits.max_file_size) : "implicit";
+  return `Limitele tale au fost actualizate: spațiu total ${total}, fișier maxim ${file}.`;
 }
 
 // null = remove the per-user override (falls back to global / unlimited).
@@ -105,4 +160,57 @@ export async function setUserLimits(
   const admin = createAdminClient();
   const { error } = await admin.from("profiles").update(limits).eq("id", id);
   if (error) throw error;
+
+  await notifyUserSafe({
+    userId: id,
+    type: "limits_changed",
+    title: "📏 Limite de spațiu actualizate",
+    body: limitsBody(limits),
+    link: "/",
+  });
+}
+
+// Cron-only: find time-limited blocks that have lapsed (blocked_until in the
+// past, still flagged), clear the stale flags, and notify both the admins (as a
+// platform-status event) and the affected user. Permanent blocks sit ~100 years
+// in the future so they're never caught here. Runs without a user session.
+export async function expireBlocks(): Promise<number> {
+  const admin = createAdminClient();
+  const nowIso = new Date().toISOString();
+
+  const { data, error } = await admin
+    .from("profiles")
+    .select("id, username")
+    .not("blocked_until", "is", null)
+    .lt("blocked_until", nowIso);
+  if (error) throw error;
+
+  const rows = (data ?? []) as { id: string; username: string | null }[];
+  if (rows.length === 0) return 0;
+
+  await admin
+    .from("profiles")
+    .update({ blocked_until: null, blocked_reason: null })
+    .in(
+      "id",
+      rows.map((r) => r.id),
+    );
+
+  for (const r of rows) {
+    await notifyAdminsSafe({
+      type: "block_expired",
+      title: "⏰ Blocare expirată",
+      body: `Blocarea utilizatorului ${r.username ?? "necunoscut"} a expirat. Contul e din nou activ.`,
+      link: "/users",
+    });
+    await notifyUserSafe({
+      userId: r.id,
+      type: "block_expired",
+      title: "🔓 Blocare expirată",
+      body: "Blocarea contului tău a expirat. Contul e din nou activ.",
+      link: "/profil",
+    });
+  }
+
+  return rows.length;
 }

@@ -5,8 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { requireActiveUser } from "@/server/auth/active-user";
 import { getSettings } from "@/server/admin/settings";
 import { platformUsage } from "@/server/admin/stats";
+import { notifyUserSafe, notifyAdminsSafe } from "@/server/notifications/service";
 import * as repo from "./repository";
 import { extensionOf } from "@/lib/file-type";
+import { formatBytes } from "@/lib/format";
 import {
   presignUpload,
   presignDownload,
@@ -98,7 +100,16 @@ async function enforceQuota(
   const s = await getSettings();
 
   const perFile = minNonNull(userMaxFile, s.globalMaxFileSize);
-  if (perFile != null && size > perFile) throw new Error("Fișier prea mare.");
+  if (perFile != null && size > perFile) {
+    await notifyUserSafe({
+      userId,
+      type: "quota_file",
+      title: "📦 Fișier prea mare",
+      body: `Fișierul depășește limita pe fișier (${formatBytes(perFile)}).`,
+      link: "/",
+    });
+    throw new Error("Fișier prea mare.");
+  }
 
   const quota = userMaxTotal ?? s.defaultUserQuota ?? null;
   const needPlatform = s.globalMaxTotal != null;
@@ -110,11 +121,55 @@ async function enforceQuota(
   ]);
 
   if (quota != null && used + size > quota) {
+    // Tell the user, and flag the admins that someone hit their storage ceiling.
+    await notifyUserSafe({
+      userId,
+      type: "quota_user",
+      title: "📦 Spațiu insuficient",
+      body: `Ai atins limita de spațiu a contului (${formatBytes(quota)}). Șterge fișiere sau golește coșul pentru a elibera spațiu.`,
+      link: "/",
+    });
+    await notifyAdminsQuota(userId, quota);
     throw new Error("Spațiu insuficient.");
   }
   if (needPlatform && platform + size > s.globalMaxTotal!) {
+    await notifyUserSafe({
+      userId,
+      type: "quota_platform",
+      title: "📦 Spațiu insuficient",
+      body: "Spațiul platformei este plin. Contactează administratorul.",
+      link: "/",
+    });
+    await notifyAdminsSafe({
+      type: "platform_full",
+      title: "⚠️ Platformă la limită",
+      body: "Un upload a fost respins — spațiul total al platformei este aproape plin.",
+      link: "/users",
+    });
     throw new Error("Spațiu insuficient pe platformă.");
   }
+}
+
+// Flag the admins that a user hit their storage ceiling, naming the user.
+async function notifyAdminsQuota(userId: string, quota: number): Promise<void> {
+  let username: string | null = null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .single();
+    username = (data?.username as string | null) ?? null;
+  } catch {
+    // best-effort — fall back to a generic label below
+  }
+  await notifyAdminsSafe({
+    type: "user_quota",
+    title: "📊 Utilizator la limita de spațiu",
+    body: `${username ?? "Un utilizator"} a atins limita de spațiu (${formatBytes(quota)}).`,
+    link: "/users",
+  });
 }
 
 export type Crumb = { id: string; name: string };
@@ -927,5 +982,30 @@ export async function purgeExpiredTrash(): Promise<number> {
   if (expired.length === 0) return 0;
   await Promise.all(expired.map((f) => deleteObject(f.storage_key).catch(() => {})));
   await repo.adminDeleteFileRowsByIds(expired.map((f) => f.id));
+
+  // Tell each affected user how many of their files were permanently removed,
+  // and give the admins a single platform-wide cleanup summary. Keys are always
+  // `${ownerId}/<uuid>`, so the owner is the prefix.
+  const perOwner = new Map<string, number>();
+  for (const f of expired) {
+    const owner = f.storage_key.split("/")[0];
+    if (owner) perOwner.set(owner, (perOwner.get(owner) ?? 0) + 1);
+  }
+  for (const [owner, count] of perOwner) {
+    await notifyUserSafe({
+      userId: owner,
+      type: "trash_purged",
+      title: "🗑️ Fișiere șterse din coș",
+      body: `${count} ${count === 1 ? "fișier a" : "fișiere au"} fost șters${count === 1 ? "" : "e"} definitiv din coșul tău după ${TRASH_RETENTION_DAYS} de zile.`,
+      link: "/trash",
+    });
+  }
+  await notifyAdminsSafe({
+    type: "trash_purge_report",
+    title: "🧹 Curățare coș",
+    body: `${expired.length} fișiere șterse definitiv din coșurile a ${perOwner.size} ${perOwner.size === 1 ? "utilizator" : "utilizatori"}.`,
+    link: "/users",
+  });
+
   return expired.length;
 }
