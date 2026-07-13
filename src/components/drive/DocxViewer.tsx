@@ -50,8 +50,8 @@ export function DocxViewer({
           useBase64URL: true,
         });
         if (!active) return;
-        const sheet = host.querySelector<HTMLElement>("section.docx");
-        baseWidthRef.current = sheet?.offsetWidth ?? host.scrollWidth;
+        // Don't measure here: the host is still display:none (state !== "ready"),
+        // so offsetWidth would be 0. We measure once the sheet is visible below.
         setState("ready");
       } catch {
         if (active) setState("error");
@@ -73,11 +73,22 @@ export function DocxViewer({
   }, []);
 
   useEffect(() => {
-    if (state !== "ready" || !fitWidth) return;
-    computeFit();
+    if (state !== "ready") return;
+    // Measure the page's natural width once it's actually visible (scale is 1
+    // on first ready, so offsetWidth === natural width), then fit.
+    const id = requestAnimationFrame(() => {
+      if (!baseWidthRef.current) {
+        const sheet = hostRef.current?.querySelector<HTMLElement>("section.docx");
+        baseWidthRef.current = sheet?.offsetWidth ?? hostRef.current?.scrollWidth ?? 0;
+      }
+      if (fitWidth) computeFit();
+    });
     const onResize = () => computeFit();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener("resize", onResize);
+    };
   }, [state, fitWidth, computeFit]);
 
   const zoom = useCallback((dir: 1 | -1) => {
