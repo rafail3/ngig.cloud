@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.3.0](https://github.com/rafail3/ngig.cloud/compare/v2.2.0...v2.3.0) (2026-07-13)
+
+
+### Features
+
+* **theme:** toggle icon reflects effective theme, not system monitor ([bb63357](https://github.com/rafail3/ngig.cloud/commit/bb63357060d5130bdca357578d43ba8b12bca0d4))
+
+
+### Bug Fixes
+
+* **nav:** compact, responsive navbar with undistorted logo ([8a8000a](https://github.com/rafail3/ngig.cloud/commit/8a8000a310ead1d8686aa69accd5b7dcfb9065b8))
+* **nav:** keep logo aspect ratio and compact the navbar ([070975b](https://github.com/rafail3/ngig.cloud/commit/070975b2a7bfc8581848810fdcb01917e8259e37))
+* **nav:** tighten navbar spacing on mobile ([9cb82f3](https://github.com/rafail3/ngig.cloud/commit/9cb82f3ee30e153e7e5d21cb78ef00f686c76586))
+
 ## [2.2.0](https://github.com/rafail3/ngig.cloud/compare/v2.1.0...v2.2.0) (2026-07-13)
 
 
