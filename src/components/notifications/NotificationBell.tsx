@@ -46,11 +46,18 @@ export function NotificationBell() {
     let channel: RealtimeChannel | null = null;
     let cancelled = false;
     void (async () => {
-      const { data: claims } = await supabase.auth.getClaims();
-      const uid = claims?.claims?.sub as string | undefined;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const uid = session?.user?.id;
       if (!uid || cancelled) return;
+      // Authenticate the realtime socket with the user's JWT so RLS-filtered
+      // postgres_changes are actually delivered (otherwise the socket runs as
+      // anon, auth.uid() is null, and the row-level policy drops every event —
+      // which looked like "notifications only show up after a refresh").
+      if (session.access_token) supabase.realtime.setAuth(session.access_token);
       channel = supabase
-        .channel("notifications")
+        .channel(`notifications:${uid}`)
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${uid}` },
@@ -180,9 +187,9 @@ export function NotificationBell() {
                       }`}
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-medium text-zinc-100">{n.title}</span>
-                        <span className="shrink-0 text-[11px] text-zinc-500">{ago(n.created_at)}</span>
+                      <span className="flex items-start justify-between gap-2">
+                        <span className="break-words text-sm font-medium text-zinc-100">{n.title}</span>
+                        <span className="shrink-0 whitespace-nowrap text-[11px] text-zinc-500">{ago(n.created_at)}</span>
                       </span>
                       {n.body && (
                         <span className="mt-0.5 line-clamp-2 block text-xs text-zinc-400">{n.body}</span>
