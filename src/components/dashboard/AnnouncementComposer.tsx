@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Megaphone, Send, X, Clock } from "lucide-react";
 import {
   sendAnnouncementAction,
@@ -31,7 +32,6 @@ export function AnnouncementComposer() {
   const [scheduledValue, setScheduledValue] = useState("");
   const [confirm, setConfirm] = useState(false);
   const [scheduleLabel, setScheduleLabel] = useState<string | null>(null);
-  const [localError, setLocalError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   // Clear the form fields after a successful send (DOM reset only — no state
@@ -40,6 +40,13 @@ export function AnnouncementComposer() {
   useEffect(() => {
     if (state.ok) formRef.current?.reset();
   }, [state.ok]);
+
+  // Surface every server result as a toast (a new state object arrives per
+  // submission, so this fires once each time).
+  useEffect(() => {
+    if (state.error) toast.error(state.error);
+    else if (state.ok) toast.success(state.ok);
+  }, [state]);
 
   const v = state.values;
 
@@ -50,24 +57,23 @@ export function AnnouncementComposer() {
     const title = (f.elements.namedItem("title") as HTMLInputElement)?.value.trim();
     const bodyText = bodyHtml.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
     if (!title || !bodyText) {
-      setLocalError("Completează titlul și mesajul.");
+      toast.error("Completează titlul și mesajul.");
       return;
     }
     if (mode === "schedule") {
       if (!scheduledValue) {
-        setLocalError("Alege data și ora pentru programare.");
+        toast.error("Alege data și ora pentru programare.");
         return;
       }
       const when = new Date(scheduledValue);
       if (Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
-        setLocalError("Alege un moment din viitor.");
+        toast.error("Alege un moment din viitor.");
         return;
       }
       setScheduleLabel(formatLocal(scheduledValue));
     } else {
       setScheduleLabel(null);
     }
-    setLocalError(null);
     setConfirm(true);
   }
 
@@ -188,11 +194,6 @@ export function AnnouncementComposer() {
         {/* Carries the ISO instant computed from the local picker at submit. */}
         <input type="hidden" name="scheduledAt" />
       </div>
-
-      {(state.error || localError) && (
-        <p className="mt-4 text-sm text-red-400">{state.error ?? localError}</p>
-      )}
-      {state.ok && <p className="mt-4 text-sm text-emerald-400">{state.ok}</p>}
 
       <div className="mt-5 flex justify-end">
         <button

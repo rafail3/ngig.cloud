@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { User, Shield, Users, Plus, BellOff } from "lucide-react";
 import { setNotificationEnabledAction } from "@/app/dashboard/(panel)/notifications/actions";
 import type {
@@ -87,8 +88,10 @@ function Row({ t }: { t: NotificationTypeStatus }) {
     start(async () => {
       try {
         await setNotificationEnabledAction(t.key, next);
+        toast.success(next ? `„${t.label}" activată.` : `„${t.label}" dezactivată.`);
       } catch {
         setOn(!next);
+        toast.error("Nu am putut salva. Reîncearcă.");
       }
     });
   }

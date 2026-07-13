@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Trash2, Users, ExternalLink, Link2, RefreshCw, Clock } from "lucide-react";
 import {
   deleteAnnouncementAction,
@@ -69,6 +70,7 @@ function ConfirmResend({
       fd.set("id", id);
       await resendAnnouncementAction(fd);
       onClose();
+      toast.success("Anunț retrimis către toți utilizatorii.");
     });
   }
 
@@ -178,6 +180,7 @@ function ConfirmDelete({
       fd.set("id", id);
       await deleteAnnouncementAction(fd);
       onClose();
+      toast.success(scheduled ? "Programare anulată." : "Anunț șters și retras.");
     });
   }
 
