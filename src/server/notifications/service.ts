@@ -34,6 +34,28 @@ export async function createNotification(
   if (error) throw error;
 }
 
+// Best-effort variant: never throws. Notifications are always secondary to the
+// action that triggers them, so a notification failure must never break (or roll
+// back) the real work. Use these at call sites instead of wrapping each in a
+// try/catch of its own.
+export async function notifyUserSafe(
+  input: NewNotification & { userId: string },
+): Promise<void> {
+  try {
+    await createNotification(input);
+  } catch {
+    // non-critical
+  }
+}
+
+export async function notifyAdminsSafe(input: NewNotification): Promise<void> {
+  try {
+    await notifyAdmins(input);
+  } catch {
+    // non-critical
+  }
+}
+
 // Notify every admin (used for platform-status events, e.g. a new invite request).
 export async function notifyAdmins(input: NewNotification): Promise<void> {
   const admin = createAdminClient();
@@ -83,4 +105,57 @@ export async function markAllNotificationsRead(): Promise<void> {
     .update({ read_at: new Date().toISOString() })
     .is("read_at", null);
   if (error) throw error;
+}
+
+// Resolve the signed-in user's id from the session (server-side, trusted).
+async function currentUserId(): Promise<string> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const uid = data?.claims?.sub as string | undefined;
+  if (!uid) throw new Error("Neautentificat.");
+  return uid;
+}
+
+// Delete one of the caller's notifications. There's no RLS delete policy on the
+// table (inserts are service-role, selects/updates are self-scoped), so we use
+// the admin client but scope the delete to BOTH the row id and the verified
+// caller — a user can only ever delete their own rows.
+export async function deleteMyNotification(id: string): Promise<void> {
+  const uid = await currentUserId();
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("notifications")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", uid);
+  if (error) throw error;
+}
+
+// Clear the caller's entire notification history.
+export async function clearMyNotifications(): Promise<void> {
+  const uid = await currentUserId();
+  const admin = createAdminClient();
+  const { error } = await admin.from("notifications").delete().eq("user_id", uid);
+  if (error) throw error;
+}
+
+// How long a notification is kept before the daily cron removes it. Long enough
+// that security-relevant notices (password changed, account blocked) survive a
+// few days away, short enough to keep the feed tidy.
+export const NOTIFICATION_RETENTION_DAYS = 7;
+
+// Cron-only: delete notifications older than the retention window, across ALL
+// users. Runs without a user session (admin/service-role client).
+export async function purgeOldNotifications(): Promise<number> {
+  const cutoff = new Date(
+    Date.now() - NOTIFICATION_RETENTION_DAYS * 86_400_000,
+  ).toISOString();
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("notifications")
+    .delete()
+    .lt("created_at", cutoff)
+    .select("id");
+  if (error) throw error;
+  return data?.length ?? 0;
 }

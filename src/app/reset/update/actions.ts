@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { notifyUserSafe } from "@/server/notifications/service";
 import type { ResetUpdateState } from "@/lib/email-state";
 
 const MIN_PASSWORD = 10;
@@ -26,12 +27,21 @@ export async function updatePasswordAction(
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  if (!data?.claims?.sub) {
+  const userId = data?.claims?.sub as string | undefined;
+  if (!userId) {
     return { error: "Link expirat. Reia resetarea parolei." };
   }
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { error: "Nu am putut schimba parola. Reia resetarea." };
+
+  await notifyUserSafe({
+    userId,
+    type: "password_reset",
+    title: "🔐 Parolă resetată",
+    body: "Parola ta a fost resetată prin linkul de recuperare. Dacă nu ai fost tu, contactează-ne imediat.",
+    link: "/profil",
+  });
 
   redirect("/");
 }
