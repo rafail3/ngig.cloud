@@ -6,7 +6,7 @@ import { revalidateDrive } from "@/components/drive/useDriveData";
 import { Upload, FolderPlus, UploadCloud } from "lucide-react";
 import { useUploads, type UploadItem } from "./UploadProvider";
 import { ensureFolderAction, createFolderAction } from "@/app/drive-actions";
-import { ModalShell } from "./anim";
+import { ModalShell, useIsTouch } from "./anim";
 
 type Entry = { file: File; rel: string };
 
@@ -51,6 +51,9 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
   const folderRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [creating, setCreating] = useState(false);
+  // Touch devices can't drag files, so the zone becomes a tap target that opens
+  // the native file picker instead.
+  const isTouch = useIsTouch();
 
   // Resolve each file's folder (creating the tree as needed) and enqueue.
   async function enqueuePaths(entries: Entry[]) {
@@ -153,23 +156,35 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
       </div>
 
       <div
+        role="button"
+        tabIndex={0}
+        onClick={() => filesRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            filesRef.current?.click();
+          }
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
-        className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed px-6 py-7 text-center transition-colors ${
+        aria-label="Alege fișiere de încărcat"
+        className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed px-6 py-7 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/50 ${
           dragOver
             ? "border-indigo-400 bg-indigo-500/10"
-            : "border-zinc-800 bg-zinc-900/30"
+            : "border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900/50"
         }`}
       >
         <UploadCloud
           className={`h-6 w-6 ${dragOver ? "text-indigo-400" : "text-zinc-500"}`}
         />
         <p className="text-sm text-zinc-400">
-          Trage fișiere sau foldere aici
+          {isTouch
+            ? "Apasă pentru a alege fișiere"
+            : "Trage fișiere aici, sau apasă pentru a alege"}
         </p>
       </div>
 
