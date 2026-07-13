@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.10.0](https://github.com/rafail3/ngig.cloud/compare/v2.9.0...v2.10.0) (2026-07-13)
+
+
+### Features
+
+* **notifications:** descriptive limit copy + 7-day auto-purge ([fbcb692](https://github.com/rafail3/ngig.cloud/commit/fbcb6922adbbb68fda46224355ebd8c63f504649))
+* **notifications:** scope limit-change copy, delete history, mobile fit ([4c097e0](https://github.com/rafail3/ngig.cloud/commit/4c097e010df3de139fe129099cc9b12e650255ee))
+* **notifications:** wire real account, admin, and storage events ([85bfed3](https://github.com/rafail3/ngig.cloud/commit/85bfed30ca393c92578f3a66ec1f04924164d2e4))
+* **notifications:** wire real account, admin, and storage events ([ea7ed67](https://github.com/rafail3/ngig.cloud/commit/ea7ed67798c02d461812ba52e001f6a992edf2d1))
+
+
+### Bug Fixes
+
+* **notifications:** right-anchor panel + keep bell active while open ([29d0ce6](https://github.com/rafail3/ngig.cloud/commit/29d0ce67830e1947f8b29916c809eb2a7e750eb1))
+* **notifications:** right-anchor panel on desktop too, not to the bell ([6213948](https://github.com/rafail3/ngig.cloud/commit/621394875ae988e2b2ffa562fcfe8badb5689160))
+
 ## [2.9.0](https://github.com/rafail3/ngig.cloud/compare/v2.8.0...v2.9.0) (2026-07-13)
 
 
