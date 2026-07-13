@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { sendInviteRequest, sendInviteRequestAck } from "@/server/email/resend";
 import { createInviteRequest, emailHasAccount } from "@/server/invites/service";
+import { notifyAdmins } from "@/server/notifications/service";
 import type { InviteRequestState } from "@/lib/email-state";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,6 +47,17 @@ export async function requestInviteAction(
     const result = await createInviteRequest({ name, email, message: message || null, ip: ip ?? null });
     if (result === "duplicate") {
       return { error: "Ai deja o cerere de invitație în așteptare. Revenim în curând.", values };
+    }
+    // Notify admins in-app (best-effort; never fail the request on this).
+    try {
+      await notifyAdmins({
+        type: "invite_request",
+        title: "📩 Cerere nouă de invitație",
+        body: `${name} (${email}) a cerut o invitație.`,
+        link: "/invite-requests",
+      });
+    } catch {
+      // non-critical
     }
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la salvarea cererii.", values };
