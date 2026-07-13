@@ -19,9 +19,40 @@ export function RichTextEditor({
   const savedRange = useRef<Range | null>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [active, setActive] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+    link: false,
+  });
 
   function emit() {
     onChange(ref.current?.innerHTML ?? "");
+  }
+
+  // Is the caret/selection currently inside an <a> within the editor?
+  function inLink(): boolean {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return false;
+    let node: Node | null = sel.anchorNode;
+    while (node && node !== ref.current) {
+      if (node.nodeType === 1 && (node as Element).tagName === "A") return true;
+      node = node.parentNode;
+    }
+    return false;
+  }
+
+  // Reflect the formatting under the caret in the toolbar's highlighted state.
+  function syncActive() {
+    const el = ref.current;
+    const sel = window.getSelection();
+    if (!el || !sel || sel.rangeCount === 0 || !el.contains(sel.anchorNode)) return;
+    setActive({
+      bold: document.queryCommandState("bold"),
+      italic: document.queryCommandState("italic"),
+      underline: document.queryCommandState("underline"),
+      link: inLink(),
+    });
   }
 
   // Seed the initial content ONCE, imperatively. The div must NOT use
@@ -35,10 +66,19 @@ export function RichTextEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Keep the toolbar in sync with the caret position as it moves.
+  useEffect(() => {
+    const onSel = () => syncActive();
+    document.addEventListener("selectionchange", onSel);
+    return () => document.removeEventListener("selectionchange", onSel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function exec(cmd: string) {
     document.execCommand(cmd);
     ref.current?.focus();
     emit();
+    syncActive();
   }
 
   function saveSelection() {
@@ -79,21 +119,22 @@ export function RichTextEditor({
     }
     setLinkOpen(false);
     emit();
+    syncActive();
   }
 
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-950 focus-within:border-indigo-500/60">
       <div className="flex flex-wrap items-center gap-1 border-b border-zinc-800 px-2 py-1.5">
-        <ToolbarButton label="Bold" onClick={() => exec("bold")}>
+        <ToolbarButton label="Bold" active={active.bold} onClick={() => exec("bold")}>
           <Bold className="h-4 w-4" />
         </ToolbarButton>
-        <ToolbarButton label="Italic" onClick={() => exec("italic")}>
+        <ToolbarButton label="Italic" active={active.italic} onClick={() => exec("italic")}>
           <Italic className="h-4 w-4" />
         </ToolbarButton>
-        <ToolbarButton label="Subliniat" onClick={() => exec("underline")}>
+        <ToolbarButton label="Subliniat" active={active.underline} onClick={() => exec("underline")}>
           <Underline className="h-4 w-4" />
         </ToolbarButton>
-        <ToolbarButton label="Link" onClick={openLink}>
+        <ToolbarButton label="Link" active={active.link} onClick={openLink}>
           <Link2 className="h-4 w-4" />
         </ToolbarButton>
 
@@ -155,10 +196,12 @@ function linkHtml(url: string): string {
 
 function ToolbarButton({
   label,
+  active = false,
   onClick,
   children,
 }: {
   label: string;
+  active?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -166,11 +209,16 @@ function ToolbarButton({
     <button
       type="button"
       aria-label={label}
+      aria-pressed={active}
       title={label}
       // Keep the editor's selection when clicking a toolbar button.
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
-      className="rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
+      className={`rounded-md p-1.5 transition ${
+        active
+          ? "bg-indigo-600 text-white"
+          : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+      }`}
     >
       {children}
     </button>
