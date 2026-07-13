@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.8.0](https://github.com/rafail3/ngig.cloud/compare/v2.7.0...v2.8.0) (2026-07-13)
+
+
+### Features
+
+* **app:** sticky search, viewport-centered content, drawer sidebar ([d24d1be](https://github.com/rafail3/ngig.cloud/commit/d24d1be856f35e50f3540924480171940574198c))
+* **drive:** suggested recent files section on the home ([2ae1294](https://github.com/rafail3/ngig.cloud/commit/2ae12947826e58f12c45fc5a97940f868bd0f9f3))
+* **drive:** suggested recent files section on the home ([0de253b](https://github.com/rafail3/ngig.cloud/commit/0de253b575658ed5dca481f677742a2bbfb28d4d))
+
+
+### Bug Fixes
+
+* **drive:** block preview text selection on the opening double-click ([591025b](https://github.com/rafail3/ngig.cloud/commit/591025b3d3365890c35bdb3e0eb75c21bde94a61))
+* **drive:** stop double-click artifacts on suggested files ([0e618c5](https://github.com/rafail3/ngig.cloud/commit/0e618c50dae1fed4276d0a0390e2f4194a2fe4d0))
+
 ## [2.7.0](https://github.com/rafail3/ngig.cloud/compare/v2.6.0...v2.7.0) (2026-07-13)
 
 
