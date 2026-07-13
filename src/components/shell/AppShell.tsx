@@ -9,6 +9,7 @@ import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck, 
 import { signOut } from "@/app/actions";
 import { dashboardOrigin } from "@/lib/dashboard";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { UploadProvider } from "@/components/drive/UploadProvider";
 import { UploadPanel } from "@/components/drive/UploadPanel";
 import { ContextMenuProvider } from "@/components/drive/ContextMenu";
@@ -105,6 +106,7 @@ export function AppShell({
 
         {/* right: theme toggle + user menu + logout */}
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+          <NotificationBell />
           <ThemeToggle />
           <div ref={menuRef} className="relative">
             <button

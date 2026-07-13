@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { dashboardSignOut } from "@/app/dashboard/actions";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useClickOutside } from "@/lib/useClickOutside";
 
 type ShellUser = { username: string; email: string };
@@ -94,6 +95,7 @@ export function DashboardShell({
 
         {/* right: theme toggle + user menu + logout */}
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+          <NotificationBell />
           <ThemeToggle />
           <div ref={menuRef} className="relative">
             <button
