@@ -24,9 +24,13 @@ export function RichTextEditor({
     onChange(ref.current?.innerHTML ?? "");
   }
 
-  // Sync the initial content up on mount (and on a keyed remount → reset), so
-  // the parent's mirrored value matches what's actually in the editor.
+  // Seed the initial content ONCE, imperatively. The div must NOT use
+  // dangerouslySetInnerHTML: on every parent re-render (each keystroke updates
+  // the mirrored value upstream) React would reconcile the managed innerHTML and
+  // fight the contentEditable — which made it nearly impossible to type. Setting
+  // innerHTML via the ref keeps the content entirely outside React.
   useEffect(() => {
+    if (ref.current) ref.current.innerHTML = initialHtml;
     onChange(ref.current?.innerHTML ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -136,7 +140,6 @@ export function RichTextEditor({
         suppressContentEditableWarning
         onInput={emit}
         data-placeholder={placeholder}
-        dangerouslySetInnerHTML={{ __html: initialHtml }}
         className="min-h-[7rem] px-3.5 py-2.5 text-sm text-zinc-100 focus:outline-none [overflow-wrap:anywhere] [&_a]:text-indigo-400 [&_a]:underline empty:before:text-zinc-600 empty:before:content-[attr(data-placeholder)]"
       />
     </div>

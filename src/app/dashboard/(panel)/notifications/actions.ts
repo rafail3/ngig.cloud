@@ -10,5 +10,5 @@ export async function setNotificationEnabledAction(
 ): Promise<void> {
   await requireAdmin();
   await setNotificationEnabled(type, enabled);
-  revalidatePath("/dashboard/notifications");
+  revalidatePath("/dashboard/settings");
 }

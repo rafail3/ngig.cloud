@@ -101,7 +101,12 @@ export function DateTimePicker({
       </button>
 
       {open && now && view && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-[18rem] max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-800 bg-zinc-900 p-3 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          />
+          <div className="relative max-h-[85vh] w-[20rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900 p-3 shadow-2xl">
           {/* Month nav */}
           <div className="mb-2 flex items-center justify-between">
             <button
@@ -174,6 +179,7 @@ export function DateTimePicker({
             >
               Gata
             </button>
+          </div>
           </div>
         </div>
       )}
