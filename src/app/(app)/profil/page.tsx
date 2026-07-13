@@ -37,7 +37,7 @@ async function ProfileContent() {
         <Stat icon={<Mail className="h-4 w-4" />} label="Email" value={me.email} />
         <Stat icon={<ShieldCheck className="h-4 w-4" />} label="Rol" value={me.role} />
         <Stat icon={<CalendarClock className="h-4 w-4" />} label="Cont creat" value={fmt(me.created_at)} />
-        <Stat icon={<LogIn className="h-4 w-4" />} label="Ultima logare" value={fmt(me.lastSignIn)} />
+        <Stat icon={<LogIn className="h-4 w-4" />} label="Ultima conectare" value={fmt(me.lastSignIn)} />
       </div>
 
       <AccountForms currentUsername={me.username} currentEmail={me.email} />

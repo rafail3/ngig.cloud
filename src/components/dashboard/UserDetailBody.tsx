@@ -60,7 +60,7 @@ export function UserDetailBody({ user, isSelf }: { user: AdminUser; isSelf: bool
             <Row label="Rol" value={<span className="capitalize">{user.role}</span>} />
             <Row label="Status" value={online ? "Online" : "Offline"} />
             <Row label="Cont creat" value={fmt(user.account_created)} />
-            <Row label="Ultima accesare" value={fmt(user.last_sign_in_at)} />
+            <Row label="Ultima conectare" value={fmt(user.last_sign_in_at)} />
             <Row label="Ultima activitate" value={fmt(user.last_seen_at)} />
             <Row label="Locație" value={location} />
             <Row label="Spațiu total" value={`${formatBytes(user.total_size)} · ${user.file_count} fișiere`} />

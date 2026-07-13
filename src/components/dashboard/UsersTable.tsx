@@ -43,7 +43,7 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
             <tr>
               <th className="px-4 py-3 font-medium">User</th>
               <th className="px-4 py-3 font-medium">Creat</th>
-              <th className="px-4 py-3 font-medium">Ultima accesare</th>
+              <th className="px-4 py-3 font-medium">Ultima conectare</th>
               <th className="px-4 py-3 font-medium">Spațiu</th>
               <th className="px-4 py-3 font-medium">Fișiere</th>
               <th className="px-4 py-3 font-medium">Locație</th>
@@ -139,7 +139,7 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
                   <dd className="text-zinc-300">{formatBytes(u.total_size)} · {u.file_count} fișiere</dd>
                 </div>
                 <div>
-                  <dt className="text-zinc-500">Ultima accesare</dt>
+                  <dt className="text-zinc-500">Ultima conectare</dt>
                   <dd className="text-zinc-300">{fmt(u.last_sign_in_at)}</dd>
                 </div>
                 <div>
