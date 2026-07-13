@@ -74,7 +74,15 @@ export function NotificationBell() {
       );
       await markNotificationReadAction(n.id);
     }
-    if (n.link) router.push(n.link);
+    if (n.link) {
+      // External links (announcements can carry them) open in a new tab; internal
+      // paths navigate in-app.
+      if (/^https?:\/\//i.test(n.link)) {
+        window.open(n.link, "_blank", "noopener,noreferrer");
+      } else {
+        router.push(n.link);
+      }
+    }
   }
 
   async function markAll() {
