@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Trash2, Users, ExternalLink, Link2, RefreshCw, Clock } from "lucide-react";
 import {
   deleteAnnouncementAction,
@@ -61,6 +61,17 @@ function ConfirmResend({
   title: string;
   onClose: () => void;
 }) {
+  const [pending, start] = useTransition();
+
+  function doResend() {
+    start(async () => {
+      const fd = new FormData();
+      fd.set("id", id);
+      await resendAnnouncementAction(fd);
+      onClose();
+    });
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -91,19 +102,20 @@ function ConfirmResend({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+            disabled={pending}
+            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
           >
             Anulează
           </button>
-          <form action={resendAnnouncementAction}>
-            <input type="hidden" name="id" value={id} />
-            <button
-              type="submit"
-              className="rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
-            >
-              Retrimite
-            </button>
-          </form>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={doResend}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${pending ? "animate-spin" : ""}`} />
+            {pending ? "Se retrimite…" : "Retrimite"}
+          </button>
         </div>
       </div>
     </div>
@@ -158,6 +170,17 @@ function ConfirmDelete({
   scheduled: boolean;
   onClose: () => void;
 }) {
+  const [pending, start] = useTransition();
+
+  function doDelete() {
+    start(async () => {
+      const fd = new FormData();
+      fd.set("id", id);
+      await deleteAnnouncementAction(fd);
+      onClose();
+    });
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -200,19 +223,19 @@ function ConfirmDelete({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+            disabled={pending}
+            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
           >
             Anulează
           </button>
-          <form action={deleteAnnouncementAction}>
-            <input type="hidden" name="id" value={id} />
-            <button
-              type="submit"
-              className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
-            >
-              Șterge
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={doDelete}
+            disabled={pending}
+            className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-60"
+          >
+            {pending ? "Se șterge…" : scheduled ? "Anulează programarea" : "Șterge"}
+          </button>
         </div>
       </div>
     </div>
@@ -269,9 +292,11 @@ export function AnnouncementHistory({ items }: { items: AnnouncementRow[] }) {
                   {a.sent_at ? (
                     fmt(a.sent_at)
                   ) : (
-                    <span className="flex flex-col gap-1">
+                    <span className="flex flex-col items-start gap-1">
                       <ScheduledBadge />
-                      <span className="text-xs text-zinc-500">pentru {fmt(a.scheduled_at)}</span>
+                      <span className="whitespace-nowrap text-xs text-zinc-500">
+                        pentru {fmt(a.scheduled_at)}
+                      </span>
                     </span>
                   )}
                   {a.created_by_username && (

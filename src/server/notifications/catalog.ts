@@ -40,6 +40,12 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
   { key: "trash_purge_report", label: "Raport curățare coș", description: "Sumarul zilnic al curățării coșurilor (cron).", audience: "admin" },
 ];
 
+// Actions that COULD get a notification but don't have one wired yet. Empty for
+// now — every app action that notifies is already in the catalog above. As new
+// notifiable actions are added in code, list them here and they appear in the
+// dashboard's "Adaugă notificare" tab.
+export const ADDABLE_ACTIONS: NotificationTypeMeta[] = [];
+
 export type NotificationTypeStatus = NotificationTypeMeta & { enabled: boolean };
 
 // Runtime gate: a type is enabled unless a settings row explicitly disables it.

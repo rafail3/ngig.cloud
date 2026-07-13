@@ -6,6 +6,7 @@ import {
   sendAnnouncementAction,
   type AnnouncementState,
 } from "@/app/dashboard/(panel)/announcements/actions";
+import { DateTimePicker } from "./DateTimePicker";
 
 const initial: AnnouncementState = {};
 
@@ -25,6 +26,7 @@ function formatLocal(value: string): string {
 export function AnnouncementComposer() {
   const [state, action, pending] = useActionState(sendAnnouncementAction, initial);
   const [mode, setMode] = useState<Mode>("now");
+  const [scheduledValue, setScheduledValue] = useState("");
   const [confirm, setConfirm] = useState(false);
   const [scheduleLabel, setScheduleLabel] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -50,17 +52,16 @@ export function AnnouncementComposer() {
       return;
     }
     if (mode === "schedule") {
-      const local = (f.elements.namedItem("scheduledLocal") as HTMLInputElement)?.value;
-      if (!local) {
+      if (!scheduledValue) {
         setLocalError("Alege data și ora pentru programare.");
         return;
       }
-      const when = new Date(local);
+      const when = new Date(scheduledValue);
       if (Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
         setLocalError("Alege un moment din viitor.");
         return;
       }
-      setScheduleLabel(formatLocal(local));
+      setScheduleLabel(formatLocal(scheduledValue));
     } else {
       setScheduleLabel(null);
     }
@@ -69,19 +70,19 @@ export function AnnouncementComposer() {
   }
 
   // Fill the hidden ISO field (converting the local picker value), submit the
-  // form synchronously, then close the dialog.
+  // form synchronously, then close the dialog. Clearing the picker afterwards is
+  // safe — requestSubmit captured the FormData before this runs.
   function submitForm() {
     const f = formRef.current;
     if (!f) return;
     const iso = f.elements.namedItem("scheduledAt") as HTMLInputElement;
-    if (mode === "schedule") {
-      const local = (f.elements.namedItem("scheduledLocal") as HTMLInputElement)?.value;
-      iso.value = local ? new Date(local).toISOString() : "";
-    } else {
-      iso.value = "";
-    }
+    iso.value =
+      mode === "schedule" && scheduledValue
+        ? new Date(scheduledValue).toISOString()
+        : "";
     f.requestSubmit();
     setConfirm(false);
+    setScheduledValue("");
   }
 
   return (
@@ -177,11 +178,7 @@ export function AnnouncementComposer() {
 
           {mode === "schedule" && (
             <div className="mt-3">
-              <input
-                type="datetime-local"
-                name="scheduledLocal"
-                className={`${inputCls} [color-scheme:dark] sm:w-auto`}
-              />
+              <DateTimePicker value={scheduledValue} onChange={setScheduledValue} />
               <p className="mt-1 text-xs text-zinc-500">
                 Se trimite automat la ora aleasă (fus orar România), chiar dacă nu ești pe
                 platformă.
