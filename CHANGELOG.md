@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.0](https://github.com/rafail3/ngig.cloud/compare/v2.1.0...v2.2.0) (2026-07-13)
+
+
+### Features
+
+* **ui:** unify last-login label to 'Ultima conectare' ([c89696e](https://github.com/rafail3/ngig.cloud/commit/c89696e5fb2a2485a3db20d1fc3a6acba8be85eb))
+* **ui:** unify last-login label to "Ultima conectare" ([84308f6](https://github.com/rafail3/ngig.cloud/commit/84308f6007ae7920dd6754135d9f2bb15e3b1db5))
+
 ## [2.1.0](https://github.com/rafail3/ngig.cloud/compare/v2.0.0...v2.1.0) (2026-07-09)
 
 
