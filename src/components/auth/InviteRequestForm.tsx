@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { requestInviteAction } from "@/app/cere-invitatie/actions";
 import type { InviteRequestState } from "@/lib/email-state";
 import { Turnstile } from "./Turnstile";
+import { Spinner } from "./Spinner";
 
 const initial: InviteRequestState = {};
 const labelCls = "mb-1.5 block text-sm font-medium text-zinc-300";
@@ -13,6 +14,8 @@ const inputCls =
 
 export function InviteRequestForm() {
   const [state, formAction, pending] = useActionState(requestInviteAction, initial);
+  const [botReady, setBotReady] = useState(false);
+  const busy = pending || !botReady;
 
   if (state.ok) {
     return (
@@ -57,14 +60,15 @@ export function InviteRequestForm() {
         />
       </div>
 
-      <Turnstile resetSignal={state} />
+      <Turnstile resetSignal={state} onStatus={setBotReady} />
 
       <button
         type="submit"
-        disabled={pending}
-        className="mt-1 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2.5 text-base font-medium text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-400 hover:to-violet-400 disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
+        disabled={busy}
+        className="relative mt-1 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2.5 text-base font-medium text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-400 hover:to-violet-400 disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
       >
-        {pending ? "Se trimite…" : "Trimite cererea"}
+        {pending ? "Se trimite…" : !botReady ? "Verificare de securitate…" : "Trimite cererea"}
+        {busy && <Spinner className="absolute right-4 top-1/2 -translate-y-1/2" />}
       </button>
     </form>
   );
