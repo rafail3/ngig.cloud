@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.0](https://github.com/rafail3/ngig.cloud/compare/v2.4.0...v2.5.0) (2026-07-13)
+
+
+### Features
+
+* **drive:** tap the upload zone to pick files on mobile ([582ea57](https://github.com/rafail3/ngig.cloud/commit/582ea571981850bffe975d9f878772672de998e4))
+* **drive:** tap the upload zone to pick files on mobile ([8d06f91](https://github.com/rafail3/ngig.cloud/commit/8d06f91c2057883aaf3f4e32ffe342e4e0773d59))
+
 ## [2.4.0](https://github.com/rafail3/ngig.cloud/compare/v2.3.0...v2.4.0) (2026-07-13)
 
 
