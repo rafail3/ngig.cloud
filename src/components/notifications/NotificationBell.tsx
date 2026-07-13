@@ -148,7 +148,7 @@ export function NotificationBell() {
                   onClick={markAll}
                   className="flex items-center gap-1 text-xs text-indigo-400 transition hover:text-indigo-300"
                 >
-                  <CheckCheck className="h-3.5 w-3.5" /> Marchează toate
+                  <CheckCheck className="h-3.5 w-3.5" /> Marchează citite
                 </button>
               )}
               {items.length > 0 && (
@@ -192,7 +192,10 @@ export function NotificationBell() {
                         <span className="shrink-0 whitespace-nowrap text-[11px] text-zinc-500">{ago(n.created_at)}</span>
                       </span>
                       {n.body && (
-                        <span className="mt-0.5 line-clamp-2 block text-xs text-zinc-400">{n.body}</span>
+                        <span
+                          className="mt-0.5 block text-xs text-zinc-400 [overflow-wrap:anywhere] [&_a]:text-indigo-400 [&_a]:underline"
+                          dangerouslySetInnerHTML={{ __html: n.body }}
+                        />
                       )}
                     </span>
                     {n.read_at && <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-zinc-600" />}

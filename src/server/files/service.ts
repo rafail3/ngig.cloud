@@ -125,7 +125,7 @@ async function enforceQuota(
     await notifyUserSafe({
       userId,
       type: "quota_user",
-      title: "📦 Spațiu insuficient",
+      title: "📦 Ai atins limita de spațiu",
       body: `Ai atins limita de spațiu a contului (${formatBytes(quota)}). Șterge fișiere sau golește coșul pentru a elibera spațiu.`,
       link: "/",
     });
@@ -136,13 +136,13 @@ async function enforceQuota(
     await notifyUserSafe({
       userId,
       type: "quota_platform",
-      title: "📦 Spațiu insuficient",
+      title: "📦 Platforma e plină",
       body: "Spațiul platformei este plin. Contactează administratorul.",
       link: "/",
     });
     await notifyAdminsSafe({
       type: "platform_full",
-      title: "⚠️ Platformă la limită",
+      title: "⚠️ Platforma e aproape plină",
       body: "Un upload a fost respins — spațiul total al platformei este aproape plin.",
       link: "/users",
     });
@@ -166,7 +166,7 @@ async function notifyAdminsQuota(userId: string, quota: number): Promise<void> {
   }
   await notifyAdminsSafe({
     type: "user_quota",
-    title: "📊 Utilizator la limita de spațiu",
+    title: "📊 Un utilizator a atins limita",
     body: `${username ?? "Un utilizator"} a atins limita de spațiu (${formatBytes(quota)}).`,
     link: "/users",
   });

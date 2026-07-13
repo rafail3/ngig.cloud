@@ -268,10 +268,11 @@ export function AnnouncementHistory({ items }: { items: AnnouncementRow[] }) {
             {items.map((a) => (
               <tr key={a.id} className="align-top text-zinc-300">
                 <td className="px-4 py-3">
-                  <p className="truncate font-medium text-zinc-100">{a.title}</p>
-                  <p className="mt-0.5 line-clamp-2 whitespace-pre-wrap break-words text-xs text-zinc-400">
-                    {a.body}
-                  </p>
+                  <p className="truncate text-[15px] font-semibold text-zinc-100">{a.title}</p>
+                  <p
+                    className="mt-0.5 line-clamp-2 break-words text-sm text-zinc-300 [&_a]:text-indigo-400 [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: a.body }}
+                  />
                   {a.link && (
                     <div className="mt-1.5">
                       <LinkChip link={a.link} />
@@ -321,8 +322,11 @@ export function AnnouncementHistory({ items }: { items: AnnouncementRow[] }) {
       <div className="flex flex-col gap-3 lg:hidden">
         {items.map((a) => (
           <div key={a.id} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
-            <p className="font-medium text-zinc-100">{a.title}</p>
-            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-zinc-400">{a.body}</p>
+            <p className="text-[15px] font-semibold text-zinc-100">{a.title}</p>
+            <p
+              className="mt-1 break-words text-sm text-zinc-300 [&_a]:text-indigo-400 [&_a]:underline"
+              dangerouslySetInnerHTML={{ __html: a.body }}
+            />
             {a.link && (
               <div className="mt-2">
                 <LinkChip link={a.link} />

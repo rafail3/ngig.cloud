@@ -7,6 +7,7 @@ import {
   type AnnouncementState,
 } from "@/app/dashboard/(panel)/announcements/actions";
 import { DateTimePicker } from "./DateTimePicker";
+import { RichTextEditor } from "./RichTextEditor";
 
 const initial: AnnouncementState = {};
 
@@ -26,6 +27,7 @@ function formatLocal(value: string): string {
 export function AnnouncementComposer() {
   const [state, action, pending] = useActionState(sendAnnouncementAction, initial);
   const [mode, setMode] = useState<Mode>("now");
+  const [bodyHtml, setBodyHtml] = useState("");
   const [scheduledValue, setScheduledValue] = useState("");
   const [confirm, setConfirm] = useState(false);
   const [scheduleLabel, setScheduleLabel] = useState<string | null>(null);
@@ -46,8 +48,8 @@ export function AnnouncementComposer() {
     const f = formRef.current;
     if (!f) return;
     const title = (f.elements.namedItem("title") as HTMLInputElement)?.value.trim();
-    const body = (f.elements.namedItem("body") as HTMLTextAreaElement)?.value.trim();
-    if (!title || !body) {
+    const bodyText = bodyHtml.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+    if (!title || !bodyText) {
       setLocalError("Completează titlul și mesajul.");
       return;
     }
@@ -115,18 +117,14 @@ export function AnnouncementComposer() {
         </div>
 
         <div>
-          <label htmlFor="ann-body" className={labelCls}>
-            Mesaj
-          </label>
-          <textarea
-            id="ann-body"
-            name="body"
-            rows={4}
-            defaultValue={v?.body}
-            maxLength={2000}
+          <span className={labelCls}>Mesaj</span>
+          <RichTextEditor
+            key={state.nonce ?? 0}
+            initialHtml=""
+            onChange={setBodyHtml}
             placeholder="Scrie anunțul pe care îl vor primi toți utilizatorii…"
-            className={`${inputCls} resize-y`}
           />
+          <input type="hidden" name="body" value={bodyHtml} readOnly />
         </div>
 
         <div>

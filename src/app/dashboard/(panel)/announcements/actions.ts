@@ -9,10 +9,13 @@ import {
   resendAnnouncement,
   normalizeLink,
 } from "@/server/announcements/service";
+import { sanitizeMessage, messageText } from "@/server/announcements/sanitize";
 
 export type AnnouncementState = {
   ok?: string;
   error?: string;
+  // Bumped on each successful send so the composer can reset its rich editor.
+  nonce?: number;
   values?: { title: string; body: string; link: string };
 };
 
@@ -36,14 +39,19 @@ export async function sendAnnouncementAction(
   }
 
   const title = String(formData.get("title") ?? "").trim();
-  const body = String(formData.get("body") ?? "").trim();
+  const bodyRaw = String(formData.get("body") ?? "");
   const linkRaw = String(formData.get("link") ?? "");
-  const values = { title, body, link: linkRaw };
+  const values = { title, body: bodyRaw, link: linkRaw };
+
+  // Sanitize the rich-text body server-side (whitelist), then validate on its
+  // plain-text projection so markup doesn't count toward the checks.
+  const body = sanitizeMessage(bodyRaw);
+  const text = messageText(body);
 
   if (!title) return { error: "Adaugă un titlu.", values };
-  if (!body) return { error: "Adaugă un mesaj.", values };
+  if (!text) return { error: "Adaugă un mesaj.", values };
   if (title.length > 120) return { error: "Titlul e prea lung (max 120 caractere).", values };
-  if (body.length > 2000) return { error: "Mesajul e prea lung (max 2000 caractere).", values };
+  if (text.length > 2000) return { error: "Mesajul e prea lung (max 2000 caractere).", values };
 
   let link: string | null;
   try {
@@ -66,7 +74,7 @@ export async function sendAnnouncementAction(
     try {
       await scheduleAnnouncement({ title, body, link }, adminId, when.toISOString());
       revalidatePath("/dashboard/announcements");
-      return { ok: `Anunț programat pentru ${formatWhen(when.toISOString())}.` };
+      return { ok: `Anunț programat pentru ${formatWhen(when.toISOString())}.`, nonce: Date.now() };
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Eroare la programare.", values };
     }
@@ -77,6 +85,7 @@ export async function sendAnnouncementAction(
     revalidatePath("/dashboard/announcements");
     return {
       ok: `Anunț trimis către ${count} ${count === 1 ? "utilizator" : "utilizatori"}.`,
+      nonce: Date.now(),
     };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la trimitere.", values };

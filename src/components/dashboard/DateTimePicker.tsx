@@ -29,7 +29,10 @@ function sameDay(a: Date, b: Date): boolean {
   return startOfDay(a).getTime() === startOfDay(b).getTime();
 }
 
-const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+function clamp(min: number, max: number, v: number): number {
+  if (Number.isNaN(v)) return min;
+  return Math.max(min, Math.min(max, v));
+}
 
 export function DateTimePicker({
   value,
@@ -47,6 +50,8 @@ export function DateTimePicker({
   useClickOutside(ref, () => setOpen(false), open);
 
   const selected = fromLocalString(value);
+  const hh = selected ? selected.getHours() : 0;
+  const mm = selected ? selected.getMinutes() : 0;
 
   function toggle() {
     if (open) {
@@ -138,36 +143,34 @@ export function DateTimePicker({
             onPick={pickDay}
           />
 
-          {/* Time */}
+          {/* Time — any hour/minute, compact typed inputs */}
           <div className="mt-3 flex items-center gap-2 border-t border-zinc-800 pt-3">
             <Clock className="h-4 w-4 shrink-0 text-zinc-500" />
-            <select
-              value={selected ? selected.getHours() : 0}
-              onChange={(e) => setTime(Number(e.target.value), selected ? selected.getMinutes() : 0)}
-              className="flex-1 rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-100 focus:border-indigo-500/60 focus:outline-none"
-            >
-              {Array.from({ length: 24 }, (_, h) => (
-                <option key={h} value={h}>
-                  {pad(h)}
-                </option>
-              ))}
-            </select>
-            <span className="text-zinc-500">:</span>
-            <select
-              value={selected ? Math.floor(selected.getMinutes() / 5) * 5 : 0}
-              onChange={(e) => setTime(selected ? selected.getHours() : 0, Number(e.target.value))}
-              className="flex-1 rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-100 focus:border-indigo-500/60 focus:outline-none"
-            >
-              {MINUTES.map((m) => (
-                <option key={m} value={m}>
-                  {pad(m)}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 focus-within:border-indigo-500/60">
+              <input
+                type="number"
+                min={0}
+                max={23}
+                aria-label="Ora"
+                value={hh}
+                onChange={(e) => setTime(clamp(0, 23, parseInt(e.target.value, 10)), mm)}
+                className="w-8 bg-transparent text-center text-sm tabular-nums text-zinc-100 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="text-zinc-500">:</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                aria-label="Minutul"
+                value={mm}
+                onChange={(e) => setTime(hh, clamp(0, 59, parseInt(e.target.value, 10)))}
+                className="w-8 bg-transparent text-center text-sm tabular-nums text-zinc-100 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              />
+            </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500"
+              className="ml-auto rounded-md bg-indigo-600 px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500"
             >
               Gata
             </button>

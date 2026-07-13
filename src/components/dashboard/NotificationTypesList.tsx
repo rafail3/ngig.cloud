@@ -94,13 +94,13 @@ function Row({ t }: { t: NotificationTypeStatus }) {
   }
 
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-zinc-900 px-4 py-3.5 last:border-b-0">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="font-medium text-zinc-100">{t.label}</p>
-          <AudienceBadge audience={t.audience} />
-        </div>
+    <div className="flex items-center gap-3 border-b border-zinc-900 px-4 py-3.5 last:border-b-0 sm:gap-4">
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-zinc-100">{t.label}</p>
         <p className="mt-0.5 text-xs text-zinc-400">{t.description}</p>
+      </div>
+      <div className="hidden w-20 shrink-0 sm:flex sm:justify-end">
+        <AudienceBadge audience={t.audience} />
       </div>
       <Toggle enabled={on} onFlip={flip} pending={pending} />
     </div>

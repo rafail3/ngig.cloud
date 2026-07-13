@@ -131,7 +131,7 @@ export async function signOutUser(id: string): Promise<void> {
   await notifyUserSafe({
     userId: id,
     type: "forced_signout",
-    title: "📤 Sesiuni deconectate",
+    title: "📤 Ai fost deconectat",
     body: "Un administrator a deconectat toate sesiunile contului tău. Va trebui să te autentifici din nou.",
     link: "/profil",
   });
