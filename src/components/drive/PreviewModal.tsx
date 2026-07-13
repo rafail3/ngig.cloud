@@ -184,6 +184,19 @@ export function PreviewModal({
     };
   }, [onClose, editing]);
 
+  // When the modal is opened by a single click (e.g. a suggested-file card), the
+  // second click of an accidental double-click would otherwise land on the
+  // freshly-mounted backdrop and close it instantly. Ignore backdrop closes for
+  // a short window after opening.
+  const openedAt = useRef(0);
+  useEffect(() => {
+    openedAt.current = performance.now();
+  }, []);
+  const closeFromBackdrop = () => {
+    if (performance.now() - openedAt.current < 350) return;
+    onClose();
+  };
+
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -196,7 +209,7 @@ export function PreviewModal({
     >
       <div
         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={editing ? undefined : onClose}
+        onClick={editing ? undefined : closeFromBackdrop}
       />
 
       {/* Video loads behind a simple full-screen blur + centered spinner. */}

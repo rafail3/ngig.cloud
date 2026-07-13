@@ -41,8 +41,10 @@ export function SuggestedFiles() {
             key={f.id}
             type="button"
             onClick={() => setPreview(f)}
+            // Prevent the browser's double-click text selection on the tile.
+            onMouseDown={(e) => e.preventDefault()}
             title={f.name}
-            className="flex min-w-0 flex-col gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 text-left outline-none transition hover:border-zinc-700 hover:bg-zinc-900/70 focus-visible:ring-2 focus-visible:ring-indigo-400/50"
+            className="flex min-w-0 select-none flex-col gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 text-left outline-none transition hover:border-zinc-700 hover:bg-zinc-900/70 focus-visible:ring-2 focus-visible:ring-indigo-400/50"
           >
             <FileIcon className="h-5 w-5 shrink-0 text-indigo-400" />
             <span className="min-w-0 truncate text-sm text-zinc-200">{f.name}</span>
