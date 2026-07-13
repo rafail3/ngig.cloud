@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { Megaphone, Send, X } from "lucide-react";
+import { Megaphone, Send, X, Clock } from "lucide-react";
 import {
   sendAnnouncementAction,
   type AnnouncementState,
@@ -13,9 +13,20 @@ const inputCls =
   "w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 placeholder-zinc-600 transition focus:border-indigo-500/60 focus:outline-none";
 const labelCls = "mb-1.5 block text-xs font-medium text-zinc-400";
 
+type Mode = "now" | "schedule";
+
+function formatLocal(value: string): string {
+  return new Date(value).toLocaleString("ro-RO", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export function AnnouncementComposer() {
   const [state, action, pending] = useActionState(sendAnnouncementAction, initial);
+  const [mode, setMode] = useState<Mode>("now");
   const [confirm, setConfirm] = useState(false);
+  const [scheduleLabel, setScheduleLabel] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -28,7 +39,7 @@ export function AnnouncementComposer() {
 
   const v = state.values;
 
-  // Validate the required fields client-side before opening the confirm dialog.
+  // Validate required fields (+ the schedule time) before opening the confirm.
   function openConfirm() {
     const f = formRef.current;
     if (!f) return;
@@ -38,15 +49,38 @@ export function AnnouncementComposer() {
       setLocalError("Completează titlul și mesajul.");
       return;
     }
+    if (mode === "schedule") {
+      const local = (f.elements.namedItem("scheduledLocal") as HTMLInputElement)?.value;
+      if (!local) {
+        setLocalError("Alege data și ora pentru programare.");
+        return;
+      }
+      const when = new Date(local);
+      if (Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
+        setLocalError("Alege un moment din viitor.");
+        return;
+      }
+      setScheduleLabel(formatLocal(local));
+    } else {
+      setScheduleLabel(null);
+    }
     setLocalError(null);
     setConfirm(true);
   }
 
-  // Submit the form programmatically, then close the dialog. requestSubmit()
-  // dispatches the submit synchronously (running the action) before the modal
-  // unmounts, so closing it here can't cancel the send.
+  // Fill the hidden ISO field (converting the local picker value), submit the
+  // form synchronously, then close the dialog.
   function submitForm() {
-    formRef.current?.requestSubmit();
+    const f = formRef.current;
+    if (!f) return;
+    const iso = f.elements.namedItem("scheduledAt") as HTMLInputElement;
+    if (mode === "schedule") {
+      const local = (f.elements.namedItem("scheduledLocal") as HTMLInputElement)?.value;
+      iso.value = local ? new Date(local).toISOString() : "";
+    } else {
+      iso.value = "";
+    }
+    f.requestSubmit();
     setConfirm(false);
   }
 
@@ -111,6 +145,53 @@ export function AnnouncementComposer() {
             extern se deschide în tab nou.
           </p>
         </div>
+
+        {/* Delivery timing */}
+        <div>
+          <span className={labelCls}>Livrare</span>
+          <div className="inline-flex rounded-lg border border-zinc-800 bg-zinc-950 p-0.5 text-sm">
+            <button
+              type="button"
+              onClick={() => setMode("now")}
+              className={`rounded-md px-3 py-1.5 transition ${
+                mode === "now"
+                  ? "bg-indigo-600 text-white"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              Trimite acum
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("schedule")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
+                mode === "schedule"
+                  ? "bg-indigo-600 text-white"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              Programează
+            </button>
+          </div>
+
+          {mode === "schedule" && (
+            <div className="mt-3">
+              <input
+                type="datetime-local"
+                name="scheduledLocal"
+                className={`${inputCls} [color-scheme:dark] sm:w-auto`}
+              />
+              <p className="mt-1 text-xs text-zinc-500">
+                Se trimite automat la ora aleasă (fus orar România), chiar dacă nu ești pe
+                platformă.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Carries the ISO instant computed from the local picker at submit. */}
+        <input type="hidden" name="scheduledAt" />
       </div>
 
       {(state.error || localError) && (
@@ -125,14 +206,15 @@ export function AnnouncementComposer() {
           disabled={pending}
           className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <Send className="h-4 w-4" />
-          Trimite anunțul
+          {mode === "schedule" ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+          {mode === "schedule" ? "Programează anunțul" : "Trimite anunțul"}
         </button>
       </div>
 
       {confirm && (
         <ConfirmSend
           pending={pending}
+          scheduleLabel={scheduleLabel}
           onConfirm={submitForm}
           onClose={() => setConfirm(false)}
         />
@@ -141,14 +223,16 @@ export function AnnouncementComposer() {
   );
 }
 
-// Confirmation before broadcasting to everyone. The confirm button is a real
-// submit inside the form, so it sends with the composed field values.
+// Confirmation before broadcasting. The confirm button submits the parent form
+// programmatically (see submitForm), so it can close the dialog safely.
 function ConfirmSend({
   pending,
+  scheduleLabel,
   onConfirm,
   onClose,
 }: {
   pending: boolean;
+  scheduleLabel: string | null;
   onConfirm: () => void;
   onClose: () => void;
 }) {
@@ -162,6 +246,8 @@ function ConfirmSend({
     };
   }, [onClose]);
 
+  const scheduled = scheduleLabel != null;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -171,12 +257,27 @@ function ConfirmSend({
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-500/40 bg-indigo-500/10">
-          <Megaphone className="h-5 w-5 text-indigo-300" />
+          {scheduled ? (
+            <Clock className="h-5 w-5 text-indigo-300" />
+          ) : (
+            <Megaphone className="h-5 w-5 text-indigo-300" />
+          )}
         </div>
-        <h3 className="mt-4 text-base font-semibold text-zinc-100">Trimiți anunțul?</h3>
+        <h3 className="mt-4 text-base font-semibold text-zinc-100">
+          {scheduled ? "Programezi anunțul?" : "Trimiți anunțul?"}
+        </h3>
         <p className="mt-1.5 text-sm text-zinc-400">
-          Anunțul ajunge la <span className="text-zinc-200">toți utilizatorii</span> ca notificare.
-          Îl poți retrage ulterior din istoric.
+          {scheduled ? (
+            <>
+              Se trimite automat la <span className="text-zinc-200">{scheduleLabel}</span> către
+              toți utilizatorii. Îl poți anula până atunci din istoric.
+            </>
+          ) : (
+            <>
+              Anunțul ajunge la <span className="text-zinc-200">toți utilizatorii</span> ca
+              notificare. Îl poți retrage ulterior din istoric.
+            </>
+          )}
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button
@@ -193,8 +294,8 @@ function ConfirmSend({
             onClick={onConfirm}
             className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
           >
-            <Send className="h-4 w-4" />
-            {pending ? "Se trimite…" : "Trimite"}
+            {scheduled ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+            {scheduled ? "Programează" : "Trimite"}
           </button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/admin/guard";
 import {
   createAnnouncement,
+  scheduleAnnouncement,
   deleteAnnouncement,
   resendAnnouncement,
   normalizeLink,
@@ -14,6 +15,14 @@ export type AnnouncementState = {
   error?: string;
   values?: { title: string; body: string; link: string };
 };
+
+function formatWhen(iso: string): string {
+  return new Date(iso).toLocaleString("ro-RO", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Bucharest",
+  });
+}
 
 export async function sendAnnouncementAction(
   _prev: AnnouncementState,
@@ -41,6 +50,26 @@ export async function sendAnnouncementAction(
     link = normalizeLink(linkRaw);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Link invalid.", values };
+  }
+
+  // Optional scheduling: the client sends an ISO instant (converted from its
+  // local datetime picker). Absent/empty = send now.
+  const scheduledIso = String(formData.get("scheduledAt") ?? "").trim();
+  if (scheduledIso) {
+    const when = new Date(scheduledIso);
+    if (Number.isNaN(when.getTime())) {
+      return { error: "Data programată e invalidă.", values };
+    }
+    if (when.getTime() <= Date.now()) {
+      return { error: "Alege un moment din viitor pentru programare.", values };
+    }
+    try {
+      await scheduleAnnouncement({ title, body, link }, adminId, when.toISOString());
+      revalidatePath("/dashboard/announcements");
+      return { ok: `Anunț programat pentru ${formatWhen(when.toISOString())}.` };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Eroare la programare.", values };
+    }
   }
 
   try {

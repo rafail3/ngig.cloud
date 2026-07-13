@@ -8,6 +8,8 @@ export type AnnouncementRow = {
   link: string | null;
   recipient_count: number;
   created_at: string;
+  scheduled_at: string | null;
+  sent_at: string | null;
   created_by_username: string | null;
 };
 
@@ -29,13 +31,13 @@ export function normalizeLink(raw: string): string | null {
   );
 }
 
-// Bulk-insert notifications in batches to keep each request bounded.
-const CHUNK = 500;
+type AnnouncementInput = { title: string; body: string; link: string | null };
 
-// Create an announcement and fan it out as a notification to every account
-// (including the sending admin). Returns how many recipients it reached.
+// Create an announcement and deliver it immediately to every account (the
+// sender included). Fan-out runs in the DB via the fanout_announcement function
+// (shared with the pg_cron scheduler). Returns how many recipients it reached.
 export async function createAnnouncement(
-  input: { title: string; body: string; link: string | null },
+  input: AnnouncementInput,
   senderId: string,
 ): Promise<number> {
   const admin = createAdminClient();
@@ -51,34 +53,30 @@ export async function createAnnouncement(
     .select("id")
     .single();
   if (annErr) throw annErr;
-  const announcementId = ann.id as string;
 
-  // Every account, the sender included.
-  const { data: users, error: usersErr } = await admin
-    .from("profiles")
-    .select("id");
-  if (usersErr) throw usersErr;
-  const recipients = (users ?? []).map((u) => u.id as string);
+  const { data, error } = await admin.rpc("fanout_announcement", {
+    ann_id: ann.id as string,
+  });
+  if (error) throw error;
+  return (data as number) ?? 0;
+}
 
-  for (let i = 0; i < recipients.length; i += CHUNK) {
-    const rows = recipients.slice(i, i + CHUNK).map((uid) => ({
-      user_id: uid,
-      type: "announcement",
-      title: `📣 ${input.title}`,
-      body: input.body,
-      link: input.link,
-      announcement_id: announcementId,
-    }));
-    const { error } = await admin.from("notifications").insert(rows);
-    if (error) throw error;
-  }
-
-  await admin
-    .from("announcements")
-    .update({ recipient_count: recipients.length })
-    .eq("id", announcementId);
-
-  return recipients.length;
+// Queue an announcement for a future time. pg_cron's dispatch_due_announcements
+// delivers it once scheduledAt passes (sent_at stays null until then).
+export async function scheduleAnnouncement(
+  input: AnnouncementInput,
+  senderId: string,
+  scheduledAt: string,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin.from("announcements").insert({
+    title: input.title,
+    body: input.body,
+    link: input.link,
+    created_by: senderId,
+    scheduled_at: scheduledAt,
+  });
+  if (error) throw error;
 }
 
 // Re-broadcast an existing announcement's content as a fresh announcement
@@ -110,7 +108,7 @@ export async function listAnnouncements(): Promise<AnnouncementRow[]> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("announcements")
-    .select("id, title, body, link, recipient_count, created_at, created_by")
+    .select("id, title, body, link, recipient_count, created_at, scheduled_at, sent_at, created_by")
     .order("created_at", { ascending: false });
   if (error) throw error;
   const rows = data ?? [];
@@ -136,6 +134,8 @@ export async function listAnnouncements(): Promise<AnnouncementRow[]> {
     link: r.link as string | null,
     recipient_count: r.recipient_count as number,
     created_at: r.created_at as string,
+    scheduled_at: r.scheduled_at as string | null,
+    sent_at: r.sent_at as string | null,
     created_by_username: r.created_by ? names.get(r.created_by) ?? null : null,
   }));
 }
