@@ -156,7 +156,7 @@ export function FilterBar() {
           >
             <div className="flex flex-wrap items-center gap-2 pt-3">
               {/* Type — multi-select; closes after each pick */}
-              <Dropdown label={typeLabel} icon={Shapes} active={f.types.size > 0}>
+              <Dropdown label={typeLabel} icon={Shapes} active={f.types.size > 0} align="left">
                 {(close) => (
                   <div className="grid w-52 gap-0.5">
                     {TYPE_OPTIONS.map((t) => {
@@ -269,18 +269,22 @@ function Dropdown({
   label,
   icon: Icon,
   active,
+  align = "right",
   children,
 }: {
   label: string;
   icon?: LucideIcon;
   active: boolean;
+  // Which edge the popover aligns to. Leftmost chips use "left" so the panel
+  // opens rightward and never spills off the left of the screen on mobile.
+  align?: "left" | "right";
   children: ReactNode | ((close: () => void) => ReactNode);
 }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
   return (
-    <div data-keep-selection className="relative">
+    <div data-keep-selection className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -290,7 +294,8 @@ function Dropdown({
             : "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100"
         }`}
       >
-        {Icon && <Icon className="h-4 w-4 text-zinc-400" />}
+        {/* Leading icon hidden on mobile so all three chips fit on one row. */}
+        {Icon && <Icon className="hidden h-4 w-4 text-zinc-400 sm:block" />}
         <span>{label}</span>
         <ChevronDown
           className={`h-3.5 w-3.5 text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`}
@@ -308,7 +313,9 @@ function Dropdown({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.98 }}
               transition={{ duration: 0.14, ease: "easeOut" }}
-              className="absolute right-0 z-50 mt-1.5 rounded-xl border border-zinc-800 bg-zinc-950/95 p-1.5 shadow-xl shadow-black/30 backdrop-blur"
+              className={`absolute z-50 mt-1.5 max-w-[calc(100vw-1.5rem)] rounded-xl border border-zinc-800 bg-zinc-950/95 p-1.5 shadow-xl shadow-black/30 backdrop-blur ${
+                align === "left" ? "left-0" : "right-0"
+              }`}
             >
               {typeof children === "function" ? children(close) : children}
             </motion.div>
