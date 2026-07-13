@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Users, ExternalLink, Link2 } from "lucide-react";
-import { deleteAnnouncementAction } from "@/app/dashboard/(panel)/announcements/actions";
+import { Trash2, Users, ExternalLink, Link2, RefreshCw } from "lucide-react";
+import {
+  deleteAnnouncementAction,
+  resendAnnouncementAction,
+} from "@/app/dashboard/(panel)/announcements/actions";
 import type { AnnouncementRow } from "@/server/announcements/service";
 import { formatDateTime as fmt } from "@/lib/format-date";
 
@@ -17,6 +20,84 @@ function LinkChip({ link }: { link: string }) {
       )}
       <span className="truncate">{link}</span>
     </span>
+  );
+}
+
+function ResendButton({ id, title, full = false }: { id: string; title: string; full?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        title="Retrimite"
+        className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 text-xs text-zinc-400 transition hover:border-indigo-500/60 hover:text-indigo-300 ${
+          full ? "w-full py-2" : "py-1"
+        }`}
+      >
+        <RefreshCw className="h-3.5 w-3.5" />
+        {full && "Retrimite"}
+      </button>
+      {open && <ConfirmResend id={id} title={title} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function ConfirmResend({
+  id,
+  title,
+  onClose,
+}: {
+  id: string;
+  title: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-500/40 bg-indigo-500/10">
+          <RefreshCw className="h-5 w-5 text-indigo-300" />
+        </div>
+        <h3 className="mt-4 text-base font-semibold text-zinc-100">Retrimiți anunțul?</h3>
+        <p className="mt-1.5 text-sm text-zinc-400">
+          „<span className="text-zinc-300">{title}</span>” va fi trimis din nou tuturor
+          utilizatorilor, ca un anunț nou.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+          >
+            Anulează
+          </button>
+          <form action={resendAnnouncementAction}>
+            <input type="hidden" name="id" value={id} />
+            <button
+              type="submit"
+              className="rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+            >
+              Retrimite
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -150,7 +231,8 @@ export function AnnouncementHistory({ items }: { items: AnnouncementRow[] }) {
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
+                    <ResendButton id={a.id} title={a.title} />
                     <DeleteButton id={a.id} title={a.title} />
                   </div>
                 </td>
@@ -183,7 +265,8 @@ export function AnnouncementHistory({ items }: { items: AnnouncementRow[] }) {
               </div>
             </dl>
 
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2">
+              <ResendButton id={a.id} title={a.title} full />
               <DeleteButton id={a.id} title={a.title} full />
             </div>
           </div>

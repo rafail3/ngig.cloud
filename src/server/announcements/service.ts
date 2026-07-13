@@ -81,6 +81,30 @@ export async function createAnnouncement(
   return recipients.length;
 }
 
+// Re-broadcast an existing announcement's content as a fresh announcement
+// (new history entry + new fan-out). Returns how many recipients it reached.
+export async function resendAnnouncement(
+  id: string,
+  senderId: string,
+): Promise<number> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("announcements")
+    .select("title, body, link")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  if (!data) throw new Error("Anunț inexistent.");
+  return createAnnouncement(
+    {
+      title: data.title as string,
+      body: data.body as string,
+      link: data.link as string | null,
+    },
+    senderId,
+  );
+}
+
 // Admin history, newest first, with the author's username resolved.
 export async function listAnnouncements(): Promise<AnnouncementRow[]> {
   const admin = createAdminClient();

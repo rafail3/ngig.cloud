@@ -5,6 +5,7 @@ import { requireAdmin } from "@/server/admin/guard";
 import {
   createAnnouncement,
   deleteAnnouncement,
+  resendAnnouncement,
   normalizeLink,
 } from "@/server/announcements/service";
 
@@ -58,5 +59,13 @@ export async function deleteAnnouncementAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteAnnouncement(id);
+  revalidatePath("/dashboard/announcements");
+}
+
+export async function resendAnnouncementAction(formData: FormData) {
+  const adminId = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await resendAnnouncement(id, adminId);
   revalidatePath("/dashboard/announcements");
 }
