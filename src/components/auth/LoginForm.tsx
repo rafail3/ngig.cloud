@@ -61,7 +61,7 @@ export function LoginForm() {
         disabled={busy}
         className="relative mt-1 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2.5 text-base font-medium text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-400 hover:to-violet-400 disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
       >
-        {pending ? "Se autentifică…" : "Intră în cont"}
+        {pending ? "Se autentifică…" : !botReady ? "Verificare de securitate…" : "Intră în cont"}
         {busy && <Spinner className="absolute right-4 top-1/2 -translate-y-1/2" />}
       </button>
     </form>

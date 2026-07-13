@@ -52,6 +52,11 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${manrope.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* Warm up the Turnstile origin so the invisible anti-bot check
+            resolves faster (DNS + TLS done before the script/challenge fetch). */}
+        <link rel="preconnect" href="https://challenges.cloudflare.com" />
+      </head>
       <body className="min-h-full flex flex-col bg-zinc-950 font-sans text-zinc-50">
         {/* No-flash: set the theme class on <html> before the first paint. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
