@@ -38,22 +38,38 @@ function ensureScript() {
 // Turnstile tokens are single-use, so we reset the widget on every response to
 // hand the next attempt a fresh token — otherwise a second submit reuses a
 // spent token and fails verification.
-export function Turnstile({ resetSignal }: { resetSignal?: unknown }) {
+export function Turnstile({
+  resetSignal,
+  onStatus,
+}: {
+  resetSignal?: unknown;
+  // Reports whether a valid token is currently available. Forms use this to
+  // gate the submit button (disabled + spinner until the background check
+  // finishes), so a submit never races an unverified/expired token.
+  onStatus?: (ready: boolean) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const idRef = useRef<string | null>(null);
+  // onStatus is a stable state setter (useState), so effects that depend on it
+  // still run once — no ref needed.
 
   useEffect(() => {
     if (idRef.current && window.turnstile) {
       try {
         window.turnstile.reset(idRef.current);
+        onStatus?.(false); // fresh token pending after reset
       } catch {
         // widget not ready / already reset — ignore
       }
     }
-  }, [resetSignal]);
+  }, [resetSignal, onStatus]);
 
   useEffect(() => {
-    if (!siteKey) return;
+    // No key (local dev): nothing to verify, never block the submit button.
+    if (!siteKey) {
+      onStatus?.(true);
+      return;
+    }
     ensureScript();
     let cancelled = false;
 
@@ -63,9 +79,14 @@ export function Turnstile({ resetSignal }: { resetSignal?: unknown }) {
         // Invisible widget type (configured on the sitekey in the Cloudflare
         // dashboard): never shows UI, runs the check in the background, and
         // injects the hidden cf-turnstile-response input for the server action.
-        // theme/size/appearance are irrelevant for invisible widgets.
+        // theme/size/appearance are irrelevant for invisible widgets. The
+        // callbacks drive onStatus so the form knows when a token is ready.
         idRef.current = window.turnstile.render(ref.current, {
           sitekey: siteKey,
+          callback: () => onStatus?.(true),
+          "expired-callback": () => onStatus?.(false),
+          "error-callback": () => onStatus?.(false),
+          "timeout-callback": () => onStatus?.(false),
         });
       } catch {
         // widget container not ready yet — the poll will retry
@@ -95,7 +116,7 @@ export function Turnstile({ resetSignal }: { resetSignal?: unknown }) {
         idRef.current = null;
       }
     };
-  }, []);
+  }, [onStatus]);
 
   if (!siteKey) return null;
   // sr-only keeps the invisible widget out of the layout flow, so the forms
