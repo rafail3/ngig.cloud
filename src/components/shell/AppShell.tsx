@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MotionConfig } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import { UploadProvider } from "@/components/drive/UploadProvider";
 import { UploadPanel } from "@/components/drive/UploadPanel";
 import { ContextMenuProvider } from "@/components/drive/ContextMenu";
 import { prefetchDrive, useDriveRealtime } from "@/components/drive/useDriveData";
+import { useClickOutside } from "@/lib/useClickOutside";
 
 type ShellUser = { username: string; role: string; email: string };
 
@@ -50,6 +51,8 @@ export function AppShell({
   // — so the page content is full-width and centers on the whole viewport.
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
   const pathname = usePathname();
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin");
 
@@ -103,7 +106,7 @@ export function AppShell({
         {/* right: theme toggle + user menu + logout */}
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <ThemeToggle />
-          <div className="relative">
+          <div ref={menuRef} className="relative">
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
@@ -119,8 +122,6 @@ export function AppShell({
             </button>
 
             {menuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                 <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
                   <div className="border-b border-zinc-800 px-4 py-3">
                     <p className="truncate text-sm font-semibold text-zinc-100">{user.username}</p>
@@ -145,7 +146,6 @@ export function AppShell({
                     </div>
                   </div>
                 </div>
-              </>
             )}
           </div>
 

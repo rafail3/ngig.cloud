@@ -71,9 +71,9 @@ export function DriveBoard() {
     >
       {/* Search + filters stick to the top (just under the navbar) as you
           scroll, with a soft fade into the content below. */}
-      <div className="sticky top-16 z-30 -mx-4 bg-zinc-950/90 px-4 pb-3 pt-3 backdrop-blur sm:-mx-6 sm:px-6">
+      <div className="sticky top-16 z-30 -mx-4 bg-zinc-950 px-4 pb-3 pt-3 sm:-mx-6 sm:px-6">
         <FilterBar />
-        <div className="pointer-events-none absolute inset-x-0 top-full h-5 bg-gradient-to-b from-zinc-950/90 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-full h-6 bg-gradient-to-b from-zinc-950 to-transparent" />
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">

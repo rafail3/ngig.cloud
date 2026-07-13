@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ZoomIn, ZoomOut, RotateCcw, Download, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ZoomIn, ZoomOut, Maximize2, Download, Loader2 } from "lucide-react";
 import type { WorkBook, WorkSheet } from "xlsx";
 
 const MIN_SCALE = 0.5;
@@ -77,7 +77,10 @@ export function XlsxViewer({
   const [active, setActive] = useState(0);
   const [grid, setGrid] = useState<string>("");
   const [scale, setScale] = useState(1);
+  const [fitWidth, setFitWidth] = useState(true);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
 
   // Load + parse the workbook once.
   useEffect(() => {
@@ -116,6 +119,7 @@ export function XlsxViewer({
   }, [wb, active]);
 
   const zoom = useCallback((dir: 1 | -1) => {
+    setFitWidth(false);
     setScale((s) => {
       const next = Math.round((s + dir * ZOOM_STEP) * 100) / 100;
       return Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
@@ -123,6 +127,29 @@ export function XlsxViewer({
   }, []);
 
   const ready = state === "ready" && wb !== null;
+
+  // Fit-to-width: scale the grid so its full width fits the viewport (never
+  // enlarge past 100%). `zoom` scales layout, so scrollWidth is the current
+  // (scaled) width — divide by the current scale to recover the natural width.
+  const computeFit = useCallback(() => {
+    const el = scrollRef.current;
+    const host = hostRef.current;
+    if (!el || !host) return;
+    const natural = host.scrollWidth / (scale || 1);
+    if (!natural) return;
+    setScale(Math.min(1, Math.max(MIN_SCALE, el.clientWidth / natural)));
+  }, [scale]);
+
+  useEffect(() => {
+    if (!ready || !fitWidth) return;
+    const id = requestAnimationFrame(() => computeFit());
+    const onResize = () => computeFit();
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [ready, fitWidth, grid, computeFit]);
   const names = wb?.SheetNames ?? [];
 
   return (
@@ -171,13 +198,17 @@ export function XlsxViewer({
           </button>
           <button
             type="button"
-            onClick={() => setScale(1)}
-            disabled={!ready || scale === 1}
-            aria-label="Resetează zoom"
-            title="Resetează zoom (100%)"
-            className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-40"
+            onClick={() => setFitWidth(true)}
+            disabled={!ready}
+            aria-label="Potrivește pe ecran"
+            title="Potrivește pe ecran"
+            className={`rounded-md border p-1.5 transition disabled:opacity-40 ${
+              fitWidth
+                ? "border-indigo-500/60 bg-indigo-500/15 text-indigo-300"
+                : "border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            }`}
           >
-            <RotateCcw className="h-4 w-4" />
+            <Maximize2 className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -193,7 +224,7 @@ export function XlsxViewer({
 
       {/* Grid — no padding so the sticky header row / row-number column pin
           flush to the scroll edges (padding would leave a gap). */}
-      <div className="flex-1 overflow-auto overscroll-contain bg-zinc-950/40">
+      <div ref={scrollRef} className="flex-1 overflow-auto overscroll-contain bg-zinc-950/40">
         {state === "loading" && (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-7 w-7 animate-spin text-indigo-400" />
@@ -215,6 +246,7 @@ export function XlsxViewer({
         )}
         {ready && (
           <div
+            ref={hostRef}
             className="xlsx-host w-fit"
             style={{ zoom: scale }}
             // Cell text is escaped in buildGrid, so the markup is safe to inject.
