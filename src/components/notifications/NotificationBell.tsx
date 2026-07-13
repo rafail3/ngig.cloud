@@ -107,7 +107,12 @@ export function NotificationBell() {
         onClick={() => setOpen((v) => !v)}
         aria-label={unread > 0 ? `Notificări (${unread} necitite)` : "Notificări"}
         title="Notificări"
-        className="relative rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-50"
+        aria-expanded={open}
+        className={`relative rounded-md p-2 transition-colors ${
+          open
+            ? "bg-zinc-900 text-zinc-50"
+            : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
+        }`}
       >
         <Bell className="h-5 w-5" />
         {unread > 0 && (
@@ -118,7 +123,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="fixed inset-x-3 top-16 z-50 flex max-h-[70vh] w-auto flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80">
+        <div className="fixed right-3 top-16 z-50 flex max-h-[70vh] w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl sm:absolute sm:right-0 sm:top-full sm:mt-2">
           <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
             <p className="text-sm font-semibold text-zinc-100">Notificări</p>
             <div className="flex items-center gap-3">
