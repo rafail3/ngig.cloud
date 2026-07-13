@@ -156,30 +156,34 @@ export async function setUserLimits(
   const { error } = await admin.from("profiles").update(limits).eq("id", id);
   if (error) throw error;
 
-  // One clear, professional sentence per changed limit.
-  const sentences: string[] = [];
+  // One clause per changed limit, combined into a single professional sentence.
+  const clauses: string[] = [];
   if ((prev?.max_total_size ?? null) !== limits.max_total_size) {
-    sentences.push(
-      limits.max_total_size != null
-        ? `Limita ta de spațiu total de stocare a fost actualizată la ${formatBytes(limits.max_total_size)}.`
-        : "Limita ta de spațiu total de stocare a fost resetată la valoarea implicită.",
+    clauses.push(
+      `spațiul total de stocare la ${
+        limits.max_total_size != null
+          ? formatBytes(limits.max_total_size)
+          : "valoarea implicită"
+      }`,
     );
   }
   if ((prev?.max_file_size ?? null) !== limits.max_file_size) {
-    sentences.push(
-      limits.max_file_size != null
-        ? `Limita pentru dimensiunea maximă a unui fișier încărcat a fost actualizată la ${formatBytes(limits.max_file_size)}.`
-        : "Limita pentru dimensiunea maximă a unui fișier încărcat a fost resetată la valoarea implicită.",
+    clauses.push(
+      `dimensiunea maximă per fișier la ${
+        limits.max_file_size != null
+          ? formatBytes(limits.max_file_size)
+          : "valoarea implicită"
+      }`,
     );
   }
   // Nothing actually changed — don't notify about a no-op save.
-  if (sentences.length === 0) return;
+  if (clauses.length === 0) return;
 
   await notifyUserSafe({
     userId: id,
     type: "limits_changed",
-    title: "📏 Limite de spațiu actualizate",
-    body: sentences.join(" "),
+    title: "💾 Limite de spațiu actualizate",
+    body: `Limitele tale de stocare au fost actualizate: ${clauses.join(" și ")}.`,
     link: "/",
   });
 }
