@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { UploadProvider } from "@/components/drive/UploadProvider";
 import { UploadPanel } from "@/components/drive/UploadPanel";
 import { ContextMenuProvider } from "@/components/drive/ContextMenu";
-import { prefetchDrive } from "@/components/drive/useDriveData";
+import { prefetchDrive, useDriveRealtime } from "@/components/drive/useDriveData";
 
 type ShellUser = { username: string; role: string; email: string };
 
@@ -62,6 +62,9 @@ export function AppShell({
   useEffect(() => {
     prefetchDrive();
   }, []);
+
+  // Live sync: reflect drive changes from other tabs/devices instantly.
+  useDriveRealtime();
 
   function toggleCollapsed() {
     const next = !collapsed;

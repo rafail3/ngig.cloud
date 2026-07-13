@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import useSWR, { mutate, preload, type SWRConfiguration } from "swr";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 import {
   getFolderAction,
   getArchiveAction,
@@ -72,4 +75,44 @@ export function prefetchDrive() {
   void preload(["drive", "trash"], () =>
     getTrashAction().then(unwrap),
   ).catch(() => {});
+}
+
+// Subscribe to Supabase Realtime changes on the current user's files/folders and
+// refresh the drive caches instantly — so an upload/move/rename/trash on one
+// tab or device shows up on the others with no polling. Realtime respects RLS
+// (the client only receives its own rows); the owner_id filter narrows further.
+// Mounted once, in the app shell.
+export function useDriveRealtime() {
+  useEffect(() => {
+    const supabase = createClient();
+    let channel: RealtimeChannel | null = null;
+    let cancelled = false;
+
+    void (async () => {
+      const { data } = await supabase.auth.getClaims();
+      const uid = data?.claims?.sub as string | undefined;
+      if (!uid || cancelled) return;
+      const onChange = () => {
+        void revalidateDrive();
+      };
+      channel = supabase
+        .channel("drive-changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "files", filter: `owner_id=eq.${uid}` },
+          onChange,
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "folders", filter: `owner_id=eq.${uid}` },
+          onChange,
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
+    };
+  }, []);
 }
