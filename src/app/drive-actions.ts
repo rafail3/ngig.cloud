@@ -378,6 +378,17 @@ export async function getFolderAction(
   }
 }
 
+export async function getSuggestedFilesAction(): Promise<
+  Awaited<ReturnType<typeof files.listRecentFiles>> | Revoked
+> {
+  try {
+    return await files.listRecentFiles(6);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
 export async function getArchiveAction(): Promise<
   Awaited<ReturnType<typeof files.listArchive>> | Revoked
 > {

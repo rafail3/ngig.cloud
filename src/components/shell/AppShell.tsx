@@ -5,7 +5,7 @@ import { MotionConfig } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck, UserRound, Trash2, Archive, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, Mail, ShieldCheck, UserRound, Trash2, Archive } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { dashboardOrigin } from "@/lib/dashboard";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -17,7 +17,7 @@ import { prefetchDrive, useDriveRealtime } from "@/components/drive/useDriveData
 type ShellUser = { username: string; role: string; email: string };
 
 // Nav items. `soon` renders a disabled "coming soon" entry; `adminOnly` hides
-// it from non-admins. New sections (Foldere, Preview) get added here as we build.
+// it from non-admins.
 type NavItem = {
   href: string;
   label: string;
@@ -42,23 +42,18 @@ const NAV: NavItem[] = [
 export function AppShell({
   user,
   children,
-  defaultCollapsed = false,
 }: {
   user: ShellUser;
   children: React.ReactNode;
-  defaultCollapsed?: boolean;
 }) {
+  // The sidebar is an overlay drawer on every screen size, opened by the burger
+  // — so the page content is full-width and centers on the whole viewport.
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  // Desktop-only collapse, seeded from a cookie (read in the layout) so it
-  // survives reloads with no flash.
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const pathname = usePathname();
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin");
 
-  // Warm the drive data caches (root folder / archive / trash) in the
-  // background once per session, so the first click on any drive section
-  // shows its data instantly instead of a skeleton.
+  // Warm the drive data caches in the background once per session.
   useEffect(() => {
     prefetchDrive();
   }, []);
@@ -66,33 +61,25 @@ export function AppShell({
   // Live sync: reflect drive changes from other tabs/devices instantly.
   useDriveRealtime();
 
-  function toggleCollapsed() {
-    const next = !collapsed;
-    setCollapsed(next);
-    document.cookie = `sidebar_collapsed=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
-  }
-
   return (
     <MotionConfig reducedMotion="user">
     <ContextMenuProvider>
     <UploadProvider>
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
-      {/* ===== Top navbar (always visible, full width) ===== */}
+      {/* ===== Top navbar ===== */}
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/95 px-3 backdrop-blur sm:px-5">
-        {/* left: hamburger (mobile) + logo. shrink-0 so the logo keeps its
-            aspect ratio and never gets squished by the flex row on narrow
-            screens. */}
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+        {/* left: menu button (all sizes) + logo */}
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => setSidebarOpen((v) => !v)}
             aria-label="Meniu"
-            className="-ml-1 rounded-md p-2 text-zinc-300 hover:bg-zinc-900 md:hidden"
+            aria-expanded={sidebarOpen}
+            className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2.5 py-2 text-sm text-zinc-200 transition hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50"
           >
             <Menu className="h-5 w-5" />
+            <span className="hidden font-medium sm:inline">Meniu</span>
           </button>
-          {/* White-wordmark logo for dark mode, black-wordmark for light. CSS
-              swap (not JS) so it never flashes the wrong one. Click → home. */}
           <Link href="/" aria-label="Acasă" className="flex shrink-0 items-center">
             <Image
               src="/ngig-logo.png"
@@ -113,8 +100,7 @@ export function AppShell({
           </Link>
         </div>
 
-        {/* right: theme toggle + user menu + logout. shrink-0 keeps the group
-            intact; tighter gaps pull the theme icon closer to the profile. */}
+        {/* right: theme toggle + user menu + logout */}
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <ThemeToggle />
           <div className="relative">
@@ -134,7 +120,6 @@ export function AppShell({
 
             {menuOpen && (
               <>
-                {/* click-away backdrop */}
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                 <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
                   <div className="border-b border-zinc-800 px-4 py-3">
@@ -176,86 +161,60 @@ export function AppShell({
         </div>
       </header>
 
-      {/* ===== Body: sidebar + content ===== */}
-      <div className="flex flex-1">
-        {/* Sidebar */}
-        <aside
-          className={`fixed inset-y-0 left-0 top-16 z-40 flex w-64 flex-col border-r border-zinc-900 bg-zinc-950 transition-[transform,width] duration-200 md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:translate-x-0 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } ${collapsed ? "md:w-16" : "md:w-64"}`}
-        >
-          <nav className="flex-1 space-y-1 px-3 py-4">
-            {items.map((item) => {
-              const active = item.href === pathname;
-              if (item.soon) {
-                return (
-                  <span
-                    key={item.label}
-                    className={`flex cursor-default items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-600 ${
-                      collapsed ? "md:justify-center" : ""
-                    }`}
-                    title={item.label}
-                  >
-                    {item.icon}
-                    <span className={collapsed ? "md:hidden" : undefined}>{item.label}</span>
-                    <span
-                      className={`ml-auto rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500 ${
-                        collapsed ? "md:hidden" : ""
-                      }`}
-                    >
-                      soon
-                    </span>
-                  </span>
-                );
-              }
+      {/* ===== Sidebar drawer (overlay on every screen size) ===== */}
+      <aside
+        aria-hidden={!sidebarOpen}
+        className={`fixed inset-y-0 left-0 top-16 z-50 flex w-72 flex-col border-r border-zinc-800 bg-zinc-950/95 shadow-2xl backdrop-blur transition-transform duration-200 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <nav className="flex-1 space-y-1 px-3 py-4">
+          {items.map((item) => {
+            const active = item.href === pathname;
+            if (item.soon) {
               return (
-                <Link
+                <span
                   key={item.label}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
+                  className="flex cursor-default items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-600"
                   title={item.label}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    active
-                      ? "bg-zinc-900 text-zinc-50"
-                      : "text-zinc-400 hover:bg-zinc-900/60 hover:text-zinc-100"
-                  } ${collapsed ? "md:justify-center" : ""}`}
                 >
                   {item.icon}
-                  <span className={collapsed ? "md:hidden" : undefined}>{item.label}</span>
-                </Link>
+                  <span>{item.label}</span>
+                  <span className="ml-auto rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
+                    soon
+                  </span>
+                </span>
               );
-            })}
-          </nav>
+            }
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                  active
+                    ? "bg-indigo-500/15 text-indigo-200"
+                    : "text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
+                }`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
 
-          {/* Desktop-only collapse / expand toggle */}
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            title={collapsed ? "Extinde meniul" : "Restrânge meniul"}
-            aria-label={collapsed ? "Extinde meniul" : "Restrânge meniul"}
-            className={`hidden border-t border-zinc-900 px-3 py-3 text-sm text-zinc-400 transition-colors hover:bg-zinc-900/60 hover:text-zinc-100 md:flex md:items-center md:gap-3 ${
-              collapsed ? "md:justify-center" : ""
-            }`}
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="h-5 w-5" />
-            ) : (
-              <PanelLeftClose className="h-5 w-5" />
-            )}
-            {!collapsed && <span>Restrânge</span>}
-          </button>
-        </aside>
+      {/* Backdrop scrim while the drawer is open */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 top-16 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        {/* Mobile sidebar overlay */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 top-16 z-30 bg-black/60 md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        <main className="min-w-0 flex-1">{children}</main>
-      </div>
+      {/* ===== Main content: full width, centered on the viewport ===== */}
+      <main className="min-w-0 flex-1">{children}</main>
 
       {/* Floating upload progress panel (visible across all app pages) */}
       <UploadPanel />

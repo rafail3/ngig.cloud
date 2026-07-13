@@ -184,9 +184,33 @@ export function PreviewModal({
     };
   }, [onClose, editing]);
 
+  // When the modal is opened by a single click (e.g. a suggested-file card), the
+  // second click of an accidental double-click would otherwise land on the
+  // freshly-mounted backdrop and close it instantly. Ignore backdrop closes for
+  // a short window after opening.
+  const openedAt = useRef(0);
+  useEffect(() => {
+    openedAt.current = performance.now();
+  }, []);
+  const closeFromBackdrop = () => {
+    if (performance.now() - openedAt.current < 350) return;
+    onClose();
+  };
+
+  // Block text selection briefly after opening, so the second click of an
+  // accidental double-click (that opened the modal) can't select the preview's
+  // text. Normal selection is restored right after.
+  const [selectable, setSelectable] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSelectable(true), 400);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+        selectable ? "" : "select-none"
+      }`}
       role="dialog"
       aria-modal="true"
       initial={{ opacity: 0 }}
@@ -196,7 +220,7 @@ export function PreviewModal({
     >
       <div
         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={editing ? undefined : onClose}
+        onClick={editing ? undefined : closeFromBackdrop}
       />
 
       {/* Video loads behind a simple full-screen blur + centered spinner. */}

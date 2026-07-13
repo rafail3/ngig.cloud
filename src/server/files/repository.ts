@@ -106,6 +106,21 @@ export async function listAllFiles(limit: number): Promise<FileRow[]> {
   return (data ?? []) as FileRow[];
 }
 
+// Most recently active files (uploaded or edited), newest first — for the
+// home "suggested files" section. Excludes trashed and archived.
+export async function listRecentFiles(limit: number): Promise<FileRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("files")
+    .select("*")
+    .is("deleted_at", null)
+    .is("archived_at", null)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as FileRow[];
+}
+
 // Archived files (archived_at set, not trashed), newest-archived first.
 export async function listArchivedFiles(): Promise<FileRow[]> {
   const supabase = await createClient();

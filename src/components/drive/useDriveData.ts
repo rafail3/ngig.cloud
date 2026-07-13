@@ -8,6 +8,7 @@ import {
   getFolderAction,
   getArchiveAction,
   getTrashAction,
+  getSuggestedFilesAction,
 } from "@/app/drive-actions";
 
 // Client-side data layer for the drive (Files / Archive / Trash). SWR keeps the
@@ -50,6 +51,16 @@ export function useArchive() {
 
 export function useTrash() {
   return useSWR(["drive", "trash"], () => getTrashAction().then(unwrap), SWR_OPTS);
+}
+
+// Recent "suggested" files for the home. Keyed under "drive", so revalidateDrive()
+// and the realtime subscription refresh it automatically after any change.
+export function useSuggested() {
+  return useSWR(
+    ["drive", "suggested"],
+    () => getSuggestedFilesAction().then(unwrap),
+    SWR_OPTS,
+  );
 }
 
 // Refresh every drive cache (all folders + archive + trash + usage) in the

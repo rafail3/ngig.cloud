@@ -176,6 +176,31 @@ export async function listFolder(folderId: string | null) {
   return { folders, files, breadcrumb: crumbs };
 }
 
+// ---- Suggested (recent) files --------------------------------------------
+
+export type RecentFile = {
+  id: string;
+  name: string;
+  size: number;
+  mimeType: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// Recent files for the home "suggested" section (whole cloud, RLS-scoped to the
+// user). Shape matches the client PreviewFile so it can be previewed directly.
+export async function listRecentFiles(limit = 6): Promise<RecentFile[]> {
+  const rows = await repo.listRecentFiles(limit);
+  return rows.map((f) => ({
+    id: f.id,
+    name: f.name,
+    size: f.size,
+    mimeType: f.mime_type,
+    createdAt: f.created_at,
+    updatedAt: f.updated_at,
+  }));
+}
+
 // ---- Global search --------------------------------------------------------
 
 export type SearchCrumb = { id: string; name: string };

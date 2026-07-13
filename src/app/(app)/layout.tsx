@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/shell/AppShell";
 import { AppShellSkeleton } from "@/components/shell/AppShellSkeleton";
@@ -27,7 +26,6 @@ async function Shell({ children }: { children: React.ReactNode }) {
   // and the live request fills it in).
   let username = "";
   let role = "";
-  let collapsed = false;
 
   if (userId) {
     const profile = (
@@ -45,14 +43,10 @@ async function Shell({ children }: { children: React.ReactNode }) {
 
     username = profile?.username ?? "";
     role = profile?.role ?? "";
-    collapsed = (await cookies()).get("sidebar_collapsed")?.value === "1";
   }
 
   return (
-    <AppShell
-      user={{ username, role, email }}
-      defaultCollapsed={collapsed}
-    >
+    <AppShell user={{ username, role, email }}>
       {children}
     </AppShell>
   );
