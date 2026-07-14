@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { NotificationRow } from "@/server/notifications/service";
 import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useClickOutside } from "@/lib/useClickOutside";
@@ -36,6 +37,9 @@ export function NotificationBell() {
 
   const { data, mutate } = useSWR("notifications", () => getNotificationsAction(), {
     revalidateOnFocus: true,
+    // While the panel is open, poll as a safety net so a new notification shows
+    // up live even if a realtime event is missed.
+    refreshInterval: open ? 5000 : 0,
   });
   const items = data ?? [];
   const unread = items.filter((n) => !n.read_at).length;
@@ -61,7 +65,25 @@ export function NotificationBell() {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${uid}` },
-          () => void mutate(),
+          (payload) => {
+            // Insert: prepend the new row straight into the cache so it appears
+            // instantly, even with the panel open (a bare revalidate sometimes
+            // didn't refresh the already-open list). Other changes revalidate.
+            if (payload.eventType === "INSERT") {
+              const row = payload.new as NotificationRow;
+              void mutate(
+                (cur) => {
+                  const list = cur ?? [];
+                  return list.some((n) => n.id === row.id)
+                    ? list
+                    : [row, ...list].slice(0, 20);
+                },
+                { revalidate: false },
+              );
+            } else {
+              void mutate();
+            }
+          },
         )
         .subscribe();
     })();

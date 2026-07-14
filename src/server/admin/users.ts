@@ -145,20 +145,16 @@ export async function setUserLimits(
   const clauses: string[] = [];
   if ((prev?.max_total_size ?? null) !== limits.max_total_size) {
     clauses.push(
-      `spațiul total de stocare la ${
-        limits.max_total_size != null
-          ? formatBytes(limits.max_total_size)
-          : "valoarea implicită"
-      }`,
+      limits.max_total_size != null
+        ? `spațiul total la ${formatBytes(limits.max_total_size)}`
+        : "spațiul total la valoarea implicită",
     );
   }
   if ((prev?.max_file_size ?? null) !== limits.max_file_size) {
     clauses.push(
-      `dimensiunea maximă per fișier la ${
-        limits.max_file_size != null
-          ? formatBytes(limits.max_file_size)
-          : "valoarea implicită"
-      }`,
+      limits.max_file_size != null
+        ? `maximum ${formatBytes(limits.max_file_size)} per fișier`
+        : "dimensiunea per fișier la valoarea implicită",
     );
   }
   // Nothing actually changed — don't notify about a no-op save.
