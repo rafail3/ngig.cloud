@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updatePasswordAction } from "@/app/reset/update/actions";
 import type { ResetUpdateState } from "@/lib/email-state";
+import { useToastState } from "@/lib/useToastState";
 import { PasswordInput } from "./PasswordInput";
 
 const initial: ResetUpdateState = {};
@@ -10,15 +11,10 @@ const labelCls = "mb-1.5 block text-sm font-medium text-zinc-300";
 
 export function ResetUpdateForm() {
   const [state, formAction, pending] = useActionState(updatePasswordAction, initial);
+  useToastState(state);
 
   return (
     <form noValidate action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
-      {state.error && (
-        <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-          {state.error}
-        </p>
-      )}
-
       <div>
         <label htmlFor="password" className={labelCls}>Parola nouă</label>
         <PasswordInput name="password" autoComplete="new-password" />

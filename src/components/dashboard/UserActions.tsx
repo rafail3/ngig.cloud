@@ -10,6 +10,7 @@ import {
   resetUserLimitsAction,
 } from "@/app/dashboard/(panel)/users/actions";
 import { isBlocked, isPermanentBlock, type UserActionState } from "@/lib/user-presence";
+import { useToastState } from "@/lib/useToastState";
 import { splitUnit } from "@/lib/bytes";
 import { formatDateTime as fmt } from "@/lib/format-date";
 
@@ -45,6 +46,9 @@ export function UserActions({
   const [blockState, blockAction, blockPending] = useActionState(blockUserAction, initial);
   const [limitsState, limitsAction, limitsPending] = useActionState(setUserLimitsAction, initial);
   const [signOutState, signOutAction, signOutPending] = useActionState(signOutUserAction, initial);
+  useToastState(blockState);
+  useToastState(limitsState);
+  useToastState(signOutState);
   const file = splitUnit(user.max_file_size);
   const total = splitUnit(user.max_total_size);
 
@@ -105,9 +109,6 @@ export function UserActions({
                 <input id="reason" name="reason" type="text" placeholder="ex: abuz" className={fieldCls} />
               </div>
             </div>
-            {blockState.error && (
-              <p className="text-sm text-red-300">{blockState.error}</p>
-            )}
             <button
               type="submit"
               disabled={blockPending}
@@ -138,8 +139,6 @@ export function UserActions({
           >
             <LogOut className="h-4 w-4" /> {signOutPending ? "Se invalidează…" : "Sign out forțat"}
           </button>
-          {signOutState.error && <p className="text-sm text-red-300">{signOutState.error}</p>}
-          {signOutState.ok && <p className="text-sm text-emerald-300">{signOutState.ok}</p>}
         </form>
       </section>
 
@@ -192,8 +191,6 @@ export function UserActions({
               </div>
             </div>
           </div>
-          {limitsState.error && <p className="text-sm text-red-300">{limitsState.error}</p>}
-          {limitsState.ok && <p className="text-sm text-emerald-300">{limitsState.ok}</p>}
           <div className="flex flex-wrap gap-2">
             <button
               type="submit"

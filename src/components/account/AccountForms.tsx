@@ -8,6 +8,7 @@ import {
   changeEmailAction,
 } from "@/app/(app)/profil/actions";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { useToastState } from "@/lib/useToastState";
 import type { AccountState } from "@/lib/account-state";
 
 const initial: AccountState = {};
@@ -22,12 +23,6 @@ const btnCls =
 // Inputs stacked full-width inside the card — slim and long.
 const rowCls = "flex flex-col gap-3";
 
-function Msg({ state }: { state: AccountState }) {
-  if (state.error) return <p className="text-sm text-red-300">{state.error}</p>;
-  if (state.ok) return <p className="text-sm text-emerald-300">{state.ok}</p>;
-  return null;
-}
-
 export function AccountForms({
   currentUsername,
   currentEmail,
@@ -38,6 +33,9 @@ export function AccountForms({
   const [uState, uAction, uPending] = useActionState(changeUsernameAction, initial);
   const [pState, pAction, pPending] = useActionState(changePasswordAction, initial);
   const [eState, eAction, ePending] = useActionState(changeEmailAction, initial);
+  useToastState(uState);
+  useToastState(pState);
+  useToastState(eState);
 
   // Custom inline validation for the email field (no native browser bubble).
   // Starts empty — the current email is shown as a hint under the input.
@@ -77,8 +75,7 @@ export function AccountForms({
               <PasswordInput name="password" autoComplete="current-password" defaultValue={uState.password} className={inputCls} />
             </div>
           </div>
-          <div className="mt-auto flex flex-wrap items-center gap-3">
-            <div className="order-2"><Msg state={uState} /></div>
+          <div className="mt-auto">
             <button type="submit" disabled={uPending} className={btnCls}>
               {uPending ? "Se schimbă…" : "Schimbă username"}
             </button>
@@ -106,8 +103,7 @@ export function AccountForms({
               </p>
             </div>
           </div>
-          <div className="mt-auto flex flex-wrap items-center gap-3">
-            <div className="order-2"><Msg state={pState} /></div>
+          <div className="mt-auto">
             <button type="submit" disabled={pPending} className={btnCls}>
               {pPending ? "Se schimbă…" : "Schimbă parola"}
             </button>
@@ -152,8 +148,7 @@ export function AccountForms({
               </p>
             </div>
           </div>
-          <div className="mt-auto flex flex-wrap items-center gap-3">
-            <div className="order-2"><Msg state={eState} /></div>
+          <div className="mt-auto">
             <button
               type="submit"
               disabled={ePending || emailInvalid || emailTrimmed === ""}

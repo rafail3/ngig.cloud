@@ -26,7 +26,8 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "motion/react";
-import { File, Folder, X } from "lucide-react";
+import { File, Folder } from "lucide-react";
+import { toast } from "sonner";
 import { moveFileAction, moveFolderAction } from "@/app/drive-actions";
 
 // Droppable id for the current-folder "everything else" area (see below).
@@ -74,7 +75,6 @@ export function DriveDndProvider({
   const router = useRouter();
   const [active, setActive] = useState<DragData | null>(null);
   const [pending, setPending] = useState<ReadonlySet<string>>(() => new Set());
-  const [err, setErr] = useState<string | null>(null);
 
   // The dragged item, captured at drag start. dnd-kit clears `active.data` once
   // the source row unmounts (which happens during a spring-load navigation), so
@@ -93,13 +93,6 @@ export function DriveDndProvider({
     springOverId.current = null;
   }
   useEffect(() => clearSpring, []);
-
-  // Auto-dismiss the error toast so a stale message never lingers.
-  useEffect(() => {
-    if (!err) return;
-    const t = setTimeout(() => setErr(null), 4000);
-    return () => clearTimeout(t);
-  }, [err]);
 
   // Mouse only — drag-and-drop is a desktop affordance. On touch there is no
   // drag; selection is done via long-press (see useLongPress in the rows).
@@ -171,7 +164,7 @@ export function DriveDndProvider({
           ? await moveFileAction(data.id, dest)
           : await moveFolderAction(data.id, dest);
       if (res.error) {
-        setErr(res.error);
+        toast.error(res.error);
         return;
       }
       revalidateDrive();
@@ -215,22 +208,6 @@ export function DriveDndProvider({
           </div>
         )}
       </DragOverlay>
-
-      {err && (
-        <div className="fixed inset-x-0 bottom-4 z-[80] flex justify-center px-4">
-          <div className="flex items-center gap-3 rounded-lg border border-red-900/60 bg-red-950/90 px-4 py-2.5 text-sm text-red-200 shadow-2xl backdrop-blur">
-            <span>{err}</span>
-            <button
-              type="button"
-              onClick={() => setErr(null)}
-              aria-label="Închide"
-              className="shrink-0 rounded p-0.5 text-red-400 transition hover:text-red-200"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
     </DndContext>
   );
 }

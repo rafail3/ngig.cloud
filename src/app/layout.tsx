@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, THEME_SCRIPT } from "@/components/theme/ThemeProvider";
+import { AppToaster } from "@/components/toast/AppToaster";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -60,7 +61,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-zinc-950 font-sans text-zinc-50">
         {/* No-flash: set the theme class on <html> before the first paint. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <AppToaster />
+        </ThemeProvider>
       </body>
     </html>
   );

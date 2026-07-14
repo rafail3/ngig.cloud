@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { Home, Folder, X } from "lucide-react";
 import { listAllFoldersAction } from "@/app/drive-actions";
 import { ModalShell } from "./anim";
@@ -23,7 +24,6 @@ export function FolderPickerModal({
   onPick: (dest: string | null) => Promise<{ error?: string }>;
 }) {
   const [folders, setFolders] = useState<F[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -38,10 +38,9 @@ export function FolderPickerModal({
 
   async function pick(dest: string | null) {
     setBusy(true);
-    setError(null);
     const res = await onPick(dest);
     setBusy(false);
-    if (res.error) setError(res.error);
+    if (res.error) toast.error(res.error);
   }
 
   // Folder ids to hide: the excluded folder plus its whole subtree.
@@ -123,8 +122,6 @@ export function FolderPickerModal({
           renderLevel(null, 0)
         )}
       </div>
-
-      {error && <p className="border-t border-zinc-800 px-4 py-2 text-sm text-red-400">{error}</p>}
     </ModalShell>
   );
 }

@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isTypeEnabled, renderNotification } from "./catalog";
 
 export type NotificationRow = {
   id: string;
@@ -23,6 +24,8 @@ type NewNotification = {
 export async function createNotification(
   input: NewNotification & { userId: string },
 ): Promise<void> {
+  // Respect the admin's per-type switch (types are on by default).
+  if (!(await isTypeEnabled(input.type))) return;
   const admin = createAdminClient();
   const { error } = await admin.from("notifications").insert({
     user_id: input.userId,
@@ -56,8 +59,61 @@ export async function notifyAdminsSafe(input: NewNotification): Promise<void> {
   }
 }
 
+// Event notifications: the message comes from the (admin-editable) template for
+// `type`, with {placeholders} filled from `vars`. Best-effort + respects the
+// per-type on/off switch (renderNotification returns null when disabled).
+export async function notifyUserEvent(
+  userId: string,
+  type: string,
+  vars: Record<string, string> = {},
+  link: string | null = null,
+): Promise<void> {
+  try {
+    const r = await renderNotification(type, vars);
+    if (!r) return;
+    const admin = createAdminClient();
+    const { error } = await admin.from("notifications").insert({
+      user_id: userId,
+      type,
+      title: r.title,
+      body: r.body,
+      link,
+    });
+    if (error) throw error;
+  } catch {
+    // non-critical
+  }
+}
+
+export async function notifyAdminsEvent(
+  type: string,
+  vars: Record<string, string> = {},
+  link: string | null = null,
+): Promise<void> {
+  try {
+    const r = await renderNotification(type, vars);
+    if (!r) return;
+    const admin = createAdminClient();
+    const { data } = await admin.from("profiles").select("id").eq("role", "admin");
+    const rows = (data ?? []).map((p) => ({
+      user_id: p.id as string,
+      type,
+      title: r.title,
+      body: r.body,
+      link,
+    }));
+    if (rows.length > 0) {
+      const { error } = await admin.from("notifications").insert(rows);
+      if (error) throw error;
+    }
+  } catch {
+    // non-critical
+  }
+}
+
 // Notify every admin (used for platform-status events, e.g. a new invite request).
 export async function notifyAdmins(input: NewNotification): Promise<void> {
+  if (!(await isTypeEnabled(input.type))) return;
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("profiles")

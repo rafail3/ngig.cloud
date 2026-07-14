@@ -12,6 +12,7 @@ const DASHBOARD_TABLES = [
   "invite_requests",
   "app_settings",
   "login_audit",
+  "announcements",
 ];
 
 // Too dynamic to be the instant entry point: it reads auth on every request.

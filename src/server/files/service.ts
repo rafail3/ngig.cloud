@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireActiveUser } from "@/server/auth/active-user";
 import { getSettings } from "@/server/admin/settings";
 import { platformUsage } from "@/server/admin/stats";
-import { notifyUserSafe, notifyAdminsSafe } from "@/server/notifications/service";
+import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
 import * as repo from "./repository";
 import { extensionOf } from "@/lib/file-type";
 import { formatBytes } from "@/lib/format";
@@ -101,13 +101,7 @@ async function enforceQuota(
 
   const perFile = minNonNull(userMaxFile, s.globalMaxFileSize);
   if (perFile != null && size > perFile) {
-    await notifyUserSafe({
-      userId,
-      type: "quota_file",
-      title: "📦 Fișier prea mare",
-      body: `Fișierul depășește limita pe fișier (${formatBytes(perFile)}).`,
-      link: "/",
-    });
+    await notifyUserEvent(userId, "quota_file", { limita: formatBytes(perFile) }, "/");
     throw new Error("Fișier prea mare.");
   }
 
@@ -122,30 +116,13 @@ async function enforceQuota(
 
   if (quota != null && used + size > quota) {
     // Tell the user, and flag the admins that someone hit their storage ceiling.
-    await notifyUserSafe({
-      userId,
-      type: "quota_user",
-      title: "📦 Spațiu insuficient",
-      body: `Ai atins limita de spațiu a contului (${formatBytes(quota)}). Șterge fișiere sau golește coșul pentru a elibera spațiu.`,
-      link: "/",
-    });
+    await notifyUserEvent(userId, "quota_user", { limita: formatBytes(quota) }, "/");
     await notifyAdminsQuota(userId, quota);
     throw new Error("Spațiu insuficient.");
   }
   if (needPlatform && platform + size > s.globalMaxTotal!) {
-    await notifyUserSafe({
-      userId,
-      type: "quota_platform",
-      title: "📦 Spațiu insuficient",
-      body: "Spațiul platformei este plin. Contactează administratorul.",
-      link: "/",
-    });
-    await notifyAdminsSafe({
-      type: "platform_full",
-      title: "⚠️ Platformă la limită",
-      body: "Un upload a fost respins — spațiul total al platformei este aproape plin.",
-      link: "/users",
-    });
+    await notifyUserEvent(userId, "quota_platform", {}, "/");
+    await notifyAdminsEvent("platform_full", {}, "/users");
     throw new Error("Spațiu insuficient pe platformă.");
   }
 }
@@ -164,12 +141,11 @@ async function notifyAdminsQuota(userId: string, quota: number): Promise<void> {
   } catch {
     // best-effort — fall back to a generic label below
   }
-  await notifyAdminsSafe({
-    type: "user_quota",
-    title: "📊 Utilizator la limita de spațiu",
-    body: `${username ?? "Un utilizator"} a atins limita de spațiu (${formatBytes(quota)}).`,
-    link: "/users",
-  });
+  await notifyAdminsEvent(
+    "user_quota",
+    { utilizator: username ?? "Un utilizator", limita: formatBytes(quota) },
+    "/users",
+  );
 }
 
 export type Crumb = { id: string; name: string };
@@ -992,20 +968,18 @@ export async function purgeExpiredTrash(): Promise<number> {
     if (owner) perOwner.set(owner, (perOwner.get(owner) ?? 0) + 1);
   }
   for (const [owner, count] of perOwner) {
-    await notifyUserSafe({
-      userId: owner,
-      type: "trash_purged",
-      title: "🗑️ Fișiere șterse din coș",
-      body: `${count} ${count === 1 ? "fișier a" : "fișiere au"} fost șters${count === 1 ? "" : "e"} definitiv din coșul tău după ${TRASH_RETENTION_DAYS} de zile.`,
-      link: "/trash",
-    });
+    await notifyUserEvent(
+      owner,
+      "trash_purged",
+      { numar: String(count), zile: String(TRASH_RETENTION_DAYS) },
+      "/trash",
+    );
   }
-  await notifyAdminsSafe({
-    type: "trash_purge_report",
-    title: "🧹 Curățare coș",
-    body: `${expired.length} fișiere șterse definitiv din coșurile a ${perOwner.size} ${perOwner.size === 1 ? "utilizator" : "utilizatori"}.`,
-    link: "/users",
-  });
+  await notifyAdminsEvent(
+    "trash_purge_report",
+    { total: String(expired.length), utilizatori: String(perOwner.size) },
+    "/users",
+  );
 
   return expired.length;
 }

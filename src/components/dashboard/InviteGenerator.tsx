@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { Check, Copy, Ticket } from "lucide-react";
 import { createInviteAction, sendInviteCodeAction } from "@/app/dashboard/(panel)/invites/actions";
+import { useToastState } from "@/lib/useToastState";
 import type { GenerateState, SendCodeState } from "@/lib/invite-status";
 
 const initial: GenerateState = {};
@@ -26,6 +27,8 @@ export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
   const [state, formAction, pending] = useActionState(createInviteAction, initial);
   const [sendState, sendAction, sendPending] = useActionState(sendInviteCodeAction, sendInitial);
   const [copied, setCopied] = useState(false);
+  useToastState(state);
+  useToastState(sendState);
 
   async function copy() {
     if (!state.code) return;
@@ -77,12 +80,6 @@ export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
           </div>
         </div>
 
-        {state.error && (
-          <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-            {state.error}
-          </p>
-        )}
-
         <button
           type="submit"
           disabled={pending}
@@ -127,8 +124,6 @@ export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
                   {sendPending ? "Se trimite…" : "Trimite codul pe email"}
                 </button>
               </div>
-              {sendState.error && <p className="text-sm text-red-300">{sendState.error}</p>}
-              {sendState.ok && <p className="text-sm text-emerald-300">{sendState.ok}</p>}
             </form>
           )}
         </div>

@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notifyUserSafe, notifyAdminsSafe } from "@/server/notifications/service";
+import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
 import { formatBytes } from "@/lib/format";
 
 export type AdminUser = {
@@ -89,15 +89,12 @@ export async function blockUser(
 
   // The user is signed out now, but the notification waits in their feed for the
   // next time they can log in (permanent blocks aside).
-  await notifyUserSafe({
-    userId: id,
-    type: "account_blocked",
-    title: "🛡️ Cont blocat",
-    body:
-      `Contul tău a fost blocat (${BLOCK_LABEL[duration]}).` +
-      (reason ? ` Motiv: ${reason}` : ""),
-    link: "/profil",
-  });
+  await notifyUserEvent(
+    id,
+    "account_blocked",
+    { durata: BLOCK_LABEL[duration], motiv: reason ? ` Motiv: ${reason}` : "" },
+    "/profil",
+  );
 }
 
 export async function unblockUser(id: string): Promise<void> {
@@ -109,13 +106,7 @@ export async function unblockUser(id: string): Promise<void> {
   // Also lift any leftover native Supabase ban (from earlier ban-based blocks).
   await admin.auth.admin.updateUserById(id, { ban_duration: "none" });
 
-  await notifyUserSafe({
-    userId: id,
-    type: "account_unblocked",
-    title: "🔓 Cont deblocat",
-    body: "Contul tău a fost deblocat. Bine ai revenit!",
-    link: "/profil",
-  });
+  await notifyUserEvent(id, "account_unblocked", {}, "/profil");
 }
 
 // Instant forced sign-out: stamp force_logout_at (middleware rejects older
@@ -128,13 +119,7 @@ export async function signOutUser(id: string): Promise<void> {
     .eq("id", id);
   await revokeSessions(admin, id);
 
-  await notifyUserSafe({
-    userId: id,
-    type: "forced_signout",
-    title: "📤 Sesiuni deconectate",
-    body: "Un administrator a deconectat toate sesiunile contului tău. Va trebui să te autentifici din nou.",
-    link: "/profil",
-  });
+  await notifyUserEvent(id, "forced_signout", {}, "/profil");
 }
 
 // null = remove the per-user override (falls back to global / unlimited).
@@ -160,32 +145,22 @@ export async function setUserLimits(
   const clauses: string[] = [];
   if ((prev?.max_total_size ?? null) !== limits.max_total_size) {
     clauses.push(
-      `spațiul total de stocare la ${
-        limits.max_total_size != null
-          ? formatBytes(limits.max_total_size)
-          : "valoarea implicită"
-      }`,
+      limits.max_total_size != null
+        ? `spațiul total la ${formatBytes(limits.max_total_size)}`
+        : "spațiul total la valoarea implicită",
     );
   }
   if ((prev?.max_file_size ?? null) !== limits.max_file_size) {
     clauses.push(
-      `dimensiunea maximă per fișier la ${
-        limits.max_file_size != null
-          ? formatBytes(limits.max_file_size)
-          : "valoarea implicită"
-      }`,
+      limits.max_file_size != null
+        ? `maximum ${formatBytes(limits.max_file_size)} per fișier`
+        : "dimensiunea per fișier la valoarea implicită",
     );
   }
   // Nothing actually changed — don't notify about a no-op save.
   if (clauses.length === 0) return;
 
-  await notifyUserSafe({
-    userId: id,
-    type: "limits_changed",
-    title: "💾 Limite de spațiu actualizate",
-    body: `Limitele tale de stocare au fost actualizate: ${clauses.join(" și ")}.`,
-    link: "/",
-  });
+  await notifyUserEvent(id, "limits_changed", { detalii: clauses.join(" și ") }, "/");
 }
 
 // Cron-only: find time-limited blocks that have lapsed (blocked_until in the
@@ -215,19 +190,12 @@ export async function expireBlocks(): Promise<number> {
     );
 
   for (const r of rows) {
-    await notifyAdminsSafe({
-      type: "block_expired",
-      title: "⏰ Blocare expirată",
-      body: `Blocarea utilizatorului ${r.username ?? "necunoscut"} a expirat. Contul e din nou activ.`,
-      link: "/users",
-    });
-    await notifyUserSafe({
-      userId: r.id,
-      type: "block_expired",
-      title: "🔓 Blocare expirată",
-      body: "Blocarea contului tău a expirat. Contul e din nou activ.",
-      link: "/profil",
-    });
+    await notifyAdminsEvent(
+      "block_expired_admin",
+      { utilizator: r.username ?? "necunoscut" },
+      "/users",
+    );
+    await notifyUserEvent(r.id, "block_expired", {}, "/profil");
   }
 
   return rows.length;

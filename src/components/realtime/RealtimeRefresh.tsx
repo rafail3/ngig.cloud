@@ -28,6 +28,8 @@ export function RealtimeRefresh({ tables }: { tables: string[] }) {
 
     const supabase = createClient();
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let channel: RealtimeChannel | null = null;
+    let cancelled = false;
 
     // Coalesce bursts (e.g. a bulk action firing many row events) into one refresh.
     const refresh = () => {
@@ -35,15 +37,27 @@ export function RealtimeRefresh({ tables }: { tables: string[] }) {
       timer = setTimeout(() => router.refresh(), 250);
     };
 
-    let ch = supabase.channel(`realtime-refresh:${key}`);
-    for (const table of list) {
-      ch = ch.on("postgres_changes", { event: "*", schema: "public", table }, refresh);
-    }
-    const channel: RealtimeChannel = ch.subscribe();
+    void (async () => {
+      // Auth the realtime socket with the user's JWT so RLS-scoped tables
+      // deliver their changes (otherwise the socket runs as anon and the
+      // policies drop every event).
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (session?.access_token) supabase.realtime.setAuth(session.access_token);
+
+      let ch = supabase.channel(`realtime-refresh:${key}`);
+      for (const table of list) {
+        ch = ch.on("postgres_changes", { event: "*", schema: "public", table }, refresh);
+      }
+      channel = ch.subscribe();
+    })();
 
     return () => {
+      cancelled = true;
       clearTimeout(timer);
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [router, key]);
 

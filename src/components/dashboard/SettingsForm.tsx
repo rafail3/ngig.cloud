@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { HardDrive } from "lucide-react";
 import { saveSettingsAction, resetSettingsAction } from "@/app/dashboard/(panel)/settings/actions";
+import { useToastState } from "@/lib/useToastState";
 import { splitUnit } from "@/lib/bytes";
 import type { SettingsState } from "@/lib/settings-state";
 import type { GlobalSettings } from "@/server/admin/settings";
@@ -49,6 +50,7 @@ function Field({
 
 export function SettingsForm({ settings }: { settings: GlobalSettings }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
+  useToastState(state);
 
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-6">
@@ -79,9 +81,6 @@ export function SettingsForm({ settings }: { settings: GlobalSettings }) {
             bytes={settings.globalMaxTotal}
           />
         </div>
-
-        {state.error && <p className="text-sm text-red-300">{state.error}</p>}
-        {state.ok && <p className="text-sm text-emerald-300">{state.ok}</p>}
 
         <div className="flex flex-wrap gap-2">
           <button
