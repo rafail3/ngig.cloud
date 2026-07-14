@@ -1,5 +1,6 @@
 import "server-only";
 import { randomUUID } from "crypto";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireActiveUser } from "@/server/auth/active-user";
@@ -45,14 +46,25 @@ export type TicketRow = {
   created_at: string;
   last_activity_at: string;
   closed_at: string | null;
+  // True when the last message came from the other side, after you last opened
+  // the thread.
+  unread: boolean;
 };
 
 // A ticket in the admin list carries the owner's username for triage.
 export type AdminTicketRow = TicketRow & {
   user_id: string;
   username: string;
-  unread?: boolean;
 };
+
+// Closed tickets are purged this long after they were closed (attachments in
+// B2 included). Long enough to look something up months later, short enough
+// that the support history doesn't grow forever.
+export const TICKET_RETENTION_MONTHS = 6;
+
+// Anti-spam: how many tickets one user may open per hour.
+const TICKET_RATE_LIMIT = 5;
+const TICKET_RATE_WINDOW_MS = 60 * 60 * 1000;
 
 export type TicketAttachment = {
   id: string;
@@ -73,7 +85,7 @@ export type TicketMessage = {
   attachments: TicketAttachment[];
 };
 
-export type TicketDetail = TicketRow & {
+export type TicketDetail = Omit<TicketRow, "unread"> & {
   user_id: string;
   username: string;
   messages: TicketMessage[];
@@ -179,6 +191,19 @@ export async function createTicket(input: {
 
   const admin = createAdminClient();
 
+  // Rate limit: a support form is an unauthenticated-feeling surface for spam.
+  const since = new Date(Date.now() - TICKET_RATE_WINDOW_MS).toISOString();
+  const { count: recent } = await admin
+    .from("tickets")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", since);
+  if ((recent ?? 0) >= TICKET_RATE_LIMIT) {
+    throw new Error(
+      `Ai deschis prea multe tickete într-o oră (maxim ${TICKET_RATE_LIMIT}). Încearcă mai târziu.`,
+    );
+  }
+
   // Ticket row (owner + metadata).
   const { data: ticket, error: tErr } = await admin
     .from("tickets")
@@ -230,28 +255,95 @@ export async function createTicket(input: {
 }
 
 // ── Reads ───────────────────────────────────────────────────────────────────
+// When each of these tickets was last opened by `viewerId`.
+async function seenMap(
+  ticketIds: string[],
+  viewerId: string,
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ticketIds.length === 0) return map;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("ticket_views")
+    .select("ticket_id, last_seen_at")
+    .eq("user_id", viewerId)
+    .in("ticket_id", ticketIds);
+  for (const v of data ?? []) {
+    map.set(v.ticket_id as string, v.last_seen_at as string);
+  }
+  return map;
+}
+
+// Unread = the last message came from the other side AND it landed after you
+// last opened the thread (never opened → unread).
+function isUnread(
+  row: { last_activity_at: string; last_message_from_admin: boolean },
+  viewerIsAdmin: boolean,
+  seenAt: string | undefined,
+): boolean {
+  if (row.last_message_from_admin === viewerIsAdmin) return false;
+  if (!seenAt) return true;
+  return row.last_activity_at > seenAt;
+}
+
 // The signed-in user's own tickets (RLS-scoped), newest activity first.
 export async function listMyTickets(): Promise<TicketRow[]> {
+  const { id: userId } = await requireActiveUser();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tickets")
-    .select("id, subject, category, priority, status, created_at, last_activity_at, closed_at")
+    .select(
+      "id, subject, category, priority, status, created_at, last_activity_at, closed_at, last_message_from_admin",
+    )
     .order("last_activity_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as TicketRow[];
+
+  const rows = (data ?? []) as (Omit<TicketRow, "unread"> & {
+    last_message_from_admin: boolean;
+  })[];
+  const seen = await seenMap(rows.map((r) => r.id), userId);
+  return rows.map((r) => ({ ...r, unread: isUnread(r, false, seen.get(r.id)) }));
+}
+
+// ── Read state ──────────────────────────────────────────────────────────────
+// Called while a thread renders: the viewer is looking at it, so it's read.
+export async function markTicketSeen(ticketId: string, viewerId: string): Promise<void> {
+  const admin = createAdminClient();
+  await admin
+    .from("ticket_views")
+    .upsert(
+      { ticket_id: ticketId, user_id: viewerId, last_seen_at: new Date().toISOString() },
+      { onConflict: "ticket_id,user_id" },
+    );
+}
+
+// Called while the admin ticket LIST renders — clears the nav badge without
+// marking any individual thread as read.
+export async function markInboxSeen(viewerId: string): Promise<void> {
+  const admin = createAdminClient();
+  await admin
+    .from("ticket_inbox_views")
+    .upsert(
+      { user_id: viewerId, last_seen_at: new Date().toISOString() },
+      { onConflict: "user_id" },
+    );
 }
 
 // All tickets for the dashboard. Open first, then by recent activity.
 export async function listAllTickets(): Promise<AdminTicketRow[]> {
-  await requireAdmin();
+  const adminId = await requireAdmin();
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("tickets")
-    .select("id, user_id, subject, category, priority, status, created_at, last_activity_at, closed_at")
-    .order("status", { ascending: true }) // 'closed' < 'open' alphabetically → flip below
+    .select(
+      "id, user_id, subject, category, priority, status, created_at, last_activity_at, closed_at, last_message_from_admin",
+    )
     .order("last_activity_at", { ascending: false });
   if (error) throw error;
-  const rows = (data ?? []) as (TicketRow & { user_id: string })[];
+  const rows = (data ?? []) as (Omit<TicketRow, "unread"> & {
+    user_id: string;
+    last_message_from_admin: boolean;
+  })[];
 
   // Resolve usernames in one query.
   const ids = [...new Set(rows.map((r) => r.user_id))];
@@ -264,8 +356,18 @@ export async function listAllTickets(): Promise<AdminTicketRow[]> {
     for (const p of profs ?? []) nameById.set(p.id as string, p.username as string);
   }
 
+  const seen = await seenMap(rows.map((r) => r.id), adminId);
+
+  // Looking at the list clears the nav badge — but NOT the per-row "nou" marks,
+  // which only an actual thread open clears.
+  after(() => markInboxSeen(adminId));
+
   return rows
-    .map((r) => ({ ...r, username: nameById.get(r.user_id) ?? "utilizator" }))
+    .map((r) => ({
+      ...r,
+      username: nameById.get(r.user_id) ?? "utilizator",
+      unread: isUnread(r, true, seen.get(r.id)),
+    }))
     // Open tickets first, then most-recent activity.
     .sort((a, b) => {
       if (a.status !== b.status) return a.status === "open" ? -1 : 1;
@@ -313,6 +415,7 @@ async function loadMessages(
 
 // A ticket for its owner (RLS enforces ownership; returns null if not theirs).
 export async function getMyTicket(id: string): Promise<TicketDetail | null> {
+  const { id: userId } = await requireActiveUser();
   const supabase = await createClient();
   const { data: t } = await supabase
     .from("tickets")
@@ -320,14 +423,17 @@ export async function getMyTicket(id: string): Promise<TicketDetail | null> {
     .eq("id", id)
     .maybeSingle();
   if (!t) return null;
+  // They're looking at the thread → it's read. Deferred so it never delays the
+  // response; realtime re-renders keep it accurate while the tab stays open.
+  after(() => markTicketSeen(id, userId));
   const messages = await loadMessages(id, supabase);
   const username = await usernameOf(t.user_id as string);
-  return { ...(t as TicketRow & { user_id: string }), username, messages };
+  return { ...(t as Omit<TicketRow, "unread"> & { user_id: string }), username, messages };
 }
 
 // A ticket for an admin (any owner).
 export async function getTicketAsAdmin(id: string): Promise<TicketDetail | null> {
-  await requireAdmin();
+  const adminId = await requireAdmin();
   const admin = createAdminClient();
   const { data: t } = await admin
     .from("tickets")
@@ -335,17 +441,23 @@ export async function getTicketAsAdmin(id: string): Promise<TicketDetail | null>
     .eq("id", id)
     .maybeSingle();
   if (!t) return null;
+  // Opening the thread clears its "nou" mark in the list.
+  after(() => markTicketSeen(id, adminId));
   const messages = await loadMessages(id, admin);
   const username = await usernameOf(t.user_id as string);
-  return { ...(t as TicketRow & { user_id: string }), username, messages };
+  return { ...(t as Omit<TicketRow, "unread"> & { user_id: string }), username, messages };
 }
 
 // ── Replies ─────────────────────────────────────────────────────────────────
-async function bumpActivity(ticketId: string): Promise<void> {
+// Bumps ordering + records which side spoke last (drives the unread checks).
+async function bumpActivity(ticketId: string, fromAdmin: boolean): Promise<void> {
   const admin = createAdminClient();
   await admin
     .from("tickets")
-    .update({ last_activity_at: new Date().toISOString() })
+    .update({
+      last_activity_at: new Date().toISOString(),
+      last_message_from_admin: fromAdmin,
+    })
     .eq("id", ticketId);
 }
 
@@ -380,7 +492,11 @@ export async function replyAsUser(input: {
   const reopened = ticket.status === "closed";
   await admin
     .from("tickets")
-    .update(reopened ? { last_activity_at: now, status: "open", closed_at: null } : { last_activity_at: now })
+    .update({
+      last_activity_at: now,
+      last_message_from_admin: false,
+      ...(reopened ? { status: "open", closed_at: null } : {}),
+    })
     .eq("id", input.ticketId);
 
   // Notify admins — but never the author themselves (an admin replying on their
@@ -420,7 +536,7 @@ export async function replyAsAdmin(input: {
     .single();
   if (error) throw error;
   await insertAttachments(msg.id as string, input.attachments);
-  await bumpActivity(input.ticketId);
+  await bumpActivity(input.ticketId, true);
 
   // Only the counterpart hears about it — no self-notification when an admin
   // answers a ticket they opened themselves.
@@ -447,29 +563,56 @@ export async function setTicketPriority(
   if (error) throw error;
 }
 
-// Badge count for the dashboard nav: open tickets whose last message came from
-// the user — i.e. the ones actually waiting on an admin.
-export async function countTicketsNeedingReply(): Promise<number> {
+// Badge count for the dashboard nav: open tickets waiting on an admin whose
+// activity is NEWER than the last time this admin looked at the list. Visiting
+// the list stamps the inbox, so the badge clears — while individual rows stay
+// marked "nou" until they're actually opened.
+export async function countNewTickets(adminId: string): Promise<number> {
   const admin = createAdminClient();
-  const { data: open } = await admin
+  const { data: inbox } = await admin
+    .from("ticket_inbox_views")
+    .select("last_seen_at")
+    .eq("user_id", adminId)
+    .maybeSingle();
+
+  let q = admin
     .from("tickets")
-    .select("id")
-    .eq("status", "open");
-  const ids = (open ?? []).map((t) => t.id as string);
-  if (ids.length === 0) return 0;
+    .select("id", { count: "exact", head: true })
+    .eq("status", "open")
+    .eq("last_message_from_admin", false);
+  if (inbox?.last_seen_at) q = q.gt("last_activity_at", inbox.last_seen_at as string);
 
-  const { data: msgs } = await admin
-    .from("ticket_messages")
-    .select("ticket_id, from_admin, created_at")
-    .in("ticket_id", ids)
-    .order("created_at", { ascending: true });
+  const { count } = await q;
+  return count ?? 0;
+}
 
-  // Last message per ticket wins; a user-authored last message = needs a reply.
-  const lastFromAdmin = new Map<string, boolean>();
-  for (const m of msgs ?? []) {
-    lastFromAdmin.set(m.ticket_id as string, m.from_admin as boolean);
-  }
-  return ids.filter((id) => lastFromAdmin.get(id) === false).length;
+// A user can close their own ticket ("solved it myself"). Replying reopens it.
+export async function closeMyTicket(id: string): Promise<void> {
+  const { id: userId } = await requireActiveUser();
+  const admin = createAdminClient();
+  const { data: ticket } = await admin
+    .from("tickets")
+    .select("id, subject, user_id, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (!ticket || ticket.user_id !== userId) throw new Error("Ticket inexistent.");
+  if (ticket.status === "closed") return;
+
+  const now = new Date().toISOString();
+  await admin
+    .from("tickets")
+    .update({ status: "closed", closed_at: now, last_activity_at: now })
+    .eq("id", id);
+
+  const subject = ticket.subject as string;
+  const username = await usernameOf(userId);
+  await notifyAdminsEvent(
+    "ticket_closed_user",
+    { utilizator: username, subiect: subject },
+    `/tickets/${id}`,
+    userId,
+  );
+  void sendTicketClosedAdmin({ username, subject, ticketId: id }).catch(() => {});
 }
 
 // ── Status ──────────────────────────────────────────────────────────────────
@@ -540,30 +683,58 @@ export async function reopenTicket(id: string): Promise<void> {
   }
 }
 
-// ── Delete (admin) ──────────────────────────────────────────────────────────
-// Removes the ticket, its messages (cascade) and the attachment objects in B2.
-export async function deleteTicket(id: string): Promise<void> {
-  await requireAdmin();
+// ── Delete + retention ──────────────────────────────────────────────────────
+// Deletes the B2 objects belonging to these tickets. Their DB rows (messages,
+// attachments, views) go away by cascade when the ticket row is deleted — but
+// B2 has no foreign keys, so its objects must be removed explicitly first.
+async function purgeTicketMedia(ticketIds: string[]): Promise<void> {
+  if (ticketIds.length === 0) return;
   const admin = createAdminClient();
-
-  // Collect attachment keys before the cascade wipes the rows.
   const { data: msgs } = await admin
     .from("ticket_messages")
     .select("id")
-    .eq("ticket_id", id);
+    .in("ticket_id", ticketIds);
   const msgIds = (msgs ?? []).map((m) => m.id as string);
-  if (msgIds.length > 0) {
-    const { data: atts } = await admin
-      .from("ticket_attachments")
-      .select("storage_key")
-      .in("message_id", msgIds);
-    for (const a of atts ?? []) {
-      await deleteObject(a.storage_key as string).catch(() => {});
-    }
-  }
+  if (msgIds.length === 0) return;
 
+  const { data: atts } = await admin
+    .from("ticket_attachments")
+    .select("storage_key")
+    .in("message_id", msgIds);
+  for (const a of atts ?? []) {
+    await deleteObject(a.storage_key as string).catch(() => {});
+  }
+}
+
+// Admin: wipe a ticket completely — B2 media, the whole thread, read state, and
+// it disappears from the owner's list too.
+export async function deleteTicket(id: string): Promise<void> {
+  await requireAdmin();
+  await purgeTicketMedia([id]);
+  const admin = createAdminClient();
   const { error } = await admin.from("tickets").delete().eq("id", id);
   if (error) throw error;
+}
+
+// Cron-only: drop closed tickets past the retention window, across all users.
+// Runs without a user session (service role), like the trash/notification purges.
+export async function purgeOldTickets(): Promise<number> {
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - TICKET_RETENTION_MONTHS);
+  const admin = createAdminClient();
+
+  const { data } = await admin
+    .from("tickets")
+    .select("id")
+    .eq("status", "closed")
+    .lt("closed_at", cutoff.toISOString());
+  const ids = (data ?? []).map((t) => t.id as string);
+  if (ids.length === 0) return 0;
+
+  await purgeTicketMedia(ids);
+  const { error } = await admin.from("tickets").delete().in("id", ids);
+  if (error) throw error;
+  return ids.length;
 }
 
 // ── Attachment download ─────────────────────────────────────────────────────

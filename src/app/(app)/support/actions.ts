@@ -5,6 +5,7 @@ import {
   presignTicketUpload,
   createTicket,
   replyAsUser,
+  closeMyTicket,
   getAttachmentUrl,
 } from "@/server/tickets/service";
 import type { IncomingAttachment } from "@/lib/tickets";
@@ -55,6 +56,18 @@ export async function replyTicketAction(input: {
   try {
     await replyAsUser(input);
     revalidatePath(`/support/${input.ticketId}`);
+    revalidatePath("/support");
+    return { ok: true };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// "Am rezolvat-o" — the owner closes their own ticket. Replying reopens it.
+export async function closeMyTicketAction(id: string): Promise<SimpleResult> {
+  try {
+    await closeMyTicket(id);
+    revalidatePath(`/support/${id}`);
     revalidatePath("/support");
     return { ok: true };
   } catch (e) {

@@ -77,6 +77,8 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultTitle: "📨 Ticket nou de suport", defaultBody: "{utilizator} a deschis un ticket: „{subiect}” ({categorie}).", vars: ["utilizator", "subiect", "categorie"] },
   { key: "ticket_user_reply", label: "Răspuns pe ticket (de la user)", description: "Anunță administratorii când un utilizator răspunde la un ticket de suport.", audience: "admin",
     defaultTitle: "💬 Răspuns nou pe ticket", defaultBody: "{utilizator} a răspuns la ticketul „{subiect}”.", vars: ["utilizator", "subiect"] },
+  { key: "ticket_closed_user", label: "Ticket închis de utilizator", description: "Anunță administratorii când un utilizator își închide singur ticketul de suport.", audience: "admin",
+    defaultTitle: "✅ Ticket închis de utilizator", defaultBody: "{utilizator} a închis ticketul „{subiect}”.", vars: ["utilizator", "subiect"] },
 ];
 
 // Actions that COULD get a notification but don't have one wired yet. Empty for

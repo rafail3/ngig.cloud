@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { getMyTicket } from "@/server/tickets/service";
 import { ChatPanel } from "@/components/support/ChatPanel";
 import { UserReply } from "@/components/support/UserReply";
+import { CloseMyTicket } from "@/components/support/CloseMyTicket";
 import { StatusBadge, PriorityBadge, CategoryBadge } from "@/components/support/badges";
 import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
 
@@ -32,9 +33,12 @@ export default async function TicketPage({
         >
           <ArrowLeft className="h-4 w-4" /> Înapoi la suport
         </Link>
-        <h1 className="mt-2 truncate text-lg font-semibold tracking-tight text-zinc-50 sm:text-xl">
-          {ticket.subject}
-        </h1>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+          <h1 className="min-w-0 truncate text-lg font-semibold tracking-tight text-zinc-50 sm:text-xl">
+            {ticket.subject}
+          </h1>
+          {ticket.status === "open" && <CloseMyTicket ticketId={ticket.id} />}
+        </div>
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <StatusBadge status={ticket.status} />
           <CategoryBadge category={ticket.category} />

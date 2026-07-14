@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Shapes, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { AttachmentPicker } from "./AttachmentPicker";
+import { Select } from "./Select";
 import { uploadTicketFile } from "./ticket-upload";
 import { createTicketAction } from "@/app/(app)/support/actions";
 import {
@@ -56,6 +57,14 @@ export function NewTicketForm() {
         toast.error(res.error);
         return;
       }
+      // Clear the draft before leaving: this page stays mounted in the client
+      // router cache, so without this the next "Ticket nou" would open
+      // pre-filled with what was just submitted.
+      setSubject("");
+      setBody("");
+      setFiles([]);
+      setCategory(TICKET_CATEGORIES[0].key);
+      setPriority("medium");
       toast.success("Ticket deschis.");
       router.push(`/support/${res.id}`);
     });
@@ -80,30 +89,24 @@ export function NewTicketForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="category" className={labelCls}>Categorie</label>
-          <select
-            id="category"
+          <span className={labelCls}>Categorie</span>
+          <Select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className={fieldCls}
-          >
-            {TICKET_CATEGORIES.map((c) => (
-              <option key={c.key} value={c.key}>{c.label}</option>
-            ))}
-          </select>
+            options={TICKET_CATEGORIES}
+            onChange={setCategory}
+            icon={Shapes}
+            ariaLabel="Categorie"
+          />
         </div>
         <div>
-          <label htmlFor="priority" className={labelCls}>Prioritate</label>
-          <select
-            id="priority"
+          <span className={labelCls}>Prioritate</span>
+          <Select
             value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-            className={fieldCls}
-          >
-            {TICKET_PRIORITIES.map((p) => (
-              <option key={p.key} value={p.key}>{p.label}</option>
-            ))}
-          </select>
+            options={TICKET_PRIORITIES}
+            onChange={setPriority}
+            icon={Flag}
+            ariaLabel="Prioritate"
+          />
         </div>
       </div>
 

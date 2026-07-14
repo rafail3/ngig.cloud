@@ -28,10 +28,26 @@ export function TicketList({ tickets }: { tickets: TicketRow[] }) {
         <li key={t.id}>
           <Link
             href={`/support/${t.id}`}
-            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-zinc-900/50"
+            className={`flex items-center gap-3 px-4 py-3.5 transition-colors ${
+              t.unread ? "bg-indigo-500/[0.06] hover:bg-indigo-500/10" : "hover:bg-zinc-900/50"
+            }`}
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-zinc-100">{t.subject}</p>
+              <p className="flex items-center gap-2">
+                {t.unread && (
+                  <span
+                    title="Răspuns necitit"
+                    className="inline-block h-2 w-2 shrink-0 rounded-full bg-indigo-400"
+                  />
+                )}
+                <span
+                  className={`truncate text-sm ${
+                    t.unread ? "font-semibold text-zinc-50" : "font-medium text-zinc-100"
+                  }`}
+                >
+                  {t.subject}
+                </span>
+              </p>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <StatusBadge status={t.status} />
                 <CategoryBadge category={t.category} />

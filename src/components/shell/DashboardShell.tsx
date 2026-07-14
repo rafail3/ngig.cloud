@@ -194,7 +194,10 @@ export function DashboardShell({
                   </span>
                 );
               }
-              const badge = item.href === "/tickets" ? badges?.tickets ?? 0 : 0;
+              // While you're ON the list, the badge is pointless noise — and the
+            // page stamps the inbox as seen, so it's 0 on the next render anyway.
+            const badge =
+              item.href === "/tickets" && !active ? badges?.tickets ?? 0 : 0;
             return (
                 <Link
                   key={item.label}
