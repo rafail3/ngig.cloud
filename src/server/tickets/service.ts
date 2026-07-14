@@ -329,25 +329,37 @@ export async function listMyTickets(): Promise<TicketRow[]> {
 
 // ── Read state ──────────────────────────────────────────────────────────────
 // Called while a thread renders: the viewer is looking at it, so it's read.
+//
+// MUST stay idempotent. `ticket_views` is in the realtime publication (that's
+// what makes the other side's ticks light up live), so an unconditional write
+// here would be: render → write → realtime event → refresh → render → write →
+// … forever. Writing only when there's genuinely something newer to mark makes
+// the second pass a no-op, which ends the cycle.
 export async function markTicketSeen(ticketId: string, viewerId: string): Promise<void> {
   const admin = createAdminClient();
+
+  const { data: last } = await admin
+    .from("ticket_messages")
+    .select("created_at")
+    .eq("ticket_id", ticketId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const lastMessageAt = last?.[0]?.created_at as string | undefined;
+  if (!lastMessageAt) return; // nothing to read yet
+
+  const { data: view } = await admin
+    .from("ticket_views")
+    .select("last_seen_at")
+    .eq("ticket_id", ticketId)
+    .eq("user_id", viewerId)
+    .maybeSingle();
+  if (view?.last_seen_at && (view.last_seen_at as string) >= lastMessageAt) return;
+
   await admin
     .from("ticket_views")
     .upsert(
       { ticket_id: ticketId, user_id: viewerId, last_seen_at: new Date().toISOString() },
       { onConflict: "ticket_id,user_id" },
-    );
-}
-
-// Called while the admin ticket LIST renders — clears the nav badge without
-// marking any individual thread as read.
-export async function markInboxSeen(viewerId: string): Promise<void> {
-  const admin = createAdminClient();
-  await admin
-    .from("ticket_inbox_views")
-    .upsert(
-      { user_id: viewerId, last_seen_at: new Date().toISOString() },
-      { onConflict: "user_id" },
     );
 }
 
@@ -588,27 +600,26 @@ export async function setTicketPriority(
   if (error) throw error;
 }
 
-// Badge count for the dashboard nav: open tickets waiting on an admin whose
-// activity is NEWER than the last time this admin looked at the list. Visiting
-// the list stamps the inbox, so the badge clears — while individual rows stay
-// marked "nou" until they're actually opened.
-export async function countNewTickets(adminId: string): Promise<number> {
+// Badge count for the dashboard nav: threads this admin hasn't read. Cleared
+// one ticket at a time, by opening it — NOT by glancing at the list. Built on
+// the very same isUnread() the "nou" row marks use, so the number always equals
+// the number of highlighted rows (closed tickets included: an unread message is
+// unread whether or not the thread was later closed).
+export async function countUnreadTickets(adminId: string): Promise<number> {
   const admin = createAdminClient();
-  const { data: inbox } = await admin
-    .from("ticket_inbox_views")
-    .select("last_seen_at")
-    .eq("user_id", adminId)
-    .maybeSingle();
-
-  let q = admin
+  const { data } = await admin
     .from("tickets")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "open")
+    .select("id, last_activity_at, last_message_from_admin")
     .eq("last_message_from_admin", false);
-  if (inbox?.last_seen_at) q = q.gt("last_activity_at", inbox.last_seen_at as string);
+  const rows = (data ?? []) as {
+    id: string;
+    last_activity_at: string;
+    last_message_from_admin: boolean;
+  }[];
+  if (rows.length === 0) return 0;
 
-  const { count } = await q;
-  return count ?? 0;
+  const seen = await seenMap(rows.map((r) => r.id), adminId);
+  return rows.filter((r) => isUnread(r, true, seen.get(r.id))).length;
 }
 
 // A user can close their own ticket ("solved it myself"). Replying reopens it.

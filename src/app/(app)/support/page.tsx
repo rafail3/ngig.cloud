@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { listMyTickets } from "@/server/tickets/service";
 import { TicketList } from "@/components/support/TicketList";
-import { RefreshOnLand } from "@/components/support/RefreshOnLand";
+import { RefreshOnLand } from "@/components/realtime/RefreshOnLand";
 import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
 
 export const metadata = { title: "Suport" };

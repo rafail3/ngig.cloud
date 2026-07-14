@@ -194,10 +194,10 @@ export function DashboardShell({
                   </span>
                 );
               }
-              // While you're ON the list, the badge is pointless noise — and the
-            // page stamps the inbox as seen, so it's 0 on the next render anyway.
-            const badge =
-              item.href === "/tickets" && !active ? badges?.tickets ?? 0 : 0;
+              // Stays visible on the list too: it counts unread THREADS, so it
+            // should agree with the "nou" rows you're looking at. It only drops
+            // as you open them.
+            const badge = item.href === "/tickets" ? badges?.tickets ?? 0 : 0;
             return (
                 <Link
                   key={item.label}
@@ -218,7 +218,7 @@ export function DashboardShell({
                   <span>{item.label}</span>
                   {badge > 0 && (
                     <span
-                      title={`${badge} ${badge === 1 ? "ticket așteaptă" : "tickete așteaptă"} răspuns`}
+                      title={`${badge} ${badge === 1 ? "ticket necitit" : "tickete necitite"}`}
                       className="ml-auto flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-500 px-1.5 text-xs font-semibold tabular-nums text-white"
                     >
                       {badge > 99 ? "99+" : badge}

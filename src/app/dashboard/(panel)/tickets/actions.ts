@@ -7,9 +7,7 @@ import {
   reopenTicket,
   deleteTicket,
   setTicketPriority,
-  markInboxSeen,
 } from "@/server/tickets/service";
-import { requireAdmin } from "@/server/admin/guard";
 import type { IncomingAttachment } from "@/lib/tickets";
 
 type SimpleResult = { ok: true } | { ok: false; error: string };
@@ -31,20 +29,6 @@ export async function replyAdminAction(input: {
   try {
     await replyAsAdmin(input);
     revalidate(input.ticketId);
-    return { ok: true };
-  } catch (e) {
-    return fail(e);
-  }
-}
-
-// Stamps "I've looked at the list", which zeroes the nav badge. Called from the
-// client (see TicketInboxWatcher) rather than during render: a shared layout
-// isn't re-rendered on client navigation, so the badge would otherwise keep
-// showing a stale count until the next full load.
-export async function markInboxSeenAction(): Promise<SimpleResult> {
-  try {
-    const adminId = await requireAdmin();
-    await markInboxSeen(adminId);
     return { ok: true };
   } catch (e) {
     return fail(e);

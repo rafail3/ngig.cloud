@@ -4,8 +4,8 @@ import { DashboardShell } from "@/components/shell/DashboardShell";
 import { DashboardShellSkeleton } from "@/components/shell/DashboardShellSkeleton";
 import { Forbidden } from "@/components/shell/Forbidden";
 import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
-import { TicketInboxWatcher } from "@/components/dashboard/TicketInboxWatcher";
-import { countNewTickets } from "@/server/tickets/service";
+import { RefreshOnLand } from "@/components/realtime/RefreshOnLand";
+import { countUnreadTickets } from "@/server/tickets/service";
 
 // Every dashboard data source — so any admin page/action updates live.
 const DASHBOARD_TABLES = [
@@ -17,6 +17,8 @@ const DASHBOARD_TABLES = [
   "announcements",
   "tickets",
   "ticket_messages",
+  // Read state: opening a thread must drop the nav badge live.
+  "ticket_views",
 ];
 
 // Too dynamic to be the instant entry point: it reads auth on every request.
@@ -54,10 +56,10 @@ async function Shell({
       return <Forbidden />;
     }
 
-    // Nav badge: tickets waiting on an admin that arrived since this admin last
-    // opened the list. Realtime refreshes the layout, so it stays live without
-    // polling; the Suport page stamps the inbox, which zeroes it out.
-    const ticketsWaiting = await countNewTickets(userId);
+    // Nav badge: threads this admin hasn't read yet — same count as the "nou"
+    // rows. Opening a ticket writes its read mark, which realtime picks up and
+    // re-renders this layout, so the badge drops on its own.
+    const ticketsWaiting = await countUnreadTickets(userId);
 
     return (
       <DashboardShell
@@ -65,7 +67,8 @@ async function Shell({
         badges={{ tickets: ticketsWaiting }}
       >
         <RealtimeRefresh tables={DASHBOARD_TABLES} />
-        <TicketInboxWatcher />
+        {/* Returning to the list must not replay its cached rows. */}
+        <RefreshOnLand path="/tickets" />
         {children}
         {modal}
       </DashboardShell>

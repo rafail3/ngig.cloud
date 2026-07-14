@@ -23,8 +23,9 @@ export default async function TicketPage({
     // Fixed-height column under the h-16 navbar: the thread scrolls inside,
     // the composer stays at the bottom of the screen.
     <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col px-4 pb-4 pt-4 sm:px-6">
-      {/* Live: admin replies / status changes land without a manual refresh. */}
-      <RealtimeRefresh tables={["tickets", "ticket_messages"]} />
+      {/* Live: admin replies, status changes, and the read ticks on your own
+          messages once support opens the thread (ticket_views). */}
+      <RealtimeRefresh tables={["tickets", "ticket_messages", "ticket_views"]} />
 
       <header className="shrink-0 pb-3">
         <Link
