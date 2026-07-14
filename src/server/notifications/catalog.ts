@@ -45,7 +45,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
   { key: "forced_signout", label: "Delogat forțat", description: "Anunță utilizatorul că un administrator i-a închis toate sesiunile și trebuie să se autentifice din nou.", audience: "user",
     defaultTitle: "📤 Ai fost deconectat", defaultBody: "Un administrator a deconectat toate sesiunile contului tău. Va trebui să te autentifici din nou.", vars: [] },
   { key: "limits_changed", label: "Limite de spațiu modificate", description: "Anunță utilizatorul că un administrator i-a modificat limitele de spațiu.", audience: "user",
-    defaultTitle: "💾 Limite de spațiu actualizate", defaultBody: "Un administrator ți-a actualizat limitele de stocare: {detalii}.", vars: ["detalii"] },
+    defaultTitle: "💾 Limite de spațiu actualizate", defaultBody: "Limitele contului tău au fost actualizate: {detalii}.", vars: ["detalii"] },
   { key: "trash_purged", label: "Fișiere șterse din coș", description: "Anunță utilizatorul că fișiere din coșul lui au fost șterse definitiv după perioada de retenție, prin curățarea automată.", audience: "user",
     defaultTitle: "🗑️ Fișiere șterse din coș", defaultBody: "{numar} fișier(e) au fost șterse definitiv din coșul tău după {zile} de zile.", vars: ["numar", "zile"] },
   { key: "block_expired", label: "Blocare expirată (utilizator)", description: "Anunță utilizatorul că blocarea temporară a expirat și contul e din nou activ.", audience: "user",
