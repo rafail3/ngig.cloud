@@ -46,7 +46,7 @@ export function ProfileTabs({
       <div
         role="tablist"
         aria-label="Secțiuni profil"
-        className="flex gap-6 overflow-x-auto border-b border-zinc-900"
+        className="flex gap-6 overflow-x-auto border-b border-zinc-900 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {TABS.map((t) => {
           const on = t.id === active;
@@ -69,7 +69,7 @@ export function ProfileTabs({
               {on && (
                 <motion.span
                   layoutId="profile-tab-indicator"
-                  className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-indigo-400"
+                  className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-indigo-400"
                   transition={{ type: "spring", stiffness: 500, damping: 40 }}
                 />
               )}

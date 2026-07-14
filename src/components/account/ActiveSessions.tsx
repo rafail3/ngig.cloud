@@ -43,7 +43,7 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
 
   return (
     <section className="divide-y divide-zinc-800/50 rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:px-6 sm:py-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:px-5 sm:py-4">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-zinc-100">
             Sesiuni active
@@ -75,7 +75,7 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
           return (
             <div
               key={s.id}
-              className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+              className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5"
             >
               <div className="flex min-w-0 items-start gap-3">
                 <TypeIcon ua={s.user_agent} />

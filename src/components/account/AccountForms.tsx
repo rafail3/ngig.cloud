@@ -12,7 +12,7 @@ import type { AccountState } from "@/lib/account-state";
 
 const initial: AccountState = {};
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const labelCls = "mb-1.5 block text-sm font-medium text-zinc-300";
+const labelCls = "mb-1 block text-sm font-medium text-zinc-300";
 // Quiet fields that sharpen on focus — same voice as the drive's search bar.
 const inputCls =
   "w-full rounded-lg border border-zinc-800 bg-zinc-950/50 px-3.5 py-2 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-indigo-500/15";
@@ -40,12 +40,12 @@ export function SettingsRow({
   children: React.ReactNode;
 }) {
   return (
-    <section className="grid gap-x-10 gap-y-4 p-4 sm:p-6 md:grid-cols-[220px_1fr]">
+    <section className="grid gap-x-8 gap-y-3 p-4 sm:p-5 md:grid-cols-[200px_1fr]">
       <div>
         <h3 className="text-sm font-semibold text-zinc-100">{title}</h3>
         <p className="mt-1 text-xs leading-relaxed text-zinc-500">{description}</p>
       </div>
-      <div className="min-w-0 md:max-w-md">{children}</div>
+      <div className="min-w-0 md:max-w-sm">{children}</div>
     </section>
   );
 }
@@ -59,7 +59,7 @@ export function UsernameForm({ currentUsername }: { currentUsername: string }) {
       title="Username"
       description="Numele cu care te conectezi și apari în cloud."
     >
-      <form noValidate action={action} className="flex flex-col gap-3">
+      <form noValidate action={action} className="flex flex-col gap-2.5">
         <div>
           <label htmlFor="username" className={labelCls}>Username nou</label>
           <input
@@ -100,7 +100,7 @@ export function PasswordForm() {
       title="Parolă"
       description="Schimb-o periodic și nu o refolosi pe alte site-uri."
     >
-      <form noValidate action={action} className="flex flex-col gap-3">
+      <form noValidate action={action} className="flex flex-col gap-2.5">
         <div>
           <label htmlFor="oldPassword" className={labelCls}>Parola veche</label>
           <PasswordInput name="oldPassword" autoComplete="current-password" defaultValue={state.oldPassword} className={inputCls} />
@@ -137,7 +137,7 @@ export function EmailForm({ currentEmail }: { currentEmail: string }) {
       title="Email"
       description="Adresa pe care primești notificările și linkurile de cont. Se schimbă imediat; primești un link de activare pe noua adresă."
     >
-      <form noValidate action={action} className="flex flex-col gap-3">
+      <form noValidate action={action} className="flex flex-col gap-2.5">
         <div>
           <label htmlFor="email" className={labelCls}>Email nou</label>
           <input
