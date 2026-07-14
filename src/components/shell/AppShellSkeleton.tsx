@@ -16,8 +16,8 @@ export function AppShellSkeleton() {
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
           <div className="h-8 w-8 animate-pulse rounded-md bg-zinc-900" />
-          <div className="h-8 w-20 animate-pulse rounded-md bg-zinc-900" />
-          <div className="h-8 w-9 animate-pulse rounded-md bg-zinc-900 sm:w-20" />
+          <div className="h-8 w-8 animate-pulse rounded-md bg-zinc-900" />
+          <div className="h-8 w-8 animate-pulse rounded-full bg-zinc-900 sm:w-28 sm:rounded-lg" />
         </div>
       </header>
 
