@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireActiveUser } from "@/server/auth/active-user";
 import { requireAdmin } from "@/server/admin/guard";
+import { appOrigin, dashboardOrigin } from "@/lib/dashboard";
 import {
   presignUpload,
   presignDownload,
@@ -94,12 +95,14 @@ export type TicketDetail = Omit<TicketRow, "unread"> & {
   counterpartSeenAt: string | null;
 };
 
-const APP_ORIGIN = "https://ngig.cloud";
+// Ticket notifications are read from BOTH shells (the bell lives on each), so
+// every link must be absolute and point at the right host — a bare path would
+// resolve against whichever origin the reader happens to be on. Owner links go
+// to the app, admin links to the dashboard.
+const userLink = (ticketId: string) => `${appOrigin()}/support/${ticketId}`;
+const adminLink = (ticketId: string) => `${dashboardOrigin()}/tickets/${ticketId}`;
 
 // ── Upload presign ──────────────────────────────────────────────────────────
-// The browser uploads an attachment straight to B2 with the returned URL, then
-// passes {key,name,size,mimeType} into createTicket / replyAsUser. Keys are
-// namespaced under the caller's id so they can't be forged onto another prefix.
 // Server-side gate for a single attachment: images and videos only, capped per
 // kind. Mirrors checkAttachment() on the client — never trust the picker.
 function assertAllowedMedia(mime: string | null, size: number, name: string): void {
@@ -111,6 +114,9 @@ function assertAllowedMedia(mime: string | null, size: number, name: string): vo
   }
 }
 
+// The browser uploads an attachment straight to B2 with the returned URL, then
+// passes {key,name,size,mimeType} into createTicket / replyAsUser. Keys are
+// namespaced under the caller's id so they can't be forged onto another prefix.
 export async function presignTicketUpload(input: {
   name: string;
   size: number;
@@ -233,12 +239,12 @@ export async function createTicket(input: {
     userId,
     "ticket_created",
     { subiect: subject, categorie: categoryLabel(input.category) },
-    `${APP_ORIGIN}/support/${ticketId}`,
+    userLink(ticketId),
   );
   await notifyAdminsEvent(
     "ticket_opened",
     { utilizator: username, subiect: subject, categorie: categoryLabel(input.category) },
-    `/tickets/${ticketId}`,
+    adminLink(ticketId),
     userId,
   );
   const email = await emailOf(userId);
@@ -542,7 +548,7 @@ export async function replyAsUser(input: {
   await notifyAdminsEvent(
     "ticket_user_reply",
     { utilizator: username, subiect: ticket.subject as string },
-    `/tickets/${input.ticketId}`,
+    adminLink(input.ticketId),
     userId,
   );
 }
@@ -582,7 +588,7 @@ export async function replyAsAdmin(input: {
       ticket.user_id as string,
       "ticket_reply",
       { subiect: ticket.subject as string },
-      `${APP_ORIGIN}/support/${input.ticketId}`,
+      userLink(input.ticketId),
     );
   }
 }
@@ -645,7 +651,7 @@ export async function closeMyTicket(id: string): Promise<void> {
   await notifyAdminsEvent(
     "ticket_closed_user",
     { utilizator: username, subiect: subject },
-    `/tickets/${id}`,
+    adminLink(id),
     userId,
   );
   void sendTicketClosedAdmin({ username, subject, ticketId: id }).catch(() => {});
@@ -679,7 +685,7 @@ export async function closeTicket(id: string): Promise<void> {
       ownerId,
       "ticket_closed",
       { subiect: subject },
-      `${APP_ORIGIN}/support/${id}`,
+      userLink(id),
     );
     const email = await emailOf(ownerId);
     if (email) {
@@ -716,7 +722,7 @@ export async function reopenTicket(id: string): Promise<void> {
       ticket.user_id as string,
       "ticket_reopened",
       { subiect: ticket.subject as string },
-      `${APP_ORIGIN}/support/${id}`,
+      userLink(id),
     );
   }
 }

@@ -17,3 +17,20 @@ export function dashboardOrigin(): string {
   const proto = DASHBOARD_HOST.includes("localhost") ? "http" : "https";
   return `${proto}://${DASHBOARD_HOST}`;
 }
+
+// Host of the main app, derived by stripping the `dashboard.` prefix off the
+// dashboard host — so it follows every environment for free (prod
+// `dashboard.ngig.cloud` → `ngig.cloud`, local `dashboard.localhost:3002` →
+// `localhost:3002`) with no extra env var to keep in sync. Falls back to the
+// production host if the dashboard host isn't prefixed as expected.
+export const APP_HOST = DASHBOARD_HOST.startsWith("dashboard.")
+  ? DASHBOARD_HOST.slice("dashboard.".length)
+  : "ngig.cloud";
+
+// Absolute origin of the main app. Needed when linking to it from code that may
+// run on the dashboard host (e.g. a notification for the ticket's owner that an
+// admin's action created) — a bare path would resolve against the wrong host.
+export function appOrigin(): string {
+  const proto = APP_HOST.includes("localhost") ? "http" : "https";
+  return `${proto}://${APP_HOST}`;
+}

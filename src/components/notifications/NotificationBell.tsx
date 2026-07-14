@@ -102,11 +102,27 @@ export function NotificationBell() {
     void markNotificationReadAction(n.id);
   }
 
-  // External links open in a new tab; internal paths navigate in-app.
+  // The bell lives on BOTH hosts, so notification links are absolute and may
+  // point at the other one. Same-origin absolute links navigate in-app (a link
+  // to a page of the site you're already on shouldn't spawn a tab); anything on
+  // another origin — the dashboard from the app, or vice versa — opens a tab.
+  // Relative paths stay in-app.
   function navigate(href: string) {
     if (!href) return;
-    if (/^https?:\/\//i.test(href)) window.open(href, "_blank", "noopener,noreferrer");
-    else router.push(href);
+    if (/^https?:\/\//i.test(href)) {
+      try {
+        const url = new URL(href);
+        if (url.origin === window.location.origin) {
+          router.push(url.pathname + url.search);
+          return;
+        }
+      } catch {
+        // Malformed URL — fall through to opening it as-is.
+      }
+      window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
+    router.push(href);
   }
 
   // Clicking a link inside the message goes to THAT link; clicking anywhere else

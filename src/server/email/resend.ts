@@ -1,6 +1,6 @@
 import "server-only";
 import { Resend } from "resend";
-import { dashboardOrigin } from "@/lib/dashboard";
+import { appOrigin, dashboardOrigin } from "@/lib/dashboard";
 
 // FROM must be on a Resend-verified domain (ngig.cloud). INVITE_REQUEST_TO is
 // the inbox that receives invite requests (the owner's Gmail).
@@ -318,7 +318,7 @@ export async function sendTicketOpenedUser(input: {
   if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
   const resend = new Resend(API_KEY);
 
-  const url = `https://ngig.cloud/support/${input.ticketId}`;
+  const url = `${appOrigin()}/support/${input.ticketId}`;
   const inner = `
     <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
       Salut,<br/>Am primit ticketul tău de suport. Îți răspundem cât putem de repede.
@@ -442,7 +442,7 @@ export async function sendTicketClosed(input: {
   if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
   const resend = new Resend(API_KEY);
 
-  const url = `https://ngig.cloud/support/${input.ticketId}`;
+  const url = `${appOrigin()}/support/${input.ticketId}`;
   const inner = `
     <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
       Salut,<br/>Ticketul tău <strong style="color:#fafafa">„${escapeHtml(input.subject)}”</strong> a fost închis.
