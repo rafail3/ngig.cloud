@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { dashboardLogin } from "@/app/dashboard/login/actions";
 import type { LoginState } from "@/lib/auth-state";
+import { useToastState } from "@/lib/useToastState";
 import { PasswordInput } from "./PasswordInput";
 import { Turnstile } from "./Turnstile";
 import { Spinner } from "./Spinner";
@@ -17,15 +18,10 @@ export function DashboardLoginForm() {
   const [state, formAction, pending] = useActionState(dashboardLogin, initial);
   const [botReady, setBotReady] = useState(false);
   const busy = pending || !botReady;
+  useToastState(state);
 
   return (
     <form noValidate action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
-      {state.error && (
-        <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-          {state.error}
-        </p>
-      )}
-
       <div>
         <label htmlFor="username" className={labelCls}>
           Username

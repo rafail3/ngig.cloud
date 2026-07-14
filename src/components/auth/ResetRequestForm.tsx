@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { MailCheck } from "lucide-react";
 import { requestResetAction } from "@/app/reset/actions";
 import type { ResetRequestState } from "@/lib/email-state";
@@ -16,6 +17,9 @@ export function ResetRequestForm() {
   const [state, formAction, pending] = useActionState(requestResetAction, initial);
   const [botReady, setBotReady] = useState(false);
   const busy = pending || !botReady;
+  useEffect(() => {
+    if (state.error) toast.error(state.error);
+  }, [state]);
 
   if (state.ok) {
     return (
@@ -31,12 +35,6 @@ export function ResetRequestForm() {
 
   return (
     <form noValidate action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
-      {state.error && (
-        <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-          {state.error}
-        </p>
-      )}
-
       <div>
         <label htmlFor="email" className={labelCls}>Email</label>
         <input

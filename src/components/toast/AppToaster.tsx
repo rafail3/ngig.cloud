@@ -12,7 +12,6 @@ export function AppToaster() {
     <Sonner
       theme={resolved}
       position="bottom-right"
-      closeButton
       toastOptions={{
         classNames: {
           toast: "!rounded-xl !shadow-xl",

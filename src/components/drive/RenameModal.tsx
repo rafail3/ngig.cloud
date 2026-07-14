@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { ModalShell } from "./anim";
 import { extensionOf } from "@/lib/file-type";
 
@@ -27,17 +28,15 @@ export function RenameModal({
   const [name, setName] = useState(
     ext ? initialName.slice(0, -ext.length) : initialName,
   );
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
     setBusy(true);
-    setError(null);
     const res = await onRename(name.trim() + ext);
     setBusy(false);
-    if (res.error) setError(res.error);
+    if (res.error) toast.error(res.error);
   }
 
   return (
@@ -57,7 +56,6 @@ export function RenameModal({
             </span>
           )}
         </div>
-        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
         <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"

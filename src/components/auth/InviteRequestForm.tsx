@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
 import { requestInviteAction } from "@/app/cere-invitatie/actions";
 import type { InviteRequestState } from "@/lib/email-state";
@@ -16,6 +17,9 @@ export function InviteRequestForm() {
   const [state, formAction, pending] = useActionState(requestInviteAction, initial);
   const [botReady, setBotReady] = useState(false);
   const busy = pending || !botReady;
+  useEffect(() => {
+    if (state.error) toast.error(state.error);
+  }, [state]);
 
   if (state.ok) {
     return (
@@ -30,12 +34,6 @@ export function InviteRequestForm() {
 
   return (
     <form noValidate action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
-      {state.error && (
-        <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-          {state.error}
-        </p>
-      )}
-
       <div>
         <label htmlFor="name" className={labelCls}>Nume</label>
         <input id="name" name="name" type="text" required defaultValue={state.values?.name} className={inputCls} />

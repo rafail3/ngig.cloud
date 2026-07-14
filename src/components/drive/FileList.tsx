@@ -15,8 +15,8 @@ import {
   Archive,
   Trash2,
   Upload,
-  X,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   getDownloadUrlAction,
   renameFileAction,
@@ -113,7 +113,6 @@ export function FileList({ folderId }: { folderId: string | null }) {
   const [info, setInfo] = useState<FileItem | null>(null);
   const [toRename, setToRename] = useState<FileItem | null>(null);
   const [toMove, setToMove] = useState<FileItem | null>(null);
-  const [err, setErr] = useState<string | null>(null);
 
   // Rows shown above the stored files: in-flight uploads INTO THIS FOLDER, plus
   // just-finished ones whose real row hasn't arrived yet (bridges the brief gap
@@ -138,11 +137,10 @@ export function FileList({ folderId }: { folderId: string | null }) {
 
   async function copy(file: FileItem) {
     setPendingId(file.id);
-    setErr(null);
     try {
       const res = await copyFileAction(file.id);
       if (res.error) {
-        setErr(res.error);
+        toast.error(res.error);
         return;
       }
       revalidateDrive();
@@ -183,20 +181,6 @@ export function FileList({ folderId }: { folderId: string | null }) {
 
   return (
     <>
-      {err && (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-red-900/60 bg-red-950/30 px-3.5 py-2 text-sm text-red-300">
-          <span>{err}</span>
-          <button
-            type="button"
-            onClick={() => setErr(null)}
-            aria-label="Închide"
-            className="shrink-0 rounded p-0.5 text-red-400 transition hover:text-red-200"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
       {/* Fully static list — rows replace in place with no enter/exit animation.
           Opening a folder shows its files directly: no entrance slide, and no
           "ghost" of the previous folder's rows animating out over the new ones. */}

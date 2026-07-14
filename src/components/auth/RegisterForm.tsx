@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { registerWithInvite } from "@/app/register/actions";
 import type { RegisterState } from "@/lib/auth-state";
+import { useToastState } from "@/lib/useToastState";
 import { PasswordInput } from "./PasswordInput";
 import { Turnstile } from "./Turnstile";
 import { Spinner } from "./Spinner";
@@ -23,6 +24,7 @@ export function RegisterForm({ initialCode }: { initialCode?: string }) {
   const busy = pending || !botReady;
   const [username, setUsername] = useState(state.values?.username ?? "");
   const [check, setCheck] = useState<Check | null>(null);
+  useToastState(state);
 
   // Debounced real-time availability. State is only set inside the deferred
   // timeout callback (never synchronously in the effect body).
@@ -70,12 +72,6 @@ export function RegisterForm({ initialCode }: { initialCode?: string }) {
 
   return (
     <form noValidate action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
-      {state.error && (
-        <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-          {state.error}
-        </p>
-      )}
-
       <div>
         <label htmlFor="code" className={labelCls}>
           Cod de invitație
