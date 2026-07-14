@@ -6,6 +6,7 @@ import { requireActiveUser } from "@/server/auth/active-user";
 import { getSettings } from "@/server/admin/settings";
 import { platformUsage } from "@/server/admin/stats";
 import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
+import { logEvent } from "@/server/insights/engine";
 import * as repo from "./repository";
 import { extensionOf } from "@/lib/file-type";
 import { formatBytes } from "@/lib/format";
@@ -276,6 +277,7 @@ export async function searchDrive(
     .filter(Boolean)
     .map(escapeLike);
   const noQuery = tokens.length === 0;
+  if (!noQuery) after(() => logEvent("search"));
 
   const [allFolders, files] = await Promise.all([
     repo.listAllFolders(),
@@ -342,6 +344,7 @@ export async function createFolder(
   const existing = await repo.findFolderByName(clean, parentId);
   if (existing) throw new Error("Există deja un folder cu acest nume.");
   await repo.insertFolder({ owner_id: userId, name: clean, parent_id: parentId });
+  after(() => logEvent("folder_create"));
 }
 
 // Find-or-create a folder by name (used when uploading a folder tree). Safe
@@ -513,6 +516,7 @@ export async function getViewUrl(
   if (!file) throw new Error("Fișier inexistent.");
   assertOwnedKey(userId, file.storage_key);
   const url = await presignView(file.storage_key);
+  after(() => logEvent("preview", { ext: extensionOf(file.name) }));
   return { url, name: file.name, mime: file.mime_type };
 }
 
@@ -573,6 +577,7 @@ export async function saveTextFile(
 
   const updatedAt = new Date().toISOString();
   await repo.updateFile(id, { size: bytes, updated_at: updatedAt });
+  after(() => logEvent("edit", { ext: extensionOf(file.name) }));
   return { size: bytes, updatedAt };
 }
 
@@ -710,6 +715,7 @@ export async function confirmUpload(input: {
     throw e;
   }
 
+  after(() => logEvent("upload", { ext: extensionOf(input.name) }));
   return repo.insertFile({
     owner_id: userId,
     name: input.name,
@@ -733,6 +739,7 @@ export async function getDownloadUrl(id: string) {
     .update({ last_download_at: new Date().toISOString() })
     .eq("id", userId);
 
+  after(() => logEvent("download", { ext: extensionOf(file.name) }));
   return presignDownload(file.storage_key, file.name);
 }
 
@@ -775,6 +782,7 @@ export async function renameFile(id: string, name: string): Promise<void> {
       : clean;
 
   await repo.updateFile(id, { name: finalName });
+  after(() => logEvent("rename", { ext: extensionOf(file.name) }));
 }
 
 // Move a file into a folder (null = root). The destination folder must belong to
@@ -792,6 +800,7 @@ export async function moveFile(
     if (!dest) throw new Error("Destinație invalidă.");
   }
   await repo.updateFile(id, { folder_id: folderId });
+  after(() => logEvent("move"));
 }
 
 // Insert " (copie)" before the extension: "report.pdf" → "report (copie).pdf".
@@ -821,6 +830,7 @@ export async function copyFile(id: string): Promise<void> {
     storage_key: destKey,
     folder_id: file.folder_id,
   });
+  after(() => logEvent("copy", { ext: extensionOf(file.name) }));
 }
 
 // Soft delete: hide the file from listings but keep its bytes + row so it can be
@@ -832,6 +842,7 @@ export async function moveFileToTrash(id: string): Promise<void> {
     deleted_at: new Date().toISOString(),
     archived_at: null,
   });
+  after(() => logEvent("trash"));
 }
 
 // ---- Archive --------------------------------------------------------------
@@ -854,6 +865,7 @@ export async function archiveFile(id: string): Promise<void> {
   const file = await repo.getFileById(id);
   if (!file) throw new Error("Fișier inexistent.");
   await repo.updateFile(id, { archived_at: new Date().toISOString() });
+  after(() => logEvent("archive"));
 }
 
 export async function listArchive(): Promise<ArchiveFile[]> {
@@ -879,6 +891,7 @@ export async function unarchiveFile(id: string): Promise<void> {
   let folderId = file.folder_id;
   if (folderId && !(await repo.getFolder(folderId))) folderId = null;
   await repo.updateFile(id, { archived_at: null, folder_id: folderId });
+  after(() => logEvent("unarchive"));
 }
 
 // ---- Trash ----------------------------------------------------------------
@@ -924,6 +937,7 @@ export async function restoreFile(id: string): Promise<void> {
   let folderId = file.folder_id;
   if (folderId && !(await repo.getFolder(folderId))) folderId = null;
   await repo.updateFile(id, { deleted_at: null, folder_id: folderId });
+  after(() => logEvent("restore"));
 }
 
 // Permanently delete a single trashed file: remove its B2 object, then its row.

@@ -50,6 +50,8 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultTitle: "🗑️ Fișiere șterse din coș", defaultBody: "{numar} fișier(e) au fost șterse definitiv din coșul tău după {zile} de zile.", vars: ["numar", "zile"] },
   { key: "block_expired", label: "Blocare expirată (utilizator)", description: "Anunță utilizatorul că blocarea temporară a expirat și contul e din nou activ.", audience: "user",
     defaultTitle: "🔓 Blocare expirată", defaultBody: "Blocarea contului tău a expirat. Contul e din nou activ.", vars: [] },
+  { key: "suggestion", label: "Sugestie personalizată", description: "Recomandare privată generată de motorul de activitate (ex: eliberează spațiu, organizează fișiere). Calculată local, doar din datele tale.", audience: "user",
+    defaultTitle: "💡 Sugestie pentru tine", defaultBody: "{tip}", vars: ["tip"] },
   // --- Admin events --------------------------------------------------------
   { key: "invite_request", label: "Cerere de invitație", description: "Anunță administratorii când cineva cere o invitație din formularul public.", audience: "admin",
     defaultTitle: "📩 Cerere nouă de invitație", defaultBody: "{nume} ({email}) a cerut o invitație.", vars: ["nume", "email"] },
