@@ -344,6 +344,7 @@ export async function createFolder(
   const existing = await repo.findFolderByName(clean, parentId);
   if (existing) throw new Error("Există deja un folder cu acest nume.");
   await repo.insertFolder({ owner_id: userId, name: clean, parent_id: parentId });
+  after(() => logEvent("folder_create"));
 }
 
 // Find-or-create a folder by name (used when uploading a folder tree). Safe
@@ -576,6 +577,7 @@ export async function saveTextFile(
 
   const updatedAt = new Date().toISOString();
   await repo.updateFile(id, { size: bytes, updated_at: updatedAt });
+  after(() => logEvent("edit", { ext: extensionOf(file.name) }));
   return { size: bytes, updatedAt };
 }
 
@@ -780,6 +782,7 @@ export async function renameFile(id: string, name: string): Promise<void> {
       : clean;
 
   await repo.updateFile(id, { name: finalName });
+  after(() => logEvent("rename", { ext: extensionOf(file.name) }));
 }
 
 // Move a file into a folder (null = root). The destination folder must belong to
@@ -797,6 +800,7 @@ export async function moveFile(
     if (!dest) throw new Error("Destinație invalidă.");
   }
   await repo.updateFile(id, { folder_id: folderId });
+  after(() => logEvent("move"));
 }
 
 // Insert " (copie)" before the extension: "report.pdf" → "report (copie).pdf".
@@ -826,6 +830,7 @@ export async function copyFile(id: string): Promise<void> {
     storage_key: destKey,
     folder_id: file.folder_id,
   });
+  after(() => logEvent("copy", { ext: extensionOf(file.name) }));
 }
 
 // Soft delete: hide the file from listings but keep its bytes + row so it can be
@@ -837,6 +842,7 @@ export async function moveFileToTrash(id: string): Promise<void> {
     deleted_at: new Date().toISOString(),
     archived_at: null,
   });
+  after(() => logEvent("trash"));
 }
 
 // ---- Archive --------------------------------------------------------------
@@ -859,6 +865,7 @@ export async function archiveFile(id: string): Promise<void> {
   const file = await repo.getFileById(id);
   if (!file) throw new Error("Fișier inexistent.");
   await repo.updateFile(id, { archived_at: new Date().toISOString() });
+  after(() => logEvent("archive"));
 }
 
 export async function listArchive(): Promise<ArchiveFile[]> {
@@ -884,6 +891,7 @@ export async function unarchiveFile(id: string): Promise<void> {
   let folderId = file.folder_id;
   if (folderId && !(await repo.getFolder(folderId))) folderId = null;
   await repo.updateFile(id, { archived_at: null, folder_id: folderId });
+  after(() => logEvent("unarchive"));
 }
 
 // ---- Trash ----------------------------------------------------------------
@@ -929,6 +937,7 @@ export async function restoreFile(id: string): Promise<void> {
   let folderId = file.folder_id;
   if (folderId && !(await repo.getFolder(folderId))) folderId = null;
   await repo.updateFile(id, { deleted_at: null, folder_id: folderId });
+  after(() => logEvent("restore"));
 }
 
 // Permanently delete a single trashed file: remove its B2 object, then its row.

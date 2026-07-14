@@ -9,6 +9,8 @@ import { notifyUserEvent } from "@/server/notifications/service";
 // AI, without an AI"), caches it, and feeds multiple surfaces (file suggestions,
 // a private activity panel, tip notifications).
 
+// Bump when the profile shape changes so older cached rows are recomputed.
+const PROFILE_VERSION = 2;
 const CACHE_MS = 60 * 60 * 1000; // recompute at most hourly
 const TIP_COOLDOWN_MS = 7 * 24 * 3600 * 1000; // don't repeat the same tip within a week
 const BIG_FILE = 50 * 1024 * 1024;
@@ -30,12 +32,25 @@ const DAY_LABEL = ["duminică", "luni", "marți", "miercuri", "joi", "vineri", "
 
 export type InsightTip = { key: string; text: string; link: string };
 
+export type TypeSlice = { category: FileCategory; label: string; count: number; pct: number };
+export type StorageSlice = { category: FileCategory; label: string; bytes: number; pct: number };
+
 export type UserProfile = {
+  version: number;
   filesCount: number;
   storageUsed: number;
-  topTypes: { category: FileCategory; label: string; count: number; pct: number }[];
+  foldersCount: number;
+  avgFileSize: number;
+  largestFile: { name: string; size: number } | null;
+  topTypes: TypeSlice[];
+  storageByType: StorageSlice[];
+  activityByHour: number[]; // 24 buckets
+  activityByDay: number[]; // 7 buckets, 0 = Sunday
+  weeklyActivity: number[]; // last 8 weeks, oldest → newest
+  counts: { uploads: number; downloads: number; previews: number; searches: number };
   activePeriod: "dimineața" | "după-amiaza" | "seara" | "noaptea" | null;
   busiestDay: string | null;
+  peakHour: number | null;
   uploadTrend: "up" | "down" | "flat";
   usesFolders: boolean;
   summary: string;
@@ -88,19 +103,25 @@ async function currentUser() {
 function computeProfile(
   files: FileRow[],
   events: EventRow[],
+  foldersCount: number,
   prev: UserProfile | null,
 ): UserProfile {
   const live = files.filter((f) => !f.deleted_at && !f.archived_at);
   const now = Date.now();
 
-  // --- File types ----------------------------------------------------------
-  const byCat = new Map<FileCategory, number>();
+  // --- File types + storage breakdown --------------------------------------
+  const catCount = new Map<FileCategory, number>();
+  const catBytes = new Map<FileCategory, number>();
+  let largestFile: { name: string; size: number } | null = null;
   for (const f of live) {
     const c = fileCategory(f.name, f.mime_type);
-    byCat.set(c, (byCat.get(c) ?? 0) + 1);
+    catCount.set(c, (catCount.get(c) ?? 0) + 1);
+    catBytes.set(c, (catBytes.get(c) ?? 0) + Number(f.size));
+    if (!largestFile || f.size > largestFile.size) largestFile = { name: f.name, size: Number(f.size) };
   }
   const total = live.length || 1;
-  const topTypes = [...byCat.entries()]
+  const storageUsed = live.reduce((s, f) => s + Number(f.size), 0);
+  const topTypes: TypeSlice[] = [...catCount.entries()]
     .map(([category, count]) => ({
       category,
       label: CATEGORY_LABEL[category],
@@ -108,14 +129,23 @@ function computeProfile(
       pct: Math.round((count / total) * 100),
     }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 4);
+    .slice(0, 5);
+  const storageByType: StorageSlice[] = [...catBytes.entries()]
+    .map(([category, bytes]) => ({
+      category,
+      label: CATEGORY_LABEL[category],
+      bytes,
+      pct: storageUsed > 0 ? Math.round((bytes / storageUsed) * 100) : 0,
+    }))
+    .sort((a, b) => b.bytes - a.bytes)
+    .slice(0, 5);
 
-  // --- Active period (from events + file timestamps) -----------------------
-  const hourHist = new Array(24).fill(0) as number[];
-  const dayHist = new Array(7).fill(0) as number[];
+  // --- Activity histograms (from events + file activity) -------------------
+  const activityByHour = new Array(24).fill(0) as number[];
+  const activityByDay = new Array(7).fill(0) as number[];
   const stamp = (iso: string) => {
-    hourHist[hourRO(iso)]++;
-    dayHist[dayRO(iso)]++;
+    activityByHour[hourRO(iso)]++;
+    activityByDay[dayRO(iso)]++;
   };
   for (const e of events) stamp(e.created_at);
   for (const f of live) stamp(f.updated_at);
@@ -126,17 +156,37 @@ function computeProfile(
     { key: "seara", from: 18, to: 24 },
     { key: "noaptea", from: 0, to: 6 },
   ];
-  const anyStamp = hourHist.some((n) => n > 0);
+  const anyStamp = activityByHour.some((n) => n > 0);
   const activePeriod = anyStamp
     ? periods
         .map((p) => ({
           key: p.key,
-          n: hourHist.slice(p.from, p.to).reduce((a, b) => a + b, 0),
+          n: activityByHour.slice(p.from, p.to).reduce((a, b) => a + b, 0),
         }))
         .sort((a, b) => b.n - a.n)[0].key
     : null;
-  const maxDay = Math.max(...dayHist);
-  const busiestDay = maxDay > 0 ? DAY_LABEL[dayHist.indexOf(maxDay)] : null;
+  const maxHour = Math.max(...activityByHour);
+  const peakHour = anyStamp ? activityByHour.indexOf(maxHour) : null;
+  const maxDay = Math.max(...activityByDay);
+  const busiestDay = maxDay > 0 ? DAY_LABEL[activityByDay.indexOf(maxDay)] : null;
+
+  // --- Weekly activity (last 8 weeks, events + uploads) --------------------
+  const weeklyActivity = new Array(8).fill(0) as number[];
+  const bumpWeek = (iso: string) => {
+    const wAgo = Math.floor((now - new Date(iso).getTime()) / (7 * DAY_MS));
+    if (wAgo >= 0 && wAgo < 8) weeklyActivity[7 - wAgo]++;
+  };
+  for (const e of events) bumpWeek(e.created_at);
+  for (const f of files) bumpWeek(f.created_at);
+
+  // --- Event counts (last 90 days worth we keep) ---------------------------
+  const counts = { uploads: 0, downloads: 0, previews: 0, searches: 0 };
+  for (const e of events) {
+    if (e.type === "upload") counts.uploads++;
+    else if (e.type === "download") counts.downloads++;
+    else if (e.type === "preview") counts.previews++;
+    else if (e.type === "search") counts.searches++;
+  }
 
   // --- Upload trend (last 30d vs previous 30d) -----------------------------
   const recent = files.filter((f) => now - new Date(f.created_at).getTime() < 30 * DAY_MS).length;
@@ -147,8 +197,8 @@ function computeProfile(
   const uploadTrend: UserProfile["uploadTrend"] =
     recent > prior * 1.2 ? "up" : recent < prior * 0.8 ? "down" : "flat";
 
-  const usesFolders = live.some((f) => f.folder_id);
-  const storageUsed = live.reduce((s, f) => s + Number(f.size), 0);
+  const usesFolders = foldersCount > 0 || live.some((f) => f.folder_id);
+  const avgFileSize = live.length > 0 ? Math.round(storageUsed / live.length) : 0;
 
   // --- Summary -------------------------------------------------------------
   const summaryBits: string[] = [];
@@ -200,11 +250,21 @@ function computeProfile(
   }
 
   return {
+    version: PROFILE_VERSION,
     filesCount: live.length,
     storageUsed,
+    foldersCount,
+    avgFileSize,
+    largestFile,
     topTypes,
+    storageByType,
+    activityByHour,
+    activityByDay,
+    weeklyActivity,
+    counts,
     activePeriod,
     busiestDay,
+    peakHour,
     uploadTrend,
     usesFolders,
     summary,
@@ -225,11 +285,16 @@ export async function getInsights(force = false): Promise<UserProfile> {
     .eq("user_id", uid)
     .maybeSingle();
 
-  if (!force && cached && Date.now() - new Date(cached.computed_at).getTime() < CACHE_MS) {
-    return cached.profile as UserProfile;
+  const cachedProfile = cached?.profile as UserProfile | undefined;
+  if (
+    !force &&
+    cachedProfile?.version === PROFILE_VERSION &&
+    Date.now() - new Date(cached!.computed_at).getTime() < CACHE_MS
+  ) {
+    return cachedProfile;
   }
 
-  const [{ data: files }, { data: events }] = await Promise.all([
+  const [{ data: files }, { data: events }, { count: foldersCount }] = await Promise.all([
     supabase
       .from("files")
       .select("name, mime_type, size, created_at, updated_at, folder_id, deleted_at, archived_at")
@@ -238,11 +303,17 @@ export async function getInsights(force = false): Promise<UserProfile> {
       .from("user_events")
       .select("type, created_at")
       .order("created_at", { ascending: false })
-      .limit(500),
+      .limit(1000),
+    supabase.from("folders").select("id", { count: "exact", head: true }).eq("owner_id", uid),
   ]);
 
   const prev = (cached?.profile as UserProfile | undefined) ?? null;
-  const profile = computeProfile((files ?? []) as FileRow[], (events ?? []) as EventRow[], prev);
+  const profile = computeProfile(
+    (files ?? []) as FileRow[],
+    (events ?? []) as EventRow[],
+    foldersCount ?? 0,
+    prev,
+  );
 
   // Emit the top tip as a notification, respecting a per-tip weekly cooldown.
   const top = profile.tips[0];
