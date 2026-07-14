@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.13.0](https://github.com/rafail3/ngig.cloud/compare/v2.12.0...v2.13.0) (2026-07-14)
+
+
+### Features
+
+* **ui:** app-side redesign — electric blue palette, refined drive home, tabbed profile ([580db61](https://github.com/rafail3/ngig.cloud/commit/580db612f794d0f77e30c3c919f73161c58f5faa))
+* **ui:** archive, trash and search results aligned to the new visual language ([29aa095](https://github.com/rafail3/ngig.cloud/commit/29aa0958751b64da18278603e3dc3b449a0dd5b3))
+* **ui:** dashboard aligned to the redesign — shell, KPIs, charts, tables, forms ([901fa64](https://github.com/rafail3/ngig.cloud/commit/901fa64c4b9e2c7887a6a2a48243b22a2ccbf540))
+* **ui:** electric blue brand palette via central token remap ([7d9b85a](https://github.com/rafail3/ngig.cloud/commit/7d9b85acf24ec1363cb03f38609ede8a8326b4f0))
+* **ui:** profile page rebuilt — identity header + Cont/Securitate/Activitate tabs ([5d49809](https://github.com/rafail3/ngig.cloud/commit/5d4980960e88fa93acfddc6a673445874a0c23ba))
+* **ui:** profile settings as compact expandable rows ([5407b2c](https://github.com/rafail3/ngig.cloud/commit/5407b2c67f55d5c4208b83c144865b479b206744))
+* **ui:** redesigned app shell — avatar user menu, refined drawer with storage meter ([f40578f](https://github.com/rafail3/ngig.cloud/commit/f40578fd796099c273239a5a18e69364e833c03a))
+* **ui:** redesigned drive home — typed file icons, refined header, solid accents ([d8499b4](https://github.com/rafail3/ngig.cloud/commit/d8499b43997d83c96ca12fe1b060f1775a7dbe0f))
+* **ui:** settings-row layout for profile Cont & Securitate tabs ([ed382d7](https://github.com/rafail3/ngig.cloud/commit/ed382d7f4d2913979399c037c63fb0ef3a211af8))
+
+
+### Bug Fixes
+
+* **ui:** compact profile settings rows, remove stray tab-bar scrollbar ([64960d7](https://github.com/rafail3/ngig.cloud/commit/64960d7161d2f2a6666443e4d528191538d8f3bc))
+* **ui:** sticky search no longer fades the title, search hides upload zone, tab bar overflow safety ([e1880e8](https://github.com/rafail3/ngig.cloud/commit/e1880e82330bccb785a915bc5aa10dbd4a0d1da1))
+
 ## [2.12.0](https://github.com/rafail3/ngig.cloud/compare/v2.11.0...v2.12.0) (2026-07-14)
 
 
