@@ -97,7 +97,7 @@ export function AnnouncementComposer() {
     <form
       ref={formRef}
       action={action}
-      className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 sm:p-6"
+      className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-5 sm:p-6"
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-300">

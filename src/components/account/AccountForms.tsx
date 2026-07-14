@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { UserCog, KeyRound, AtSign } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   changeUsernameAction,
   changePasswordAction,
@@ -13,152 +13,219 @@ import type { AccountState } from "@/lib/account-state";
 
 const initial: AccountState = {};
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const labelCls = "mb-1.5 block text-sm font-medium text-zinc-300";
-// Slim fields (less tall, smaller text). Passed to PasswordInput too, so every
-// field in these forms matches.
+const labelCls = "mb-1 block text-xs font-medium text-zinc-400";
 const inputCls =
-  "w-full rounded-xl border border-zinc-50/10 bg-zinc-50/5 px-3.5 py-2 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:bg-zinc-50/10 focus:ring-1 focus:ring-indigo-400/40";
-const btnCls =
-  "rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60";
-// Inputs stacked full-width inside the card — slim and long.
-const rowCls = "flex flex-col gap-3";
+  "w-full rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-600 focus:border-indigo-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-indigo-500/15";
+const saveCls =
+  "rounded-lg bg-indigo-500 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-400 active:bg-indigo-600 disabled:opacity-60";
+const cancelCls =
+  "rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-zinc-800/60 hover:text-zinc-200";
 
-export function AccountForms({
-  currentUsername,
-  currentEmail,
+// One container card per tab; each setting is a divided row inside it.
+export function SettingsCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="divide-y divide-zinc-800/50 rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
+      {children}
+    </div>
+  );
+}
+
+// Closed state = one calm line: setting name + its current value + "Schimbă".
+// The edit form expands inline underneath only when asked for — the tab stays
+// a short, scannable list instead of a wall of empty fields.
+function EditableRow({
+  label,
+  value,
+  open,
+  onToggle,
+  children,
 }: {
-  currentUsername: string;
-  currentEmail: string;
+  label: string;
+  value: React.ReactNode;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
 }) {
-  const [uState, uAction, uPending] = useActionState(changeUsernameAction, initial);
-  const [pState, pAction, pPending] = useActionState(changePasswordAction, initial);
-  const [eState, eAction, ePending] = useActionState(changeEmailAction, initial);
-  useToastState(uState);
-  useToastState(pState);
-  useToastState(eState);
+  return (
+    <section>
+      <div className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-zinc-100">{label}</p>
+          <p className="mt-0.5 truncate text-sm text-zinc-500">{value}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm transition ${
+            open
+              ? "border-indigo-500/50 bg-indigo-500/10 text-zinc-100"
+              : "border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50"
+          }`}
+        >
+          Schimbă
+        </button>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="form"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 sm:px-5">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
+
+function FormActions({
+  pending,
+  disabled,
+  onCancel,
+}: {
+  pending: boolean;
+  disabled?: boolean;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 pt-0.5">
+      <button type="submit" disabled={pending || disabled} className={saveCls}>
+        {pending ? "Se salvează…" : "Salvează"}
+      </button>
+      <button type="button" onClick={onCancel} className={cancelCls}>
+        Anulează
+      </button>
+    </div>
+  );
+}
+
+export function UsernameForm({ currentUsername }: { currentUsername: string }) {
+  const [state, action, pending] = useActionState(changeUsernameAction, initial);
+  const [open, setOpen] = useState(false);
+  useToastState(state);
+
+  return (
+    <EditableRow
+      label="Username"
+      value={currentUsername}
+      open={open}
+      onToggle={() => setOpen((v) => !v)}
+    >
+      <form noValidate action={action} className="flex flex-col gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor="username" className={labelCls}>Username nou</label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              required
+              defaultValue={state.username}
+              placeholder="username nou"
+              autoComplete="username"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="u-password" className={labelCls}>Parola curentă</label>
+            <PasswordInput name="password" autoComplete="current-password" defaultValue={state.password} className={inputCls} />
+          </div>
+        </div>
+        <FormActions pending={pending} onCancel={() => setOpen(false)} />
+      </form>
+    </EditableRow>
+  );
+}
+
+export function PasswordForm() {
+  const [state, action, pending] = useActionState(changePasswordAction, initial);
+  const [open, setOpen] = useState(false);
+  useToastState(state);
+
+  return (
+    <EditableRow
+      label="Parolă"
+      value={<span className="tracking-widest">••••••••••</span>}
+      open={open}
+      onToggle={() => setOpen((v) => !v)}
+    >
+      <form noValidate action={action} className="flex flex-col gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor="oldPassword" className={labelCls}>Parola veche</label>
+            <PasswordInput name="oldPassword" autoComplete="current-password" defaultValue={state.oldPassword} className={inputCls} />
+          </div>
+          <div>
+            <label htmlFor="newPassword" className={labelCls}>Parola nouă</label>
+            <PasswordInput name="newPassword" autoComplete="new-password" defaultValue={state.newPassword} className={inputCls} />
+          </div>
+        </div>
+        <p className="text-xs text-zinc-500">
+          Minim 10 caractere, cu literă mare, mică, cifră și simbol.
+        </p>
+        <FormActions pending={pending} onCancel={() => setOpen(false)} />
+      </form>
+    </EditableRow>
+  );
+}
+
+export function EmailForm({ currentEmail }: { currentEmail: string }) {
+  const [state, action, pending] = useActionState(changeEmailAction, initial);
+  const [open, setOpen] = useState(false);
+  useToastState(state);
 
   // Custom inline validation for the email field (no native browser bubble).
-  // Starts empty — the current email is shown as a hint under the input.
-  const [email, setEmail] = useState(eState.email ?? "");
+  const [email, setEmail] = useState(state.email ?? "");
   const emailTrimmed = email.trim();
   const emailInvalid = emailTrimmed !== "" && !EMAIL_RE.test(emailTrimmed);
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      {/* Change username */}
-      <section className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-4 flex items-center gap-2 text-zinc-100">
-          <UserCog className="h-5 w-5 text-indigo-400" />
-          <h2 className="text-base font-semibold">Schimbă username</h2>
+    <EditableRow
+      label="Email"
+      value={currentEmail}
+      open={open}
+      onToggle={() => setOpen((v) => !v)}
+    >
+      <form noValidate action={action} className="flex flex-col gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor="email" className={labelCls}>Email nou</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="adresa-nouă@exemplu.com"
+              autoComplete="email"
+              className={inputCls}
+            />
+            {emailInvalid && (
+              <p className="mt-1 text-xs text-red-400">Adresă de email invalidă.</p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="e-password" className={labelCls}>Parola curentă</label>
+            <PasswordInput name="password" autoComplete="current-password" defaultValue={state.password} className={inputCls} />
+          </div>
         </div>
-        <form noValidate action={uAction} className="flex flex-1 flex-col gap-3">
-          <div className={rowCls}>
-            <div>
-              <label htmlFor="username" className={labelCls}>Username nou</label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                defaultValue={uState.username}
-                placeholder="username nou"
-                autoComplete="username"
-                className={inputCls}
-              />
-              <p className="mt-1.5 text-xs text-zinc-500">
-                Username-ul tău actual:{" "}
-                <span className="text-zinc-300">{currentUsername}</span>
-              </p>
-            </div>
-            <div>
-              <label htmlFor="u-password" className={labelCls}>Parola curentă</label>
-              <PasswordInput name="password" autoComplete="current-password" defaultValue={uState.password} className={inputCls} />
-            </div>
-          </div>
-          <div className="mt-auto">
-            <button type="submit" disabled={uPending} className={btnCls}>
-              {uPending ? "Se schimbă…" : "Schimbă username"}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      {/* Change password */}
-      <section className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-4 flex items-center gap-2 text-zinc-100">
-          <KeyRound className="h-5 w-5 text-indigo-400" />
-          <h2 className="text-base font-semibold">Schimbă parola</h2>
-        </div>
-        <form noValidate action={pAction} className="flex flex-1 flex-col gap-3">
-          <div className={rowCls}>
-            <div>
-              <label htmlFor="oldPassword" className={labelCls}>Parola veche</label>
-              <PasswordInput name="oldPassword" autoComplete="current-password" defaultValue={pState.oldPassword} className={inputCls} />
-            </div>
-            <div>
-              <label htmlFor="newPassword" className={labelCls}>Parola nouă</label>
-              <PasswordInput name="newPassword" autoComplete="new-password" defaultValue={pState.newPassword} className={inputCls} />
-              <p className="mt-1 text-xs text-zinc-500">
-                Minim 10 caractere, cu literă mare, mică, cifră și simbol.
-              </p>
-            </div>
-          </div>
-          <div className="mt-auto">
-            <button type="submit" disabled={pPending} className={btnCls}>
-              {pPending ? "Se schimbă…" : "Schimbă parola"}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      {/* Change email */}
-      <section className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-4 flex items-center gap-2 text-zinc-100">
-          <AtSign className="h-5 w-5 text-indigo-400" />
-          <h2 className="text-base font-semibold">Schimbă email</h2>
-        </div>
-        <form noValidate action={eAction} className="flex flex-1 flex-col gap-3">
-          <div className={rowCls}>
-            <div>
-              <label htmlFor="email" className={labelCls}>Email nou</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="adresa-nouă@exemplu.com"
-                autoComplete="email"
-                className={inputCls}
-              />
-              <p className="mt-1.5 text-xs text-zinc-500">
-                Emailul tău activ:{" "}
-                <span className="break-all text-zinc-300">{currentEmail}</span>
-              </p>
-              {emailInvalid && (
-                <p className="mt-1 text-xs text-red-400">Adresă de email invalidă.</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="e-password" className={labelCls}>Parola curentă</label>
-              <PasswordInput name="password" autoComplete="current-password" defaultValue={eState.password} className={inputCls} />
-              <p className="mt-1.5 text-xs text-zinc-500">
-                Se schimbă imediat; îți trimitem un link de activare pe noua adresă.
-              </p>
-            </div>
-          </div>
-          <div className="mt-auto">
-            <button
-              type="submit"
-              disabled={ePending || emailInvalid || emailTrimmed === ""}
-              className={btnCls}
-            >
-              {ePending ? "Se schimbă…" : "Schimbă emailul"}
-            </button>
-          </div>
-        </form>
-      </section>
-    </div>
+        <p className="text-xs text-zinc-500">
+          Se schimbă imediat; îți trimitem un link de activare pe noua adresă.
+        </p>
+        <FormActions
+          pending={pending}
+          disabled={emailInvalid || emailTrimmed === ""}
+          onCancel={() => setOpen(false)}
+        />
+      </form>
+    </EditableRow>
   );
 }

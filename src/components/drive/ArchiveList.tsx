@@ -12,6 +12,7 @@ import { formatBytes } from "@/lib/format";
 import { formatDateShort } from "@/lib/format-date";
 import { fileTypeShort } from "@/lib/file-type";
 import { listContainer, listItem } from "./anim";
+import { FileTypeIcon } from "./FileTypeIcon";
 import { useContextMenu } from "./ContextMenu";
 import { ActionMenu, type MenuAction } from "./ActionMenu";
 import { PreviewModal, type PreviewFile } from "./PreviewModal";
@@ -76,12 +77,16 @@ export function ArchiveList({ files }: { files: ArchiveFile[] }) {
 
   if (files.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 px-6 py-16 text-center">
-        <Archive className="h-7 w-7 text-zinc-600" />
-        <p className="mt-3 text-base font-medium text-zinc-300">Arhiva e goală</p>
-        <p className="mt-1 text-sm text-zinc-500">
-          Fișierele pe care le arhivezi din drive apar aici.
-        </p>
+      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-800 px-6 py-14 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900">
+          <Archive className="h-5 w-5 text-zinc-500" aria-hidden="true" />
+        </span>
+        <div>
+          <p className="text-sm font-medium text-zinc-300">Arhiva e goală</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            Fișierele pe care le arhivezi din drive apar aici.
+          </p>
+        </div>
       </div>
     );
   }
@@ -110,7 +115,7 @@ export function ArchiveList({ files }: { files: ArchiveFile[] }) {
         variants={listContainer}
         initial="hidden"
         animate="show"
-        className="divide-y divide-zinc-800 overflow-hidden rounded-xl border border-zinc-800"
+        className="divide-y divide-zinc-800/40 overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900/20"
       >
         <AnimatePresence initial={false}>
           {files.map((file) => {
@@ -127,13 +132,14 @@ export function ArchiveList({ files }: { files: ArchiveFile[] }) {
                   e.preventDefault();
                   openMenu(actions(file), e.clientX, e.clientY);
                 }}
-                className="group flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-900/40"
+                className="group flex cursor-pointer items-center gap-3 px-3.5 py-3 transition-colors hover:bg-zinc-900/50"
               >
+                <FileTypeIcon name={file.name} mime={file.mimeType} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-medium text-zinc-100">
+                  <p className="truncate text-sm font-medium text-zinc-100">
                     {file.name}
                   </p>
-                  <p className="truncate text-sm text-zinc-500">
+                  <p className="mt-0.5 truncate text-xs text-zinc-500">
                     {fileTypeShort(file.name, file.mimeType)} · {formatBytes(file.size)} ·
                     arhivat {formatDateShort(file.archivedAt)}
                   </p>

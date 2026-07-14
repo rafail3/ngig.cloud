@@ -134,7 +134,7 @@ export function VideoPlayer({
           >
             <div className="relative h-1.5 w-full rounded-full bg-zinc-50/25">
               <div
-                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+                className="absolute inset-y-0 left-0 rounded-full bg-indigo-500"
                 style={{ width: `${progress}%` }}
               />
               <span

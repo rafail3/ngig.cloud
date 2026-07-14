@@ -2,7 +2,6 @@
 
 import useSWR from "swr";
 import {
-  Sparkles,
   Clock,
   CalendarDays,
   TrendingUp,
@@ -25,14 +24,25 @@ const TREND: Record<UserProfile["uploadTrend"], { label: string; icon: React.Rea
   flat: { label: "constant", icon: <Minus className="h-4 w-4 text-zinc-400" /> },
 };
 
+// Value-first stat tile: the number carries the hierarchy, the label whispers.
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3">
-      <span className="mt-0.5 shrink-0 text-indigo-400">{icon}</span>
-      <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wide text-zinc-500">{label}</p>
-        <div className="truncate text-sm text-zinc-200">{value}</div>
+    <div className="rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-xs font-medium text-zinc-500">{label}</p>
+        <span className="shrink-0 text-zinc-600">{icon}</span>
       </div>
+      <div className="mt-1 truncate text-base font-semibold text-zinc-100">{value}</div>
+    </div>
+  );
+}
+
+// Section wrapper for a chart block.
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-4">
+      <p className="mb-3 text-xs font-medium text-zinc-400">{title}</p>
+      {children}
     </div>
   );
 }
@@ -47,12 +57,12 @@ function HourChart({ hours, peak }: { hours: number[]; peak: number | null }) {
           <div
             key={h}
             title={`${String(h).padStart(2, "0")}:00 — ${n}`}
-            className={`flex-1 rounded-sm ${h === peak ? "bg-indigo-400" : "bg-indigo-500/30"}`}
+            className={`flex-1 rounded-sm ${h === peak ? "bg-indigo-400" : "bg-indigo-500/25"}`}
             style={{ height: `${Math.max(4, (n / max) * 100)}%` }}
           />
         ))}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
+      <div className="mt-1 flex justify-between text-[10px] tabular-nums text-zinc-600">
         <span>00</span>
         <span>06</span>
         <span>12</span>
@@ -71,9 +81,9 @@ function StorageChart({ slices }: { slices: UserProfile["storageByType"] }) {
       {slices.map((s) => (
         <div key={s.category} className="flex items-center gap-3 text-xs">
           <span className="w-24 shrink-0 truncate text-zinc-400">{s.label}</span>
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-800">
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-800/80">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+              className="h-full rounded-full bg-indigo-500"
               style={{ width: `${Math.max(3, (s.bytes / max) * 100)}%` }}
             />
           </div>
@@ -109,30 +119,26 @@ export function ActivityPanel() {
   const p = data ?? null;
 
   return (
-    <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
-      <div className="flex items-center gap-2 text-zinc-100">
-        <Sparkles className="h-5 w-5 text-indigo-400" />
-        <h2 className="text-base font-semibold">Activitatea ta</h2>
-      </div>
-      <p className="mt-1 text-xs text-zinc-500">
+    <section>
+      <p className="text-xs text-zinc-500">
         Un rezumat despre cum îți folosești cloud-ul, calculat local doar din datele tale.
       </p>
 
       {isLoading && !p ? (
         <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-16 animate-pulse rounded-xl border border-zinc-800/80 bg-zinc-950/40" />
+            <div key={i} className="h-[74px] animate-pulse rounded-xl border border-zinc-800/70 bg-zinc-900/40" />
           ))}
         </div>
       ) : !p || p.filesCount === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-zinc-800 bg-zinc-950/40 px-4 py-8 text-center text-sm text-zinc-500">
+        <p className="mt-4 rounded-xl border border-dashed border-zinc-800 bg-zinc-900/20 px-4 py-10 text-center text-sm text-zinc-500">
           Încă nu avem destule date. Încarcă și folosește câteva fișiere și revino.
         </p>
       ) : (
         <>
-          <p className="mt-4 text-sm text-zinc-300">{p.summary}</p>
+          <p className="mt-3 text-sm text-zinc-300">{p.summary}</p>
 
-          <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat icon={<Files className="h-4 w-4" />} label="Fișiere" value={<span className="tabular-nums">{p.filesCount}</span>} />
             <Stat icon={<HardDrive className="h-4 w-4" />} label="Spațiu folosit" value={formatBytes(p.storageUsed)} />
             <Stat icon={<Folder className="h-4 w-4" />} label="Foldere" value={<span className="tabular-nums">{p.foldersCount}</span>} />
@@ -148,36 +154,35 @@ export function ActivityPanel() {
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4">
-              <p className="mb-3 text-[11px] uppercase tracking-wide text-zinc-500">Când ești activ (pe ore)</p>
+            <ChartCard title="Când ești activ (pe ore)">
               <HourChart hours={p.activityByHour} peak={p.peakHour} />
-            </div>
-            <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4">
-              <p className="mb-3 text-[11px] uppercase tracking-wide text-zinc-500">Spațiu pe tip de fișier</p>
+            </ChartCard>
+            <ChartCard title="Spațiu pe tip de fișier">
               {p.storageByType.length > 0 ? (
                 <StorageChart slices={p.storageByType} />
               ) : (
                 <p className="text-xs text-zinc-600">Nimic încă.</p>
               )}
-            </div>
+            </ChartCard>
           </div>
 
-          <div className="mt-4 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4">
-            <p className="mb-3 text-[11px] uppercase tracking-wide text-zinc-500">Activitate în ultimele 8 săptămâni</p>
-            <WeekChart weeks={p.weeklyActivity} />
+          <div className="mt-4">
+            <ChartCard title="Activitate în ultimele 8 săptămâni">
+              <WeekChart weeks={p.weeklyActivity} />
+            </ChartCard>
           </div>
 
           {p.topTypes.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-1.5 text-[11px] uppercase tracking-wide text-zinc-500">Ce folosești cel mai des</p>
+            <div className="mt-5">
+              <p className="mb-2 text-xs font-medium text-zinc-400">Ce folosești cel mai des</p>
               <div className="flex flex-wrap gap-1.5">
                 {p.topTypes.map((t) => (
                   <span
                     key={t.category}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-950/60 px-2.5 py-1 text-xs text-zinc-300"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-xs text-zinc-300"
                   >
                     {t.label}
-                    <span className="tabular-nums text-indigo-300">{t.pct}%</span>
+                    <span className="tabular-nums font-medium text-indigo-300">{t.pct}%</span>
                   </span>
                 ))}
               </div>
@@ -185,11 +190,11 @@ export function ActivityPanel() {
           )}
 
           {p.tips.length > 0 && (
-            <div className="mt-4 flex flex-col gap-2">
+            <div className="mt-5 flex flex-col gap-2">
               {p.tips.map((tip) => (
                 <div
                   key={tip.key}
-                  className="flex items-start gap-2.5 rounded-xl border border-indigo-900/40 bg-indigo-950/20 px-3.5 py-2.5"
+                  className="flex items-start gap-2.5 rounded-xl border border-indigo-500/20 bg-indigo-500/[0.06] px-3.5 py-2.5"
                 >
                   <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-indigo-300" />
                   <p className="text-sm text-zinc-300">{tip.text}</p>

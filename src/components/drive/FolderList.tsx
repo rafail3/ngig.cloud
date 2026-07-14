@@ -237,11 +237,16 @@ function FolderCard({
           ? "border-indigo-400 bg-indigo-500/10 ring-2 ring-indigo-400/60"
           : selected
             ? "border-indigo-400/70 bg-indigo-500/10"
-            : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/70"
+            : "border-zinc-800/70 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/70"
       }`}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
-        <Folder className="h-5 w-5 shrink-0 text-indigo-400" />
+        <span
+          aria-hidden
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10"
+        >
+          <Folder className="h-[18px] w-[18px] text-indigo-400" />
+        </span>
         <span className="truncate text-sm font-medium text-zinc-100">{folder.name}</span>
       </div>
       {busy && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-indigo-400" />}

@@ -37,6 +37,7 @@ import { fileTypeShort, fileTypeLabel, isTextEditable } from "@/lib/file-type";
 import { fuzzyScore } from "@/lib/fuzzy";
 import { useFilter, fileMatchesFilters } from "./FilterProvider";
 import { listContainer, listItem } from "./anim";
+import { FileTypeIcon } from "./FileTypeIcon";
 import { useContextMenu } from "./ContextMenu";
 import { ActionMenu, type MenuAction } from "./ActionMenu";
 import { RenameModal } from "./RenameModal";
@@ -250,7 +251,7 @@ function SearchResults() {
 
           {folders.length > 0 && (
             <section>
-              <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <h2 className="mb-2 text-sm font-medium text-zinc-400">
                 Foldere
               </h2>
               <motion.ul
@@ -268,9 +269,14 @@ function SearchResults() {
                       e.preventDefault();
                       openMenu(folderActions(folder), e.clientX, e.clientY);
                     }}
-                    className="group flex cursor-pointer items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-2.5 transition-colors hover:border-zinc-700 hover:bg-zinc-900/70"
+                    className="group flex cursor-pointer items-center gap-2.5 rounded-xl border border-zinc-800/70 bg-zinc-900/40 px-3 py-2.5 transition-colors hover:border-zinc-700 hover:bg-zinc-900/70"
                   >
-                    <Folder className="h-5 w-5 shrink-0 text-indigo-400" />
+                    <span
+                      aria-hidden
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10"
+                    >
+                      <Folder className="h-[18px] w-[18px] text-indigo-400" />
+                    </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-zinc-100">
                         {folder.name}
@@ -286,14 +292,14 @@ function SearchResults() {
 
           {files.length > 0 && (
             <section>
-              <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <h2 className="mb-2 text-sm font-medium text-zinc-400">
                 Fișiere
               </h2>
               <motion.ul
                 variants={listContainer}
                 initial="hidden"
                 animate="show"
-                className="divide-y divide-zinc-900 overflow-hidden rounded-xl border border-zinc-900"
+                className="divide-y divide-zinc-800/40 overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900/20"
               >
                 {files.map((file) => (
                   <motion.li
@@ -304,13 +310,14 @@ function SearchResults() {
                       e.preventDefault();
                       openMenu(fileActions(file), e.clientX, e.clientY);
                     }}
-                    className="group flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-900/40"
+                    className="group flex cursor-pointer items-center gap-3 px-3.5 py-3 transition-colors hover:bg-zinc-900/50"
                   >
+                    <FileTypeIcon name={file.name} mime={file.mimeType} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-base font-medium text-zinc-100">
+                      <p className="truncate text-sm font-medium text-zinc-100">
                         {file.name}
                       </p>
-                      <p className="truncate text-sm text-zinc-500">
+                      <p className="mt-0.5 truncate text-xs text-zinc-500">
                         {fileTypeShort(file.name, file.mimeType)} ·{" "}
                         {formatBytes(file.size)} · {formatDateShort(file.createdAt)}
                       </p>

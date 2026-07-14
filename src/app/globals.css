@@ -24,6 +24,35 @@
    =========================================================================== */
 :root {
   color-scheme: dark;
+
+  /* Brand accent remap: the app is painted with `indigo-*` / `violet-*`
+     utilities, but the brand accent is ELECTRIC BLUE — indigo is remapped to
+     Tailwind's blue scale and violet to the sky scale (so legacy
+     indigo→violet gradients render as a blue→sky sweep). One remap here
+     recolors the whole product, both shells, zero component edits. */
+  --color-indigo-50: oklch(97% 0.014 254.604);
+  --color-indigo-100: oklch(93.2% 0.032 255.585);
+  --color-indigo-200: oklch(88.2% 0.059 254.128);
+  --color-indigo-300: oklch(80.9% 0.105 251.813);
+  --color-indigo-400: oklch(70.7% 0.165 254.624);
+  --color-indigo-500: oklch(62.3% 0.214 259.815);
+  --color-indigo-600: oklch(54.6% 0.245 262.881);
+  --color-indigo-700: oklch(48.8% 0.243 264.376);
+  --color-indigo-800: oklch(42.4% 0.199 265.638);
+  --color-indigo-900: oklch(37.9% 0.146 265.522);
+  --color-indigo-950: oklch(28.2% 0.091 267.935);
+
+  --color-violet-50: oklch(97.7% 0.013 236.62);
+  --color-violet-100: oklch(95.1% 0.026 236.824);
+  --color-violet-200: oklch(90.1% 0.058 230.902);
+  --color-violet-300: oklch(82.8% 0.111 230.318);
+  --color-violet-400: oklch(74.6% 0.16 232.661);
+  --color-violet-500: oklch(68.5% 0.169 237.323);
+  --color-violet-600: oklch(58.8% 0.158 241.966);
+  --color-violet-700: oklch(50% 0.134 242.749);
+  --color-violet-800: oklch(44.3% 0.11 240.79);
+  --color-violet-900: oklch(39.1% 0.09 240.876);
+  --color-violet-950: oklch(29.3% 0.066 243.157);
 }
 
 html.light {
@@ -41,29 +70,29 @@ html.light {
     --color-zinc-900: oklch(96.7% 0.001 286.375);
     --color-zinc-950: oklch(98.5% 0 0);
 
-    --color-indigo-50: oklch(25.7% 0.09 281.288);
-    --color-indigo-100: oklch(35.9% 0.144 278.697);
-    --color-indigo-200: oklch(39.8% 0.195 277.366);
-    --color-indigo-300: oklch(45.7% 0.24 277.023);
-    --color-indigo-400: oklch(51.1% 0.262 276.966);
-    --color-indigo-500: oklch(58.5% 0.233 277.117);
-    --color-indigo-600: oklch(67.3% 0.182 276.935);
-    --color-indigo-700: oklch(78.5% 0.115 274.713);
-    --color-indigo-800: oklch(87% 0.065 274.039);
-    --color-indigo-900: oklch(93% 0.034 272.788);
-    --color-indigo-950: oklch(96.2% 0.018 272.314);
+    --color-indigo-50: oklch(28.2% 0.091 267.935);
+    --color-indigo-100: oklch(37.9% 0.146 265.522);
+    --color-indigo-200: oklch(42.4% 0.199 265.638);
+    --color-indigo-300: oklch(48.8% 0.243 264.376);
+    --color-indigo-400: oklch(54.6% 0.245 262.881);
+    --color-indigo-500: oklch(62.3% 0.214 259.815);
+    --color-indigo-600: oklch(70.7% 0.165 254.624);
+    --color-indigo-700: oklch(80.9% 0.105 251.813);
+    --color-indigo-800: oklch(88.2% 0.059 254.128);
+    --color-indigo-900: oklch(93.2% 0.032 255.585);
+    --color-indigo-950: oklch(97% 0.014 254.604);
 
-    --color-violet-50: oklch(28.3% 0.141 291.089);
-    --color-violet-100: oklch(38% 0.189 293.745);
-    --color-violet-200: oklch(43.2% 0.232 292.759);
-    --color-violet-300: oklch(49.1% 0.27 292.581);
-    --color-violet-400: oklch(54.1% 0.281 293.009);
-    --color-violet-500: oklch(60.6% 0.25 292.717);
-    --color-violet-600: oklch(70.2% 0.183 293.541);
-    --color-violet-700: oklch(81.1% 0.111 293.571);
-    --color-violet-800: oklch(89.4% 0.057 293.283);
-    --color-violet-900: oklch(94.3% 0.029 294.588);
-    --color-violet-950: oklch(96.9% 0.016 293.756);
+    --color-violet-50: oklch(29.3% 0.066 243.157);
+    --color-violet-100: oklch(39.1% 0.09 240.876);
+    --color-violet-200: oklch(44.3% 0.11 240.79);
+    --color-violet-300: oklch(50% 0.134 242.749);
+    --color-violet-400: oklch(58.8% 0.158 241.966);
+    --color-violet-500: oklch(68.5% 0.169 237.323);
+    --color-violet-600: oklch(74.6% 0.16 232.661);
+    --color-violet-700: oklch(82.8% 0.111 230.318);
+    --color-violet-800: oklch(90.1% 0.058 230.902);
+    --color-violet-900: oklch(95.1% 0.026 236.824);
+    --color-violet-950: oklch(97.7% 0.013 236.62);
 
     --color-red-50: oklch(25.8% 0.092 26.042);
     --color-red-100: oklch(39.6% 0.141 25.723);

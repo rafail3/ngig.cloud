@@ -26,12 +26,12 @@ function Kpi({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
-      <div className="flex items-center gap-2 text-zinc-400">
-        {icon}
-        <span className="text-xs uppercase tracking-wide">{label}</span>
+    <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate text-xs font-medium text-zinc-500">{label}</span>
+        <span className="shrink-0 text-zinc-600">{icon}</span>
       </div>
-      <p className="mt-2 text-2xl font-semibold text-zinc-50">{value}</p>
+      <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-zinc-50">{value}</p>
     </div>
   );
 }
@@ -57,17 +57,17 @@ async function OverviewContent() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+        <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
           <h2 className="mb-3 text-sm font-semibold text-zinc-200">Tipuri de fișiere</h2>
           <FileTypesChart data={fileTypes} />
         </section>
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+        <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
           <h2 className="mb-3 text-sm font-semibold text-zinc-200">Uploads (30 zile)</h2>
           <UploadsChart data={uploads} />
         </section>
       </div>
 
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+      <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-200">Accesări useri (30 zile)</h2>
         <LoginsChart data={logins} />
       </section>

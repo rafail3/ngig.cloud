@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { File as FileIcon } from "lucide-react";
 import { useSuggested } from "./useDriveData";
+import { FileTypeIcon } from "./FileTypeIcon";
 import { useFilter } from "./FilterProvider";
 import { PreviewModal, type PreviewFile } from "./PreviewModal";
 import { getDownloadUrlAction } from "@/app/drive-actions";
@@ -31,10 +31,8 @@ export function SuggestedFiles() {
   }
 
   return (
-    <section className="mb-6 border-b border-zinc-800 pb-6">
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-        Fișiere sugerate
-      </h2>
+    <section className="mb-6 border-b border-zinc-900 pb-6">
+      <h2 className="mb-3 text-sm font-medium text-zinc-400">Fișiere sugerate</h2>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {data.map((f) => (
           <button
@@ -44,12 +42,14 @@ export function SuggestedFiles() {
             // Prevent the browser's double-click text selection on the tile.
             onMouseDown={(e) => e.preventDefault()}
             title={f.name}
-            className="flex min-w-0 select-none flex-col gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 text-left outline-none transition hover:border-zinc-700 hover:bg-zinc-900/70 focus-visible:ring-2 focus-visible:ring-indigo-400/50"
+            className="flex min-w-0 select-none flex-col gap-2.5 rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-3 text-left outline-none transition hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900/70 focus-visible:ring-2 focus-visible:ring-indigo-400/50"
           >
-            <FileIcon className="h-5 w-5 shrink-0 text-indigo-400" />
-            <span className="min-w-0 truncate text-sm text-zinc-200">{f.name}</span>
-            <span className="truncate text-xs text-zinc-500">
-              {fileTypeShort(f.mimeType ?? "", f.name)} · {formatBytes(f.size)}
+            <FileTypeIcon name={f.name} mime={f.mimeType} size="sm" />
+            <span className="min-w-0 truncate text-[13px] font-medium text-zinc-200">
+              {f.name}
+            </span>
+            <span className="-mt-1.5 truncate text-[11px] text-zinc-500">
+              {fileTypeShort(f.name, f.mimeType)} · {formatBytes(f.size)}
             </span>
           </button>
         ))}

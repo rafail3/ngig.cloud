@@ -13,8 +13,8 @@ async function UsersContent() {
   const users = await listUsers();
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-        Total ({users.length})
+      <h2 className="text-sm font-medium text-zinc-400">
+        Total <span className="tabular-nums text-zinc-500">({users.length})</span>
       </h2>
       <UsersTable users={users} />
     </section>

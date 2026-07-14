@@ -43,7 +43,7 @@ export function RenameModal({
     <ModalShell onClose={onClose}>
       <form onSubmit={submit}>
         <h3 className="text-base font-semibold text-zinc-100">{title}</h3>
-        <div className="mt-3 flex items-stretch rounded-xl border border-zinc-50/10 bg-zinc-50/5 transition focus-within:border-indigo-400/60 focus-within:ring-1 focus-within:ring-indigo-400/40">
+        <div className="mt-3 flex items-stretch rounded-xl border border-zinc-800 bg-zinc-950/50 transition focus-within:border-indigo-400/60 focus-within:ring-1 focus-within:ring-indigo-400/40">
           <input
             autoFocus
             value={name}
@@ -67,7 +67,7 @@ export function RenameModal({
           <button
             type="submit"
             disabled={busy || !name.trim()}
-            className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
+            className="rounded-lg bg-indigo-500 hover:bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition disabled:opacity-60"
           >
             {busy ? "Se salvează…" : "Salvează"}
           </button>

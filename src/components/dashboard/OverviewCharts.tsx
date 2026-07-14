@@ -16,7 +16,9 @@ import {
 import type { FileType, UploadDay, LoginDay } from "@/server/admin/stats";
 import { formatDateShort as shortDay } from "@/lib/format-date";
 
-const COLORS = ["#6366f1", "#8b5cf6", "#d946ef", "#22d3ee", "#34d399", "#f59e0b", "#f43f5e"];
+// Brand-aligned categorical palette: electric blue first, then sky/emerald/
+// amber/green/red — mirrors the FileTypeIcon hues on the app side.
+const COLORS = ["#3b82f6", "#0ea5e9", "#10b981", "#f59e0b", "#22c55e", "#ef4444", "#a1a1aa"];
 
 const CATEGORY_LABEL: Record<string, string> = {
   image: "Imagini",
@@ -164,7 +166,7 @@ export function UploadsChart({ data }: { data: UploadDay[] }) {
   return (
     <TimeAreaChart
       data={data}
-      color="#818cf8"
+      color="#60a5fa"
       gradientId="up"
       emptyText="Niciun upload în perioada selectată."
     />

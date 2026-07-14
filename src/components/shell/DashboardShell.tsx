@@ -14,13 +14,13 @@ import {
   LogOut,
   Menu,
   ChevronDown,
-  Mail,
   ShieldCheck,
 } from "lucide-react";
 import { dashboardSignOut } from "@/app/dashboard/actions";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useClickOutside } from "@/lib/useClickOutside";
+import { Avatar } from "./Avatar";
 
 type ShellUser = { username: string; email: string };
 
@@ -35,12 +35,12 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { href: "/", label: "Overview", icon: <LayoutDashboard className="h-5 w-5" /> },
-  { href: "/invites", label: "Invite codes", icon: <Ticket className="h-5 w-5" /> },
-  { href: "/invite-requests", label: "Cereri invitații", icon: <Inbox className="h-5 w-5" /> },
-  { href: "/users", label: "Useri", icon: <Users className="h-5 w-5" /> },
-  { href: "/announcements", label: "Anunțuri", icon: <Megaphone className="h-5 w-5" /> },
-  { href: "/settings", label: "Setări", icon: <Settings className="h-5 w-5" /> },
+  { href: "/", label: "Overview", icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
+  { href: "/invites", label: "Invite codes", icon: <Ticket className="h-[18px] w-[18px]" /> },
+  { href: "/invite-requests", label: "Cereri invitații", icon: <Inbox className="h-[18px] w-[18px]" /> },
+  { href: "/users", label: "Useri", icon: <Users className="h-[18px] w-[18px]" /> },
+  { href: "/announcements", label: "Anunțuri", icon: <Megaphone className="h-[18px] w-[18px]" /> },
+  { href: "/settings", label: "Setări", icon: <Settings className="h-[18px] w-[18px]" /> },
 ];
 
 export function DashboardShell({
@@ -59,13 +59,16 @@ export function DashboardShell({
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
       {/* ===== Top navbar ===== */}
-      <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/95 px-3 backdrop-blur sm:px-5">
+      <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/90 px-3 backdrop-blur-md sm:px-5">
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <button
             type="button"
             onClick={() => setSidebarOpen((v) => !v)}
             aria-label="Meniu"
-            className="-ml-1 rounded-md p-2 text-zinc-300 hover:bg-zinc-900 md:hidden"
+            aria-expanded={sidebarOpen}
+            className={`-ml-1 rounded-lg p-2 transition-colors md:hidden ${
+              sidebarOpen ? "bg-zinc-900 text-zinc-50" : "text-zinc-300 hover:bg-zinc-900"
+            }`}
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -90,55 +93,68 @@ export function DashboardShell({
               className="block h-8 w-auto shrink-0 dark:hidden sm:h-10"
             />
           </Link>
-          <span className="hidden rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300 sm:inline">
+          <span className="hidden rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300 sm:inline">
             admin
           </span>
         </div>
 
-        {/* right: theme toggle + user menu + logout */}
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+        {/* right: notifications + theme + user menu (logout lives inside) */}
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
           <NotificationBell />
           <ThemeToggle />
           <div ref={menuRef} className="relative">
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
-              className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-50"
+              aria-expanded={menuOpen}
+              className={`flex items-center gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-sm transition-colors ${
+                menuOpen
+                  ? "bg-zinc-900 text-zinc-50"
+                  : "text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50"
+              }`}
             >
-              <span className="max-w-[80px] truncate font-medium sm:max-w-[120px]">{user.username}</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+              <Avatar username={user.username} />
+              <span className="hidden max-w-[120px] truncate font-medium sm:inline">
+                {user.username}
+              </span>
+              <ChevronDown className={`h-4 w-4 text-zinc-500 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
             </button>
 
             {menuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
-                  <div className="border-b border-zinc-800 px-4 py-3">
-                    <p className="truncate text-sm font-semibold text-zinc-100">{user.username}</p>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-zinc-400">
-                      <Mail className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{user.email}</span>
-                    </p>
-                  </div>
-                  <div className="px-4 py-3 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-zinc-400">
-                        <ShieldCheck className="h-4 w-4" /> Rol
+              <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl shadow-black/30">
+                <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3.5">
+                  <Avatar username={user.username} className="h-9 w-9 text-sm" />
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-zinc-100">
+                      {user.username}
+                      <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300">
+                        admin
                       </span>
-                      <span className="font-medium text-zinc-200">admin</span>
-                    </div>
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-zinc-500">{user.email}</p>
                   </div>
                 </div>
+                <div className="p-1.5">
+                  <div className="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm">
+                    <span className="flex items-center gap-2.5 text-zinc-400">
+                      <ShieldCheck className="h-4 w-4" /> Rol
+                    </span>
+                    <span className="font-medium text-zinc-200">admin</span>
+                  </div>
+                </div>
+                <div className="border-t border-zinc-800 p-1.5">
+                  <form action={dashboardSignOut}>
+                    <button
+                      type="submit"
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-zinc-300 transition-colors hover:bg-red-500/10 hover:text-red-300"
+                    >
+                      <LogOut className="h-4 w-4" /> Deconectează-te
+                    </button>
+                  </form>
+                </div>
+              </div>
             )}
           </div>
-
-          <form action={dashboardSignOut}>
-            <button
-              type="submit"
-              className="flex items-center gap-2 rounded-md border border-zinc-800 px-2.5 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
-          </form>
         </div>
       </header>
 
@@ -149,7 +165,10 @@ export function DashboardShell({
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <nav className="flex-1 space-y-1 px-3 py-4">
+          <nav className="flex-1 space-y-0.5 px-3 py-4">
+            <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
+              Administrare
+            </p>
             {NAV.map((item) => {
               const active = item.href === pathname;
               if (item.soon) {
@@ -172,13 +191,18 @@ export function DashboardShell({
                   key={item.label}
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                     active
-                      ? "bg-zinc-900 text-zinc-50"
-                      : "text-zinc-400 hover:bg-zinc-900/60 hover:text-zinc-100"
+                      ? "bg-indigo-500/10 font-medium text-indigo-300"
+                      : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
                   }`}
                 >
-                  {item.icon}
+                  {active && (
+                    <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-indigo-400" />
+                  )}
+                  <span className={active ? "text-indigo-400" : "text-zinc-500 transition-colors group-hover:text-zinc-300"}>
+                    {item.icon}
+                  </span>
                   <span>{item.label}</span>
                 </Link>
               );

@@ -26,7 +26,7 @@ export default function AnnouncementsPage() {
       <AnnouncementComposer />
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Istoric</h2>
+        <h2 className="text-sm font-medium text-zinc-400">Istoric</h2>
         <Suspense fallback={<ListSkeleton />}>
           <HistoryContent />
         </Suspense>

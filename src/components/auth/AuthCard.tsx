@@ -19,7 +19,7 @@ export function AuthCard({
       {/* aurora background */}
       <div className="pointer-events-none absolute -left-24 -top-24 h-[32rem] w-[32rem] rounded-full bg-indigo-600/30 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-32 -right-24 h-[34rem] w-[34rem] rounded-full bg-violet-700/25 blur-[130px]" />
-      <div className="pointer-events-none absolute left-1/2 top-1/3 h-[24rem] w-[24rem] -translate-x-1/2 rounded-full bg-fuchsia-600/10 blur-[120px]" />
+      <div className="pointer-events-none absolute left-1/2 top-1/3 h-[24rem] w-[24rem] -translate-x-1/2 rounded-full bg-sky-600/10 blur-[120px]" />
 
       {/* glass card */}
       <div className="relative w-full max-w-sm rounded-3xl border border-zinc-50/10 bg-zinc-50/5 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-md sm:p-7">
