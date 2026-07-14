@@ -12,7 +12,7 @@ import { FolderInfoButton } from "@/components/drive/FolderInfoButton";
 import { DriveDndProvider, CurrentFolderDropZone } from "@/components/drive/DriveDndProvider";
 import { SelectionProvider, type SelItem } from "@/components/drive/SelectionProvider";
 import { SelectionBar } from "@/components/drive/SelectionBar";
-import { FilterProvider } from "@/components/drive/FilterProvider";
+import { FilterProvider, useFilter } from "@/components/drive/FilterProvider";
 import { FilterBar } from "@/components/drive/FilterBar";
 import { DriveResults } from "@/components/drive/SearchResults";
 import { DriveSkeleton } from "@/components/drive/DriveSkeleton";
@@ -69,10 +69,10 @@ export function DriveBoard() {
       }))}
     >
       {/* Search + filters stick to the top (just under the navbar) as you
-          scroll, with a soft fade into the content below. */}
-      <div className="sticky top-16 z-30 -mx-4 bg-zinc-950 px-4 pb-3 pt-3 sm:-mx-6 sm:px-6">
+          scroll. Solid background + hairline so scrolled content tucks cleanly
+          underneath without fading the content at rest. */}
+      <div className="sticky top-16 z-30 -mx-4 mb-6 border-b border-zinc-900 bg-zinc-950 px-4 pb-3 pt-3 sm:-mx-6 sm:px-6">
         <FilterBar />
-        <div className="pointer-events-none absolute inset-x-0 top-full h-6 bg-gradient-to-b from-zinc-950 to-transparent" />
       </div>
 
       <SelectionProvider items={selItems} folderId={folderId}>
@@ -103,9 +103,11 @@ export function DriveBoard() {
             <StorageMeter used={used} quota={quota} />
           </div>
 
-          <div className="mb-6">
-            <UploadArea folderId={folderId} />
-          </div>
+          <HiddenWhileSearching>
+            <div className="mb-6">
+              <UploadArea folderId={folderId} />
+            </div>
+          </HiddenWhileSearching>
 
           {/* Suggested (recent) files — only on the home root, hidden while
               searching/filtering. */}
@@ -135,6 +137,15 @@ export function DriveBoard() {
       </SelectionProvider>
     </FilterProvider>
   );
+}
+
+// Hides its children while a search/filter is active, so the results view has
+// the whole stage (no upload zone above the matches). Must live below
+// <FilterProvider>, hence a child component instead of a check in DriveBoard.
+function HiddenWhileSearching({ children }: { children: React.ReactNode }) {
+  const { active } = useFilter();
+  if (active) return null;
+  return <>{children}</>;
 }
 
 // Romanian count: "1 folder", "3 foldere", "21 de foldere".

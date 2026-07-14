@@ -46,7 +46,7 @@ export function ProfileTabs({
       <div
         role="tablist"
         aria-label="Secțiuni profil"
-        className="flex gap-6 border-b border-zinc-900"
+        className="flex gap-6 overflow-x-auto border-b border-zinc-900"
       >
         {TABS.map((t) => {
           const on = t.id === active;
@@ -60,7 +60,7 @@ export function ProfileTabs({
               aria-selected={on}
               aria-controls={`panel-${t.id}`}
               onClick={() => select(t.id)}
-              className={`relative flex items-center gap-2 pb-3 pt-1 text-sm outline-none transition-colors focus-visible:text-zinc-50 ${
+              className={`relative flex shrink-0 items-center gap-2 whitespace-nowrap pb-3 pt-1 text-sm outline-none transition-colors focus-visible:text-zinc-50 ${
                 on ? "font-medium text-zinc-50" : "text-zinc-500 hover:text-zinc-300"
               }`}
             >

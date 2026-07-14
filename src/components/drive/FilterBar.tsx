@@ -88,7 +88,7 @@ export function FilterBar() {
     f.types.size + (f.date !== "any" ? 1 : 0) + (f.size !== "any" ? 1 : 0);
 
   return (
-    <div data-keep-selection className="mb-6">
+    <div data-keep-selection>
       <div className="flex items-center gap-2.5">
         {/* Name search — fuzzy, instant. Quiet field that sharpens on focus. */}
         <div className="relative min-w-0 flex-1">
