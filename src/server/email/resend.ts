@@ -1,6 +1,6 @@
 import "server-only";
 import { Resend } from "resend";
-import { dashboardOrigin } from "@/lib/dashboard";
+import { appOrigin, dashboardOrigin } from "@/lib/dashboard";
 
 // FROM must be on a Resend-verified domain (ngig.cloud). INVITE_REQUEST_TO is
 // the inbox that receives invite requests (the owner's Gmail).
@@ -287,4 +287,188 @@ export async function sendEmailActivation(input: {
   });
 
   if (error) throw new Error("Nu am putut trimite emailul de activare.");
+}
+
+// Category labels for the emails (mirror TICKET_CATEGORIES on the app side).
+const TICKET_CATEGORY_LABEL: Record<string, string> = {
+  account: "Cont și autentificare",
+  storage: "Stocare și fișiere",
+  sharing: "Partajare și linkuri",
+  billing: "Facturare și abonament",
+  performance: "Performanță și erori",
+  security: "Securitate și confidențialitate",
+  feature: "Cerere funcționalitate",
+  bug: "Raportare bug",
+  feedback: "Feedback și sugestii",
+  other: "Altele",
+};
+
+function ticketCategoryLabel(category: string): string {
+  return TICKET_CATEGORY_LABEL[category] ?? category;
+}
+
+// Confirmation sent TO the user right after they open a support ticket.
+// Best-effort — its failure must not fail ticket creation.
+export async function sendTicketOpenedUser(input: {
+  email: string;
+  subject: string;
+  category: string;
+  ticketId: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const url = `${appOrigin()}/support/${input.ticketId}`;
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Salut,<br/>Am primit ticketul tău de suport. Îți răspundem cât putem de repede.
+    </p>
+    ${row("Subiect", escapeHtml(input.subject))}
+    ${row("Categorie", escapeHtml(ticketCategoryLabel(input.category)))}
+    <p style="margin:16px 0 0"></p>
+    ${button(url, "Vezi ticketul")}
+    <p style="margin:16px 0 0;color:#71717a;font-size:12px">Vei primi o notificare când îți răspundem.</p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: `Ticket deschis: ${input.subject} — ngig.cloud`,
+    text: [
+      "Salut,",
+      "Am primit ticketul tău de suport. Îți răspundem cât putem de repede.",
+      "",
+      `Subiect: ${input.subject}`,
+      `Categorie: ${ticketCategoryLabel(input.category)}`,
+      "",
+      `Vezi ticketul: ${url}`,
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Ticket deschis", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite confirmarea.");
+}
+
+// Alert sent TO the support inbox (the owner) when a new ticket is opened.
+export async function sendTicketOpenedAdmin(input: {
+  username: string;
+  subject: string;
+  category: string;
+  priority: string;
+  message: string;
+  ticketId: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const priorityLabel =
+    input.priority === "high" ? "Mare" : input.priority === "low" ? "Scăzută" : "Medie";
+  const url = `${dashboardOrigin()}/tickets/${input.ticketId}`;
+  const inner = `
+    ${row("Utilizator", escapeHtml(input.username))}
+    ${row("Subiect", escapeHtml(input.subject))}
+    ${row("Categorie", escapeHtml(ticketCategoryLabel(input.category)))}
+    ${row("Prioritate", priorityLabel)}
+    <p style="margin:16px 0 4px;color:#fafafa;font-size:14px;font-weight:600">Mesaj</p>
+    <p style="margin:0 0 20px;color:#a1a1aa;font-size:14px;white-space:pre-wrap">${escapeHtml(input.message)}</p>
+    ${button(url, "Deschide în dashboard")}
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: INVITE_TO,
+    subject: `Ticket nou: ${input.subject} — ngig.cloud`,
+    text: [
+      `Utilizator: ${input.username}`,
+      `Subiect: ${input.subject}`,
+      `Categorie: ${ticketCategoryLabel(input.category)}`,
+      `Prioritate: ${priorityLabel}`,
+      "",
+      "Mesaj:",
+      input.message,
+      "",
+      `Deschide în dashboard: ${url}`,
+    ].join("\n"),
+    html: shell("Ticket nou de suport", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite alerta.");
+}
+
+// Sent TO the support inbox (the owner) when a ticket is closed, so the admin
+// side has an email trail for both ends of a ticket's life.
+export async function sendTicketClosedAdmin(input: {
+  username: string;
+  subject: string;
+  ticketId: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const url = `${dashboardOrigin()}/tickets/${input.ticketId}`;
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Ticketul <strong style="color:#fafafa">„${escapeHtml(input.subject)}”</strong>
+      al utilizatorului <strong style="color:#fafafa">${escapeHtml(input.username)}</strong> a fost închis.
+    </p>
+    ${button(url, "Deschide în dashboard")}
+    <p style="margin:16px 0 0;color:#71717a;font-size:12px">Utilizatorul îl poate redeschide răspunzând la el.</p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: INVITE_TO,
+    subject: `Ticket închis: ${input.subject} — ngig.cloud`,
+    text: [
+      `Ticketul „${input.subject}” al utilizatorului ${input.username} a fost închis.`,
+      "",
+      `Deschide în dashboard: ${url}`,
+    ].join("\n"),
+    html: shell("Ticket închis", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite notificarea.");
+}
+
+// Sent TO the user when their support ticket is closed.
+// Best-effort — its failure must not fail the close action.
+export async function sendTicketClosed(input: {
+  email: string;
+  subject: string;
+  ticketId: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const url = `${appOrigin()}/support/${input.ticketId}`;
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Salut,<br/>Ticketul tău <strong style="color:#fafafa">„${escapeHtml(input.subject)}”</strong> a fost închis.
+    </p>
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Dacă mai ai nevoie de ajutor, îl poți redeschide oricând răspunzând la el.
+    </p>
+    ${button(url, "Vezi ticketul")}
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: `Ticket închis: ${input.subject} — ngig.cloud`,
+    text: [
+      "Salut,",
+      `Ticketul tău „${input.subject}” a fost închis.`,
+      "",
+      "Dacă mai ai nevoie de ajutor, îl poți redeschide răspunzând la el.",
+      "",
+      `Vezi ticketul: ${url}`,
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Ticket închis", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite notificarea.");
 }

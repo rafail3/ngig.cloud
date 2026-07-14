@@ -190,6 +190,22 @@ html.light {
 }
 
 /* ===========================================================================
+   Support chat surface. A faint dot grid sets the message area apart from the
+   page — the messaging-app cue. Both tokens come from the zinc scale, which the
+   theme remap mirrors, so the dots stay equally subtle in light and dark
+   (dark: #27272a on near-black; light: light-gray on white).
+   =========================================================================== */
+.chat-surface {
+  background-color: var(--color-zinc-950);
+  background-image: radial-gradient(
+    circle,
+    var(--color-zinc-800) 1px,
+    transparent 1.2px
+  );
+  background-size: 20px 20px;
+}
+
+/* ===========================================================================
    Code preview (Shiki). The viewer renders with two themes — VS Code's
    Light+/Dark+ — and we pick per app theme via the `.dark` class. A CSS counter
    on each `.line` gives a VS Code-style line-number gutter. Backgrounds come

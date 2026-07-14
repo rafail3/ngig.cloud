@@ -52,6 +52,14 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultTitle: "🔓 Blocare expirată", defaultBody: "Blocarea contului tău a expirat. Contul e din nou activ.", vars: [] },
   { key: "suggestion", label: "Sugestie personalizată", description: "Recomandare privată generată de motorul de activitate (ex: eliberează spațiu, organizează fișiere). Calculată local, doar din datele tale.", audience: "user",
     defaultTitle: "💡 Sugestie pentru tine", defaultBody: "{tip}", vars: ["tip"] },
+  { key: "ticket_created", label: "Ticket deschis (confirmare)", description: "Confirmă utilizatorului că ticketul lui de suport a fost înregistrat, imediat după ce îl deschide.", audience: "user",
+    defaultTitle: "📨 Ai deschis un ticket", defaultBody: "Am înregistrat ticketul „{subiect}” ({categorie}). Îți răspundem cât putem de repede.", vars: ["subiect", "categorie"] },
+  { key: "ticket_reply", label: "Răspuns la ticket", description: "Anunță utilizatorul când un administrator răspunde la unul dintre ticketele lui de suport.", audience: "user",
+    defaultTitle: "💬 Răspuns la ticketul tău", defaultBody: "Ai un răspuns nou la ticketul „{subiect}”.", vars: ["subiect"] },
+  { key: "ticket_closed", label: "Ticket închis", description: "Anunță utilizatorul când ticketul lui de suport a fost închis.", audience: "user",
+    defaultTitle: "✅ Ticket închis", defaultBody: "Ticketul „{subiect}” a fost închis. Îl poți redeschide oricând răspunzând.", vars: ["subiect"] },
+  { key: "ticket_reopened", label: "Ticket redeschis", description: "Anunță utilizatorul când ticketul lui de suport a fost redeschis.", audience: "user",
+    defaultTitle: "🔄 Ticket redeschis", defaultBody: "Ticketul „{subiect}” a fost redeschis.", vars: ["subiect"] },
   // --- Admin events --------------------------------------------------------
   { key: "invite_request", label: "Cerere de invitație", description: "Anunță administratorii când cineva cere o invitație din formularul public.", audience: "admin",
     defaultTitle: "📩 Cerere nouă de invitație", defaultBody: "{nume} ({email}) a cerut o invitație.", vars: ["nume", "email"] },
@@ -65,6 +73,12 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultTitle: "🧹 Curățare coș", defaultBody: "{total} fișiere șterse definitiv din coșurile a {utilizatori} utilizatori.", vars: ["total", "utilizatori"] },
   { key: "block_expired_admin", label: "Blocare expirată (admin)", description: "Anunță administratorii când blocarea temporară a unui utilizator expiră.", audience: "admin",
     defaultTitle: "⏰ Blocare expirată", defaultBody: "Blocarea utilizatorului {utilizator} a expirat. Contul e din nou activ.", vars: ["utilizator"] },
+  { key: "ticket_opened", label: "Ticket nou de suport", description: "Anunță administratorii când un utilizator deschide un ticket nou de suport.", audience: "admin",
+    defaultTitle: "📨 Ticket nou de suport", defaultBody: "{utilizator} a deschis un ticket: „{subiect}” ({categorie}).", vars: ["utilizator", "subiect", "categorie"] },
+  { key: "ticket_user_reply", label: "Răspuns pe ticket (de la user)", description: "Anunță administratorii când un utilizator răspunde la un ticket de suport.", audience: "admin",
+    defaultTitle: "💬 Răspuns nou pe ticket", defaultBody: "{utilizator} a răspuns la ticketul „{subiect}”.", vars: ["utilizator", "subiect"] },
+  { key: "ticket_closed_user", label: "Ticket închis de utilizator", description: "Anunță administratorii când un utilizator își închide singur ticketul de suport.", audience: "admin",
+    defaultTitle: "✅ Ticket închis de utilizator", defaultBody: "{utilizator} a închis ticketul „{subiect}”.", vars: ["utilizator", "subiect"] },
 ];
 
 // Actions that COULD get a notification but don't have one wired yet. Empty for
