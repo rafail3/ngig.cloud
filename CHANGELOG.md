@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.12.0](https://github.com/rafail3/ngig.cloud/compare/v2.11.0...v2.12.0) (2026-07-14)
+
+
+### Features
+
+* **insights:** private per-user behavior engine ([1b0c3a4](https://github.com/rafail3/ngig.cloud/commit/1b0c3a477b13959f28c90bdb1f3e42668c5f941c))
+* **insights:** private per-user behavior engine ([7d50a7c](https://github.com/rafail3/ngig.cloud/commit/7d50a7c2e6d4b1a1bf85a0bbbf53774405595aae))
+* **insights:** richer profile with charts + full activity logging ([9a7307e](https://github.com/rafail3/ngig.cloud/commit/9a7307ebba6210e15759a7f9db4778f1b6336c3f))
+
 ## [2.11.0](https://github.com/rafail3/ngig.cloud/compare/v2.10.0...v2.11.0) (2026-07-14)
 
 
