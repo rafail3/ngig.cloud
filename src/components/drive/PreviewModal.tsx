@@ -252,7 +252,7 @@ export function PreviewModal({
                   type="button"
                   onClick={save}
                   disabled={saving || editContent === null}
-                  className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-indigo-500 to-violet-500 px-2.5 py-1.5 text-xs font-medium text-white transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
+                  className="flex items-center gap-1.5 rounded-md bg-indigo-500 hover:bg-indigo-400 px-2.5 py-1.5 text-xs font-medium text-white transition disabled:opacity-60"
                 >
                   {saving ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -401,7 +401,7 @@ export function PreviewModal({
                   <button
                     type="button"
                     onClick={onDownload}
-                    className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:from-indigo-400 hover:to-violet-400"
+                    className="flex items-center gap-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition"
                   >
                     <Download className="h-4 w-4" /> Descarcă
                   </button>

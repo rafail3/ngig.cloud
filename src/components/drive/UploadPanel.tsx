@@ -70,7 +70,7 @@ function Card({
         <>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-[width] duration-200"
+              className="h-full rounded-full bg-indigo-500 transition-[width] duration-200"
               style={{ width: `${pct}%` }}
             />
           </div>

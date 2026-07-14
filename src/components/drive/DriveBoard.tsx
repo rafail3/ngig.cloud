@@ -36,7 +36,6 @@ export function DriveBoard() {
 
   const { folders, files, breadcrumb, used, quota } = data;
 
-  const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
   const title =
     breadcrumb.length > 0
       ? breadcrumb[breadcrumb.length - 1].name
@@ -76,35 +75,32 @@ export function DriveBoard() {
         <div className="pointer-events-none absolute inset-x-0 top-full h-6 bg-gradient-to-b from-zinc-950 to-transparent" />
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
-          {title}
-        </h1>
-        {folderId && <FolderInfoButton folderId={folderId} name={title} />}
-      </div>
-
       <SelectionProvider items={selItems} folderId={folderId}>
         <DriveDndProvider folderId={folderId}>
-          <div className="mb-4">
-            <Breadcrumb crumbs={breadcrumb} />
-          </div>
+          {/* Breadcrumb only inside folders — the root needs no path. */}
+          {breadcrumb.length > 0 && (
+            <div className="mb-2">
+              <Breadcrumb crumbs={breadcrumb} />
+            </div>
+          )}
 
-          {/* storage usage */}
-          <div className="mb-6">
-            <div className="mb-1.5 flex justify-between text-sm text-zinc-400">
-              <span>Spațiu folosit</span>
-              <span>
-                {quota
-                  ? `${formatBytes(used)} / ${formatBytes(quota)} (${pct}%)`
-                  : `${formatBytes(used)} folosiți`}
-              </span>
+          {/* Page header: title + contents summary, with a compact storage
+              meter on the right (the drawer holds the detailed one). */}
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-3">
+                <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
+                  {title}
+                </h1>
+                {folderId && <FolderInfoButton folderId={folderId} name={title} />}
+              </div>
+              <p className="mt-1 text-sm text-zinc-500">
+                {roCount(folders.length, "folder", "foldere")}
+                <span aria-hidden="true"> · </span>
+                {roCount(files.length, "fișier", "fișiere")}
+              </p>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-900">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all"
-                style={{ width: `${quota ? pct : 100}%`, opacity: quota ? 1 : 0.3 }}
-              />
-            </div>
+            <StorageMeter used={used} quota={quota} />
           </div>
 
           <div className="mb-6">
@@ -125,7 +121,7 @@ export function DriveBoard() {
                   collapse — the source of the navigation flash. */}
               <div className="flex flex-col gap-4">
                 {folderId === null && !empty && (
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                  <h2 className="text-sm font-medium text-zinc-400">
                     Folderele și fișierele tale
                   </h2>
                 )}
@@ -138,5 +134,36 @@ export function DriveBoard() {
         </DriveDndProvider>
       </SelectionProvider>
     </FilterProvider>
+  );
+}
+
+// Romanian count: "1 folder", "3 foldere", "21 de foldere".
+function roCount(n: number, one: string, many: string): string {
+  if (n === 1) return `1 ${one}`;
+  const needsDe = n !== 0 && !(n % 100 >= 1 && n % 100 <= 19);
+  return `${n} ${needsDe ? "de " : ""}${many}`;
+}
+
+// Compact storage read-out for the page header — full width on mobile, a
+// slim block on the right on larger screens.
+function StorageMeter({ used, quota }: { used: number; quota: number | null }) {
+  const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
+  return (
+    <div className="w-full shrink-0 sm:w-56">
+      <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
+        <span className="font-medium text-zinc-400">Spațiu folosit</span>
+        <span className="tabular-nums text-zinc-500">
+          {quota
+            ? `${formatBytes(used)} / ${formatBytes(quota)}`
+            : `${formatBytes(used)}`}
+        </span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-900">
+        <div
+          className="h-full rounded-full bg-indigo-500 transition-all"
+          style={{ width: `${quota ? pct : 100}%`, opacity: quota ? 1 : 0.3 }}
+        />
+      </div>
+    </div>
   );
 }

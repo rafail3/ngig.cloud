@@ -90,34 +90,27 @@ export function FilterBar() {
   return (
     <div data-keep-selection className="mb-6">
       <div className="flex items-center gap-2.5">
-        {/* Name search — fuzzy, instant. Rounded pill with a soft, faded glow
-            that warms up on focus. */}
-        <div className="group relative min-w-0 flex-1">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -inset-1.5 rounded-full bg-gradient-to-r from-indigo-500/40 via-violet-500/40 to-fuchsia-500/30 opacity-40 blur-lg transition-opacity duration-300 group-focus-within:opacity-80"
+        {/* Name search — fuzzy, instant. Quiet field that sharpens on focus. */}
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <input
+            type="text"
+            value={f.query}
+            onChange={(e) => f.setQuery(e.target.value)}
+            placeholder="Caută pe tot cloud-ul…"
+            aria-label="Caută fișiere și foldere pe tot cloud-ul"
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-900/60 py-2.5 pl-10 pr-10 text-sm text-zinc-100 placeholder:text-zinc-500 transition focus:border-indigo-500/60 focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/15"
           />
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-            <input
-              type="text"
-              value={f.query}
-              onChange={(e) => f.setQuery(e.target.value)}
-              placeholder="Caută pe tot cloud-ul…"
-              aria-label="Caută fișiere și foldere pe tot cloud-ul"
-              className="w-full rounded-full border border-zinc-800 bg-zinc-900/90 py-3 pl-11 pr-10 text-sm text-zinc-100 shadow-sm placeholder:text-zinc-500 transition focus:border-indigo-500/70 focus:outline-none"
-            />
-            {f.query && (
-              <button
-                type="button"
-                onClick={() => f.setQuery("")}
-                aria-label="Șterge căutarea"
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-zinc-500 transition hover:text-zinc-200"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          {f.query && (
+            <button
+              type="button"
+              onClick={() => f.setQuery("")}
+              aria-label="Șterge căutarea"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-zinc-500 transition hover:text-zinc-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* Filters toggle — the Tip/Dată/Mărime controls live behind this. */}
@@ -125,10 +118,10 @@ export function FilterBar() {
           type="button"
           onClick={toggleFilters}
           aria-expanded={filtersOpen}
-          className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-3 text-sm transition ${
+          className={`flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm transition ${
             filtersOpen || activeFilters > 0
-              ? "border-indigo-500/60 bg-indigo-500/10 text-zinc-100"
-              : "border-zinc-800 bg-zinc-900/90 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100"
+              ? "border-indigo-500/50 bg-indigo-500/10 text-zinc-100"
+              : "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100"
           }`}
         >
           <SlidersHorizontal className="h-4 w-4 text-zinc-400" />
@@ -298,9 +291,9 @@ function Dropdown({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex w-full items-center justify-between gap-1.5 rounded-full border px-3.5 py-2 text-sm transition ${
+        className={`flex w-full items-center justify-between gap-1.5 rounded-lg border px-3.5 py-2 text-sm transition ${
           active
-            ? "border-indigo-500/60 bg-indigo-500/10 text-zinc-100"
+            ? "border-indigo-500/50 bg-indigo-500/10 text-zinc-100"
             : "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100"
         }`}
       >

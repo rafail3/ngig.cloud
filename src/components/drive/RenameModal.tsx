@@ -67,7 +67,7 @@ export function RenameModal({
           <button
             type="submit"
             disabled={busy || !name.trim()}
-            className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
+            className="rounded-lg bg-indigo-500 hover:bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition disabled:opacity-60"
           >
             {busy ? "Se salvează…" : "Salvează"}
           </button>
