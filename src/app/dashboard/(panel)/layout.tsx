@@ -4,6 +4,7 @@ import { DashboardShell } from "@/components/shell/DashboardShell";
 import { DashboardShellSkeleton } from "@/components/shell/DashboardShellSkeleton";
 import { Forbidden } from "@/components/shell/Forbidden";
 import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
+import { countTicketsNeedingReply } from "@/server/tickets/service";
 
 // Every dashboard data source — so any admin page/action updates live.
 const DASHBOARD_TABLES = [
@@ -52,8 +53,15 @@ async function Shell({
       return <Forbidden />;
     }
 
+    // Nav badge: tickets whose last word came from the user. Realtime refreshes
+    // this layout, so the count stays live without polling.
+    const ticketsWaiting = await countTicketsNeedingReply();
+
     return (
-      <DashboardShell user={{ username: profile.username ?? "", email }}>
+      <DashboardShell
+        user={{ username: profile.username ?? "", email }}
+        badges={{ tickets: ticketsWaiting }}
+      >
         <RealtimeRefresh tables={DASHBOARD_TABLES} />
         {children}
         {modal}

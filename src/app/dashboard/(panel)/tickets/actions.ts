@@ -6,6 +6,7 @@ import {
   closeTicket,
   reopenTicket,
   deleteTicket,
+  setTicketPriority,
 } from "@/server/tickets/service";
 import type { IncomingAttachment } from "@/lib/tickets";
 
@@ -28,6 +29,21 @@ export async function replyAdminAction(input: {
   try {
     await replyAsAdmin(input);
     revalidate(input.ticketId);
+    return { ok: true };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+// Admin triage: the user's pick at creation is only a hint — the admin decides
+// the real priority, and users can't change it after opening the ticket.
+export async function setPriorityAction(
+  id: string,
+  priority: string,
+): Promise<SimpleResult> {
+  try {
+    await setTicketPriority(id, priority);
+    revalidate(id);
     return { ok: true };
   } catch (e) {
     return fail(e);

@@ -52,6 +52,8 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultTitle: "🔓 Blocare expirată", defaultBody: "Blocarea contului tău a expirat. Contul e din nou activ.", vars: [] },
   { key: "suggestion", label: "Sugestie personalizată", description: "Recomandare privată generată de motorul de activitate (ex: eliberează spațiu, organizează fișiere). Calculată local, doar din datele tale.", audience: "user",
     defaultTitle: "💡 Sugestie pentru tine", defaultBody: "{tip}", vars: ["tip"] },
+  { key: "ticket_created", label: "Ticket deschis (confirmare)", description: "Confirmă utilizatorului că ticketul lui de suport a fost înregistrat, imediat după ce îl deschide.", audience: "user",
+    defaultTitle: "📨 Ai deschis un ticket", defaultBody: "Am înregistrat ticketul „{subiect}” ({categorie}). Îți răspundem cât putem de repede.", vars: ["subiect", "categorie"] },
   { key: "ticket_reply", label: "Răspuns la ticket", description: "Anunță utilizatorul când un administrator răspunde la unul dintre ticketele lui de suport.", audience: "user",
     defaultTitle: "💬 Răspuns la ticketul tău", defaultBody: "Ai un răspuns nou la ticketul „{subiect}”.", vars: ["subiect"] },
   { key: "ticket_closed", label: "Ticket închis", description: "Anunță utilizatorul când ticketul lui de suport a fost închis.", audience: "user",

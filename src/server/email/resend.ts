@@ -397,6 +397,41 @@ export async function sendTicketOpenedAdmin(input: {
   if (error) throw new Error("Nu am putut trimite alerta.");
 }
 
+// Sent TO the support inbox (the owner) when a ticket is closed, so the admin
+// side has an email trail for both ends of a ticket's life.
+export async function sendTicketClosedAdmin(input: {
+  username: string;
+  subject: string;
+  ticketId: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const url = `${dashboardOrigin()}/tickets/${input.ticketId}`;
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Ticketul <strong style="color:#fafafa">„${escapeHtml(input.subject)}”</strong>
+      al utilizatorului <strong style="color:#fafafa">${escapeHtml(input.username)}</strong> a fost închis.
+    </p>
+    ${button(url, "Deschide în dashboard")}
+    <p style="margin:16px 0 0;color:#71717a;font-size:12px">Utilizatorul îl poate redeschide răspunzând la el.</p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: INVITE_TO,
+    subject: `Ticket închis: ${input.subject} — ngig.cloud`,
+    text: [
+      `Ticketul „${input.subject}” al utilizatorului ${input.username} a fost închis.`,
+      "",
+      `Deschide în dashboard: ${url}`,
+    ].join("\n"),
+    html: shell("Ticket închis", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite notificarea.");
+}
+
 // Sent TO the user when their support ticket is closed.
 // Best-effort — its failure must not fail the close action.
 export async function sendTicketClosed(input: {

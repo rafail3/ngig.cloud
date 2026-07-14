@@ -163,6 +163,16 @@ export function presignDownload(key: string, filename: string, expiresIn = 600) 
   );
 }
 
+// Presigned GET meant to be RENDERED (an <img>/<video> src), not downloaded —
+// no attachment disposition. Used for support-ticket media previews.
+export function presignInline(key: string, expiresIn = 3600) {
+  return getSignedUrl(
+    client,
+    new GetObjectCommand({ Bucket: bucket, Key: key }),
+    { expiresIn },
+  );
+}
+
 // Server-side copy of an object to a new key (no bytes through us). Our keys are
 // `<owner>/<uuid>` — only URL-safe chars — so CopySource needs no extra encoding.
 export async function copyObject(srcKey: string, destKey: string): Promise<void> {

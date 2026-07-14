@@ -1,17 +1,19 @@
 "use client";
 
 import { useRef } from "react";
-import { Paperclip, X } from "lucide-react";
+import { ImagePlus, X, Film, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/lib/format";
 import {
   TICKET_MAX_ATTACHMENTS,
-  TICKET_MAX_ATTACHMENT_BYTES,
+  TICKET_ACCEPT,
+  checkAttachment,
+  attachmentKind,
 } from "@/lib/tickets";
 
-// Controlled file picker: the parent owns the File[] and uploads them at submit
-// time (see uploadTicketFile). Enforces count + per-file size caps client-side
-// with a clear toast; the server re-checks.
+// Controlled media picker: the parent owns the File[] and uploads them at submit
+// time (see uploadTicketFile). Images and videos only, capped per kind, with a
+// clear toast; the server re-checks everything.
 export function AttachmentPicker({
   files,
   onChange,
@@ -28,8 +30,9 @@ export function AttachmentPicker({
     const incoming = Array.from(picked);
     const next = [...files];
     for (const f of incoming) {
-      if (f.size > TICKET_MAX_ATTACHMENT_BYTES) {
-        toast.error(`„${f.name}” depășește 25 MB.`);
+      const problem = checkAttachment(f);
+      if (problem) {
+        toast.error(problem);
         continue;
       }
       if (next.length >= TICKET_MAX_ATTACHMENTS) {
@@ -53,6 +56,7 @@ export function AttachmentPicker({
         type="file"
         multiple
         hidden
+        accept={TICKET_ACCEPT}
         disabled={disabled}
         onChange={(e) => add(e.target.files)}
       />
@@ -62,8 +66,8 @@ export function AttachmentPicker({
         disabled={disabled || files.length >= TICKET_MAX_ATTACHMENTS}
         className="inline-flex w-fit items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
       >
-        <Paperclip className="h-4 w-4" />
-        Atașează fișiere
+        <ImagePlus className="h-4 w-4" />
+        Adaugă imagini sau video
       </button>
 
       {files.length > 0 && (
@@ -74,7 +78,11 @@ export function AttachmentPicker({
               className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800/70 bg-zinc-900/40 px-2.5 py-1.5"
             >
               <span className="flex min-w-0 items-center gap-2 text-sm">
-                <Paperclip className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                {attachmentKind(f.type) === "video" ? (
+                  <Film className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                ) : (
+                  <ImageIcon className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                )}
                 <span className="truncate text-zinc-200">{f.name}</span>
                 <span className="shrink-0 text-xs tabular-nums text-zinc-500">
                   {formatBytes(f.size)}

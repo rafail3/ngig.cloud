@@ -4,7 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireActiveUser } from "@/server/auth/active-user";
 import { requireAdmin } from "@/server/admin/guard";
-import { presignUpload, presignDownload, deleteObject } from "@/server/storage/b2";
+import {
+  presignUpload,
+  presignDownload,
+  presignInline,
+  deleteObject,
+} from "@/server/storage/b2";
 import {
   notifyUserEvent,
   notifyAdminsEvent,
@@ -13,18 +18,22 @@ import {
   sendTicketOpenedUser,
   sendTicketOpenedAdmin,
   sendTicketClosed,
+  sendTicketClosedAdmin,
 } from "@/server/email/resend";
 import {
   isTicketCategory,
   isTicketPriority,
   categoryLabel,
+  attachmentKind,
   TICKET_MAX_ATTACHMENTS,
-  TICKET_MAX_ATTACHMENT_BYTES,
+  TICKET_MAX_IMAGE_BYTES,
+  TICKET_MAX_VIDEO_BYTES,
   TICKET_MAX_BODY,
   TICKET_MAX_SUBJECT,
   type TicketPriority,
   type TicketStatus,
   type IncomingAttachment,
+  type AttachmentKind,
 } from "@/lib/tickets";
 
 export type TicketRow = {
@@ -50,6 +59,10 @@ export type TicketAttachment = {
   name: string;
   size: number;
   mime_type: string | null;
+  // Media kind + a presigned URL so the thread can preview it inline (no
+  // download round-trip). Null kind = legacy/unknown, rendered as a plain chip.
+  kind: AttachmentKind | null;
+  url: string;
 };
 
 export type TicketMessage = {
@@ -72,17 +85,29 @@ const APP_ORIGIN = "https://ngig.cloud";
 // The browser uploads an attachment straight to B2 with the returned URL, then
 // passes {key,name,size,mimeType} into createTicket / replyAsUser. Keys are
 // namespaced under the caller's id so they can't be forged onto another prefix.
+// Server-side gate for a single attachment: images and videos only, capped per
+// kind. Mirrors checkAttachment() on the client — never trust the picker.
+function assertAllowedMedia(mime: string | null, size: number, name: string): void {
+  const kind = attachmentKind(mime);
+  if (!kind) throw new Error(`„${name}” nu e imagine sau video.`);
+  const max = kind === "image" ? TICKET_MAX_IMAGE_BYTES : TICKET_MAX_VIDEO_BYTES;
+  if (size > max) {
+    throw new Error(`„${name}” depășește ${Math.round(max / (1024 * 1024))} MB.`);
+  }
+}
+
 export async function presignTicketUpload(input: {
   name: string;
   size: number;
   contentType: string;
 }): Promise<{ key: string; url: string }> {
   const { id } = await requireActiveUser();
-  if (input.size > TICKET_MAX_ATTACHMENT_BYTES) {
-    throw new Error("Fișierul e prea mare (max 25 MB).");
-  }
+  assertAllowedMedia(input.contentType, input.size, input.name);
+  // Support media lives under its own `tickets/` namespace, entirely separate
+  // from the drive (whose keys are `<userId>/<uuid>`), so nothing here can ever
+  // show up in a user's files or count against their storage.
   const key = `tickets/${id}/${randomUUID()}`;
-  const url = await presignUpload(key, input.contentType || "application/octet-stream");
+  const url = await presignUpload(key, input.contentType);
   return { key, url };
 }
 
@@ -95,9 +120,7 @@ function validateAttachments(atts: IncomingAttachment[], ownerId: string): void 
     if (!a.key.startsWith(`tickets/${ownerId}/`)) {
       throw new Error("Atașament invalid.");
     }
-    if (a.size > TICKET_MAX_ATTACHMENT_BYTES) {
-      throw new Error("Un atașament e prea mare.");
-    }
+    assertAllowedMedia(a.mimeType, a.size, a.name);
   }
 }
 
@@ -174,12 +197,21 @@ export async function createTicket(input: {
   if (mErr) throw mErr;
   await insertAttachments(msg.id as string, input.attachments);
 
-  // Notify admins (in-app) + email, and confirm to the user by email.
+  // Confirm to the opener (in-app), notify every OTHER admin, and email both.
+  // The opener is excluded from the admin fan-out so an admin opening a ticket
+  // never gets "X a deschis un ticket" about their own action.
   const username = await usernameOf(userId);
+  await notifyUserEvent(
+    userId,
+    "ticket_created",
+    { subiect: subject, categorie: categoryLabel(input.category) },
+    `${APP_ORIGIN}/support/${ticketId}`,
+  );
   await notifyAdminsEvent(
     "ticket_opened",
     { utilizator: username, subiect: subject, categorie: categoryLabel(input.category) },
     `/tickets/${ticketId}`,
+    userId,
   );
   const email = await emailOf(userId);
   if (email) {
@@ -258,11 +290,20 @@ async function loadMessages(
   if (ids.length > 0) {
     const { data: atts } = await client
       .from("ticket_attachments")
-      .select("id, message_id, name, size, mime_type")
+      .select("id, message_id, name, size, mime_type, storage_key")
       .in("message_id", ids);
+    // Presigning is local crypto (no network), so signing every attachment for
+    // inline rendering is cheap. 1h keeps a long-open thread's media alive.
     for (const a of atts ?? []) {
       const list = attByMsg.get(a.message_id as string) ?? [];
-      list.push({ id: a.id as string, name: a.name as string, size: a.size as number, mime_type: a.mime_type as string | null });
+      list.push({
+        id: a.id as string,
+        name: a.name as string,
+        size: a.size as number,
+        mime_type: a.mime_type as string | null,
+        kind: attachmentKind(a.mime_type as string | null),
+        url: await presignInline(a.storage_key as string),
+      });
       attByMsg.set(a.message_id as string, list);
     }
   }
@@ -342,11 +383,14 @@ export async function replyAsUser(input: {
     .update(reopened ? { last_activity_at: now, status: "open", closed_at: null } : { last_activity_at: now })
     .eq("id", input.ticketId);
 
+  // Notify admins — but never the author themselves (an admin replying on their
+  // own ticket shouldn't be told about their own message).
   const username = await usernameOf(userId);
   await notifyAdminsEvent(
     "ticket_user_reply",
     { utilizator: username, subiect: ticket.subject as string },
     `/tickets/${input.ticketId}`,
+    userId,
   );
 }
 
@@ -378,17 +422,59 @@ export async function replyAsAdmin(input: {
   await insertAttachments(msg.id as string, input.attachments);
   await bumpActivity(input.ticketId);
 
-  await notifyUserEvent(
-    ticket.user_id as string,
-    "ticket_reply",
-    { subiect: ticket.subject as string },
-    `${APP_ORIGIN}/support/${input.ticketId}`,
-  );
+  // Only the counterpart hears about it — no self-notification when an admin
+  // answers a ticket they opened themselves.
+  if ((ticket.user_id as string) !== adminId) {
+    await notifyUserEvent(
+      ticket.user_id as string,
+      "ticket_reply",
+      { subiect: ticket.subject as string },
+      `${APP_ORIGIN}/support/${input.ticketId}`,
+    );
+  }
+}
+
+// Admin-only triage: the priority the user picked at creation is a hint; the
+// admin has the final say. Users can't change it after opening the ticket.
+export async function setTicketPriority(
+  id: string,
+  priority: string,
+): Promise<void> {
+  await requireAdmin();
+  if (!isTicketPriority(priority)) throw new Error("Prioritate invalidă.");
+  const admin = createAdminClient();
+  const { error } = await admin.from("tickets").update({ priority }).eq("id", id);
+  if (error) throw error;
+}
+
+// Badge count for the dashboard nav: open tickets whose last message came from
+// the user — i.e. the ones actually waiting on an admin.
+export async function countTicketsNeedingReply(): Promise<number> {
+  const admin = createAdminClient();
+  const { data: open } = await admin
+    .from("tickets")
+    .select("id")
+    .eq("status", "open");
+  const ids = (open ?? []).map((t) => t.id as string);
+  if (ids.length === 0) return 0;
+
+  const { data: msgs } = await admin
+    .from("ticket_messages")
+    .select("ticket_id, from_admin, created_at")
+    .in("ticket_id", ids)
+    .order("created_at", { ascending: true });
+
+  // Last message per ticket wins; a user-authored last message = needs a reply.
+  const lastFromAdmin = new Map<string, boolean>();
+  for (const m of msgs ?? []) {
+    lastFromAdmin.set(m.ticket_id as string, m.from_admin as boolean);
+  }
+  return ids.filter((id) => lastFromAdmin.get(id) === false).length;
 }
 
 // ── Status ──────────────────────────────────────────────────────────────────
 export async function closeTicket(id: string): Promise<void> {
-  await requireAdmin();
+  const adminId = await requireAdmin();
   const admin = createAdminClient();
   const { data: ticket } = await admin
     .from("tickets")
@@ -404,20 +490,31 @@ export async function closeTicket(id: string): Promise<void> {
     .update({ status: "closed", closed_at: now, last_activity_at: now })
     .eq("id", id);
 
-  await notifyUserEvent(
-    ticket.user_id as string,
-    "ticket_closed",
-    { subiect: ticket.subject as string },
-    `${APP_ORIGIN}/support/${id}`,
-  );
-  const email = await emailOf(ticket.user_id as string);
-  if (email) {
-    void sendTicketClosed({ email, subject: ticket.subject as string, ticketId: id }).catch(() => {});
+  const subject = ticket.subject as string;
+  const ownerId = ticket.user_id as string;
+
+  if (ownerId !== adminId) {
+    await notifyUserEvent(
+      ownerId,
+      "ticket_closed",
+      { subiect: subject },
+      `${APP_ORIGIN}/support/${id}`,
+    );
   }
+  const email = await emailOf(ownerId);
+  if (email) {
+    void sendTicketClosed({ email, subject, ticketId: id }).catch(() => {});
+  }
+  // The support inbox gets an email for both ends of a ticket's life.
+  void sendTicketClosedAdmin({
+    username: await usernameOf(ownerId),
+    subject,
+    ticketId: id,
+  }).catch(() => {});
 }
 
 export async function reopenTicket(id: string): Promise<void> {
-  await requireAdmin();
+  const adminId = await requireAdmin();
   const admin = createAdminClient();
   const { data: ticket } = await admin
     .from("tickets")
@@ -433,12 +530,14 @@ export async function reopenTicket(id: string): Promise<void> {
     .update({ status: "open", closed_at: null, last_activity_at: now })
     .eq("id", id);
 
-  await notifyUserEvent(
-    ticket.user_id as string,
-    "ticket_reopened",
-    { subiect: ticket.subject as string },
-    `${APP_ORIGIN}/support/${id}`,
-  );
+  if ((ticket.user_id as string) !== adminId) {
+    await notifyUserEvent(
+      ticket.user_id as string,
+      "ticket_reopened",
+      { subiect: ticket.subject as string },
+      `${APP_ORIGIN}/support/${id}`,
+    );
+  }
 }
 
 // ── Delete (admin) ──────────────────────────────────────────────────────────

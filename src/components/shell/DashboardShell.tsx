@@ -25,6 +25,10 @@ import { Avatar } from "./Avatar";
 
 type ShellUser = { username: string; email: string };
 
+// Nav item key → unread count. Today only Suport uses it (tickets waiting on an
+// admin reply); the shell stays generic so any section can grow a badge.
+type NavBadges = { tickets?: number };
+
 // Nav items use CLEAN paths — on the dashboard host the proxy rewrites them
 // into the /dashboard tree, so the browser URL stays prefix-free.
 // `soon` marks sections built in later phases.
@@ -47,9 +51,11 @@ const NAV: NavItem[] = [
 
 export function DashboardShell({
   user,
+  badges,
   children,
 }: {
   user: ShellUser;
+  badges?: NavBadges;
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -188,7 +194,8 @@ export function DashboardShell({
                   </span>
                 );
               }
-              return (
+              const badge = item.href === "/tickets" ? badges?.tickets ?? 0 : 0;
+            return (
                 <Link
                   key={item.label}
                   href={item.href}
@@ -206,6 +213,14 @@ export function DashboardShell({
                     {item.icon}
                   </span>
                   <span>{item.label}</span>
+                  {badge > 0 && (
+                    <span
+                      title={`${badge} ${badge === 1 ? "ticket așteaptă" : "tickete așteaptă"} răspuns`}
+                      className="ml-auto flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-500 px-1.5 text-xs font-semibold tabular-nums text-white"
+                    >
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

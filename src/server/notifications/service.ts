@@ -85,23 +85,29 @@ export async function notifyUserEvent(
   }
 }
 
+// `excludeUserId` skips one admin — used when an admin's own action is what
+// triggered the event (e.g. an admin opening a support ticket), so nobody gets
+// notified about something they just did themselves.
 export async function notifyAdminsEvent(
   type: string,
   vars: Record<string, string> = {},
   link: string | null = null,
+  excludeUserId?: string,
 ): Promise<void> {
   try {
     const r = await renderNotification(type, vars);
     if (!r) return;
     const admin = createAdminClient();
     const { data } = await admin.from("profiles").select("id").eq("role", "admin");
-    const rows = (data ?? []).map((p) => ({
-      user_id: p.id as string,
-      type,
-      title: r.title,
-      body: r.body,
-      link,
-    }));
+    const rows = (data ?? [])
+      .filter((p) => (p.id as string) !== excludeUserId)
+      .map((p) => ({
+        user_id: p.id as string,
+        type,
+        title: r.title,
+        body: r.body,
+        link,
+      }));
     if (rows.length > 0) {
       const { error } = await admin.from("notifications").insert(rows);
       if (error) throw error;
