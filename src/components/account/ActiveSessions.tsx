@@ -17,9 +17,9 @@ function TypeIcon({ ua }: { ua: string | null }) {
   return (
     <span
       aria-hidden
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-800/60"
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-800/60"
     >
-      <Icon className="h-[18px] w-[18px] text-zinc-400" />
+      <Icon className="h-4 w-4 text-zinc-400" />
     </span>
   );
 }
@@ -75,9 +75,9 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
           return (
             <div
               key={s.id}
-              className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+              className="flex flex-col gap-2.5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
             >
-              <div className="flex min-w-0 items-start gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <TypeIcon ua={s.user_agent} />
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-100">
@@ -92,13 +92,13 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
                       </span>
                     )}
                   </p>
-                  <p className="mt-1 truncate text-xs text-zinc-500">
+                  <p
+                    className="mt-0.5 truncate text-xs text-zinc-500"
+                    title={`Activă din ${fmt(s.created_at)}`}
+                  >
                     IP: {s.ip ?? "necunoscut"}
                     {location && <span> · {location}</span>}
-                  </p>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    Activă din {fmt(s.created_at)} · ultima activitate{" "}
-                    {fmt(s.last_seen)}
+                    <span> · ultima activitate {fmt(s.last_seen)}</span>
                   </p>
                 </div>
               </div>
