@@ -105,80 +105,150 @@ function renderTokens(text: string, vars: string[]): ReactNode[] {
   return parts;
 }
 
-// Message editor: a textarea with its {variables} highlighted (via an aligned
-// overlay) and an autocomplete that pops the available vars when you type "{".
-function HighlightedTextarea({
+// Computed-style keys mirrored to measure the caret's pixel position.
+const MIRROR_KEYS = [
+  "boxSizing", "width", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
+  "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth",
+  "fontFamily", "fontSize", "fontWeight", "fontStyle", "letterSpacing", "lineHeight",
+  "textTransform", "wordSpacing", "tabSize",
+] as const;
+
+// Pixel (left, top) of the caret at `pos` within an input/textarea, relative to
+// the field's border box. Uses a hidden mirror div (the standard technique).
+function caretCoords(el: HTMLTextAreaElement | HTMLInputElement, pos: number): { left: number; top: number } {
+  const div = document.createElement("div");
+  const s = getComputedStyle(el);
+  const target = div.style as unknown as Record<string, string>;
+  const source = s as unknown as Record<string, string>;
+  for (const k of MIRROR_KEYS) target[k] = source[k];
+  const multiline = el.tagName === "TEXTAREA";
+  div.style.position = "absolute";
+  div.style.top = "0";
+  div.style.left = "-9999px";
+  div.style.visibility = "hidden";
+  div.style.overflow = "hidden";
+  div.style.whiteSpace = multiline ? "pre-wrap" : "pre";
+  div.style.wordWrap = multiline ? "break-word" : "normal";
+  div.style.width = `${el.clientWidth}px`;
+  div.textContent = el.value.slice(0, pos);
+  const span = document.createElement("span");
+  span.textContent = el.value.slice(pos) || ".";
+  div.appendChild(span);
+  document.body.appendChild(div);
+  const left = span.offsetLeft - el.scrollLeft;
+  const top = span.offsetTop - el.scrollTop;
+  document.body.removeChild(div);
+  return { left, top };
+}
+
+// Highlighted, variable-aware field (single-line input or multiline textarea):
+// {tokens} are highlighted via an aligned overlay, and typing "{" (or the start
+// of a var name) pops an inline autocomplete right at the caret.
+function TemplateField({
   id,
   value,
   onChange,
   vars,
+  multiline,
 }: {
   id: string;
   value: string;
   onChange: (v: string) => void;
   vars: string[];
+  multiline: boolean;
 }) {
-  const taRef = useRef<HTMLTextAreaElement>(null);
+  const ref = useRef<HTMLTextAreaElement & HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [sugg, setSugg] = useState<{ start: number; query: string } | null>(null);
+  const [sugg, setSugg] = useState<{ start: number; left: number; top: number } | null>(null);
+  const [matches, setMatches] = useState<string[]>([]);
   const box = "px-3.5 py-2 text-sm leading-6";
 
-  function detect(val: string, cursor: number | null) {
-    if (cursor == null) return setSugg(null);
+  function refresh() {
+    const el = ref.current;
+    if (!el) return;
+    const val = el.value;
+    const cursor = el.selectionStart ?? val.length;
     const before = val.slice(0, cursor);
     const open = before.lastIndexOf("{");
     if (open === -1) return setSugg(null);
     const between = before.slice(open + 1);
     if (/[}\s]/.test(between)) return setSugg(null);
-    setSugg({ start: open, query: between });
+    const hits = vars.filter((v) => v.startsWith(between));
+    if (hits.length === 0) return setSugg(null);
+    const c = caretCoords(el, cursor);
+    setMatches(hits);
+    setSugg({ start: open, left: c.left, top: c.top });
   }
 
-  const matches = sugg ? vars.filter((v) => v.startsWith(sugg.query)) : [];
-
-  function insert(v: string) {
-    const ta = taRef.current;
-    if (!ta || !sugg) return;
-    const cursor = ta.selectionStart;
-    const next = value.slice(0, sugg.start) + `{${v}}` + value.slice(cursor);
+  function insert(name: string) {
+    const el = ref.current;
+    if (!el || !sugg) return;
+    const cursor = el.selectionStart ?? value.length;
+    const next = value.slice(0, sugg.start) + `{${name}}` + value.slice(cursor);
     onChange(next);
     setSugg(null);
-    const pos = sugg.start + v.length + 2;
+    const pos = sugg.start + name.length + 2;
     requestAnimationFrame(() => {
-      ta.focus();
-      ta.setSelectionRange(pos, pos);
+      el.focus();
+      el.setSelectionRange(pos, pos);
     });
   }
+
+  const overlayCls = `pointer-events-none absolute inset-0 overflow-hidden text-zinc-100 ${box} ${
+    multiline ? "whitespace-pre-wrap break-words" : "whitespace-pre"
+  }`;
+  const fieldCls = `relative z-10 block w-full bg-transparent text-transparent caret-zinc-100 outline-none selection:bg-indigo-500/30 ${box} ${
+    multiline ? "resize-none" : ""
+  }`;
+  const common = {
+    id,
+    ref,
+    value,
+    onChange: (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+      onChange(e.target.value);
+      requestAnimationFrame(refresh);
+    },
+    onClick: refresh,
+    onKeyUp: refresh,
+    onBlur: () => setTimeout(() => setSugg(null), 150),
+    className: fieldCls,
+  };
 
   return (
     <div className="relative rounded-lg border border-zinc-800 bg-zinc-950 focus-within:border-indigo-500/60">
       <div
         ref={overlayRef}
         aria-hidden
-        className={`pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-zinc-100 ${box}`}
+        className={overlayCls}
+        style={multiline ? undefined : { whiteSpace: "pre" }}
       >
         {renderTokens(value, vars)}
-        {"\n"}
+        {multiline && "\n"}
       </div>
-      <textarea
-        id={id}
-        ref={taRef}
-        value={value}
-        rows={3}
-        maxLength={1000}
-        onChange={(e) => {
-          onChange(e.target.value);
-          detect(e.target.value, e.target.selectionStart);
-        }}
-        onClick={(e) => detect(e.currentTarget.value, e.currentTarget.selectionStart)}
-        onKeyUp={(e) => detect(e.currentTarget.value, e.currentTarget.selectionStart)}
-        onScroll={(e) => {
-          if (overlayRef.current) overlayRef.current.scrollTop = e.currentTarget.scrollTop;
-        }}
-        onBlur={() => setTimeout(() => setSugg(null), 150)}
-        className={`relative z-10 block w-full resize-none bg-transparent text-transparent caret-zinc-100 outline-none selection:bg-indigo-500/30 ${box}`}
-      />
-      {matches.length > 0 && (
-        <div className="absolute left-2 top-full z-20 mt-1 flex flex-wrap gap-1 rounded-lg border border-zinc-800 bg-zinc-900 p-2 shadow-xl">
+      {multiline ? (
+        <textarea
+          {...common}
+          rows={3}
+          maxLength={1000}
+          onScroll={(e) => {
+            if (overlayRef.current) overlayRef.current.scrollTop = e.currentTarget.scrollTop;
+          }}
+        />
+      ) : (
+        <input
+          {...common}
+          type="text"
+          maxLength={200}
+          onScroll={(e) => {
+            if (overlayRef.current) overlayRef.current.scrollLeft = e.currentTarget.scrollLeft;
+          }}
+        />
+      )}
+      {sugg && matches.length > 0 && (
+        <div
+          className="absolute z-20 flex flex-col gap-0.5 rounded-lg border border-zinc-800 bg-zinc-900 p-1 shadow-xl"
+          style={{ left: sugg.left, top: sugg.top + 22 }}
+        >
           {matches.map((v) => (
             <button
               key={v}
@@ -187,7 +257,7 @@ function HighlightedTextarea({
                 e.preventDefault();
                 insert(v);
               }}
-              className="rounded-md border border-zinc-800 bg-zinc-950 px-2 py-0.5 font-mono text-xs text-indigo-300 transition hover:border-indigo-500/50"
+              className="rounded-md px-2 py-1 text-left font-mono text-xs text-indigo-300 transition hover:bg-zinc-800"
             >
               {`{${v}}`}
             </button>
@@ -203,45 +273,63 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
   const [body, setBody] = useState(t.body);
   const [pending, start] = useTransition();
 
+  // Dirty vs the currently-saved message → drives the Save button + close guard.
+  const dirty = title !== t.title || body !== t.body;
+
+  // Guarded close: blocks (with a warning) when there are unsaved edits.
+  function attemptClose() {
+    if (dirty) {
+      toast.error("Ai modificări nesalvate. Salvează, sau apasă Anulează pentru a renunța.");
+      return;
+    }
+    onClose();
+  }
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") attemptClose();
+    };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty]);
 
   function save() {
+    const tt = title.trim();
+    const bb = body.trim();
+    if (!tt || !bb) {
+      toast.error("Titlul și mesajul nu pot fi goale.");
+      return;
+    }
     start(async () => {
-      const res = await setNotificationTemplateAction(t.key, title, body);
-      if (res.error) {
-        toast.error(res.error);
-        return;
+      // Saving the defaults back = revert (no custom override, no badge).
+      if (tt === t.defaultTitle && bb === t.defaultBody) {
+        await resetNotificationTemplateAction(t.key);
+      } else {
+        const res = await setNotificationTemplateAction(t.key, title, body);
+        if (res.error) {
+          toast.error(res.error);
+          return;
+        }
       }
       toast.success("Mesajul notificării a fost salvat.");
       onClose();
     });
   }
 
-  function reset() {
-    // Put the defaults back in the fields and persist the reset, but keep the
-    // dialog open so the admin can review / re-edit.
+  // Just fill the fields with the defaults — nothing is saved until "Salvează".
+  function toDefault() {
     setTitle(t.defaultTitle);
     setBody(t.defaultBody);
-    start(async () => {
-      await resetNotificationTemplateAction(t.key);
-      toast.success("Mesajul a fost readus la varianta implicită.");
-    });
   }
-
-  const inputCls =
-    "w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-indigo-500/60 focus:outline-none";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={attemptClose} />
       <div className="relative flex max-h-[85vh] w-full max-w-lg flex-col overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -250,7 +338,7 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={attemptClose}
             aria-label="Închide"
             className="rounded-md p-1 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
           >
@@ -263,26 +351,20 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
             <label htmlFor="nt-title" className="mb-1.5 block text-xs font-medium text-zinc-400">
               Titlu
             </label>
-            <input
-              id="nt-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={200}
-              className={inputCls}
-            />
+            <TemplateField id="nt-title" value={title} onChange={setTitle} vars={t.vars} multiline={false} />
           </div>
           <div>
             <label htmlFor="nt-body" className="mb-1.5 block text-xs font-medium text-zinc-400">
               Mesaj
             </label>
-            <HighlightedTextarea id="nt-body" value={body} onChange={setBody} vars={t.vars} />
+            <TemplateField id="nt-body" value={body} onChange={setBody} vars={t.vars} multiline />
           </div>
 
           {t.vars.length > 0 && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
               <p className="text-xs text-zinc-400">
-                Valori dinamice — scrie <span className="text-zinc-300">{"{"}</span> în mesaj ca să
-                le sugereze, sau apasă una:
+                Valori dinamice — scrie <span className="text-zinc-300">{"{"}</span> în titlu sau
+                mesaj ca să le sugereze, sau apasă una:
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {t.vars.map((v) => (
@@ -301,7 +383,7 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
         <div className="mt-5 flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={reset}
+            onClick={toDefault}
             disabled={pending}
             className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-50"
           >
@@ -320,8 +402,8 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
             <button
               type="button"
               onClick={save}
-              disabled={pending}
-              className="rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
+              disabled={pending || !dirty}
+              className="rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {pending ? "Se salvează…" : "Salvează"}
             </button>
