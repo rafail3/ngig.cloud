@@ -46,7 +46,12 @@ export default async function TicketPage({
         </div>
       </header>
 
-      <ChatPanel messages={ticket.messages} viewerIsAdmin={false} authorName={ticket.username}>
+      <ChatPanel
+        messages={ticket.messages}
+        viewerIsAdmin={false}
+        authorName={ticket.username}
+        counterpartSeenAt={ticket.counterpartSeenAt}
+      >
         <UserReply ticketId={ticket.id} closed={ticket.status === "closed"} />
       </ChatPanel>
     </div>

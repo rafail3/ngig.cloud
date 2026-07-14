@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { listMyTickets } from "@/server/tickets/service";
 import { TicketList } from "@/components/support/TicketList";
+import { RefreshOnLand } from "@/components/support/RefreshOnLand";
 import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
 
 export const metadata = { title: "Suport" };
@@ -13,6 +14,9 @@ async function SupportContent() {
     <>
       {/* Live: new replies / status changes reflect without a manual refresh. */}
       <RealtimeRefresh tables={["tickets", "ticket_messages"]} />
+      {/* Coming back from a thread must drop its unread dot, not replay the
+          cached list. */}
+      <RefreshOnLand path="/support" />
       <TicketList tickets={tickets} />
     </>
   );

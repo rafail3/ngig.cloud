@@ -41,7 +41,12 @@ async function TicketContent({ id }: { id: string }) {
         </div>
       </header>
 
-      <ChatPanel messages={ticket.messages} viewerIsAdmin authorName={ticket.username}>
+      <ChatPanel
+        messages={ticket.messages}
+        viewerIsAdmin
+        authorName={ticket.username}
+        counterpartSeenAt={ticket.counterpartSeenAt}
+      >
         <AdminReply ticketId={ticket.id} />
       </ChatPanel>
     </>

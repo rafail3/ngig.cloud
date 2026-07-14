@@ -4,6 +4,7 @@ import { DashboardShell } from "@/components/shell/DashboardShell";
 import { DashboardShellSkeleton } from "@/components/shell/DashboardShellSkeleton";
 import { Forbidden } from "@/components/shell/Forbidden";
 import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
+import { TicketInboxWatcher } from "@/components/dashboard/TicketInboxWatcher";
 import { countNewTickets } from "@/server/tickets/service";
 
 // Every dashboard data source — so any admin page/action updates live.
@@ -64,6 +65,7 @@ async function Shell({
         badges={{ tickets: ticketsWaiting }}
       >
         <RealtimeRefresh tables={DASHBOARD_TABLES} />
+        <TicketInboxWatcher />
         {children}
         {modal}
       </DashboardShell>

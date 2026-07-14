@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AnimatePresence } from "motion/react";
-import { Check, Paperclip, Play } from "lucide-react";
+import { Check, CheckCheck, Paperclip, Play } from "lucide-react";
 import { formatBytes } from "@/lib/format";
 import { formatTime, dayKey, formatDayLabel } from "@/lib/format-date";
 import { MediaLightbox } from "./MediaLightbox";
@@ -93,11 +93,15 @@ export function TicketMessages({
   messages,
   viewerIsAdmin,
   authorName,
+  counterpartSeenAt,
 }: {
   messages: TicketMessage[];
   viewerIsAdmin: boolean;
   // Name shown on the counterpart's messages (the ticket owner, for admins).
   authorName: string;
+  // When the other side last opened the thread — anything of yours older than
+  // this has been read.
+  counterpartSeenAt: string | null;
 }) {
   const [lightbox, setLightbox] = useState<TicketAttachment | null>(null);
   const groups = useMemo(() => groupByDay(messages), [messages]);
@@ -142,13 +146,20 @@ export function TicketMessages({
                   )}
                 </div>
 
-                {/* Hour only — the day lives in the divider above the group. */}
+                {/* Hour only — the day lives in the divider above the group.
+                    One grey tick = sent, two blue = the other side has read it. */}
                 <p className="flex items-center gap-1 px-1 text-[13px] text-zinc-500">
                   {!mine && <span>{who} ·</span>}
                   <span>{formatTime(m.created_at)}</span>
-                  {mine && (
-                    <Check className="h-3.5 w-3.5 text-zinc-500" aria-label="Trimis" />
-                  )}
+                  {mine &&
+                    (counterpartSeenAt && counterpartSeenAt > m.created_at ? (
+                      <CheckCheck
+                        className="h-3.5 w-3.5 text-indigo-400"
+                        aria-label="Citit"
+                      />
+                    ) : (
+                      <Check className="h-3.5 w-3.5 text-zinc-500" aria-label="Trimis" />
+                    ))}
                 </p>
               </div>
             );

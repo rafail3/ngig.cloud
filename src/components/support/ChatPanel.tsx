@@ -12,11 +12,13 @@ export function ChatPanel({
   messages,
   viewerIsAdmin,
   authorName,
+  counterpartSeenAt,
   children,
 }: {
   messages: TicketMessage[];
   viewerIsAdmin: boolean;
   authorName: string;
+  counterpartSeenAt: string | null;
   children: React.ReactNode;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -77,6 +79,7 @@ export function ChatPanel({
                 messages={messages}
                 viewerIsAdmin={viewerIsAdmin}
                 authorName={authorName}
+                counterpartSeenAt={counterpartSeenAt}
               />
             )}
           </div>

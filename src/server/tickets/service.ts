@@ -89,6 +89,9 @@ export type TicketDetail = Omit<TicketRow, "unread"> & {
   user_id: string;
   username: string;
   messages: TicketMessage[];
+  // When the OTHER side last opened this thread. Your own messages older than
+  // this have been read (the double tick).
+  counterpartSeenAt: string | null;
 };
 
 const APP_ORIGIN = "https://ngig.cloud";
@@ -274,6 +277,25 @@ async function seenMap(
   return map;
 }
 
+// When the other party last opened this thread — powers read receipts. For an
+// admin the counterpart is the owner; for the owner it's whichever admin looked
+// most recently (any admin reading it counts as "support has read this").
+async function counterpartSeen(
+  ticketId: string,
+  ownerId: string,
+  viewerIsAdmin: boolean,
+): Promise<string | null> {
+  const admin = createAdminClient();
+  const q = admin
+    .from("ticket_views")
+    .select("last_seen_at")
+    .eq("ticket_id", ticketId);
+  const { data } = viewerIsAdmin
+    ? await q.eq("user_id", ownerId).limit(1)
+    : await q.neq("user_id", ownerId).order("last_seen_at", { ascending: false }).limit(1);
+  return (data?.[0]?.last_seen_at as string) ?? null;
+}
+
 // Unread = the last message came from the other side AND it landed after you
 // last opened the thread (never opened → unread).
 function isUnread(
@@ -329,7 +351,10 @@ export async function markInboxSeen(viewerId: string): Promise<void> {
     );
 }
 
-// All tickets for the dashboard. Open first, then by recent activity.
+// All tickets for the dashboard, newest activity first — the same order the
+// "Actualizat" column shows. Deliberately NOT grouped by status: a closed
+// ticket sinking to the bottom made the list look randomly ordered. Use the
+// status filter to see only open ones.
 export async function listAllTickets(): Promise<AdminTicketRow[]> {
   const adminId = await requireAdmin();
   const admin = createAdminClient();
@@ -358,21 +383,11 @@ export async function listAllTickets(): Promise<AdminTicketRow[]> {
 
   const seen = await seenMap(rows.map((r) => r.id), adminId);
 
-  // Looking at the list clears the nav badge — but NOT the per-row "nou" marks,
-  // which only an actual thread open clears.
-  after(() => markInboxSeen(adminId));
-
-  return rows
-    .map((r) => ({
-      ...r,
-      username: nameById.get(r.user_id) ?? "utilizator",
-      unread: isUnread(r, true, seen.get(r.id)),
-    }))
-    // Open tickets first, then most-recent activity.
-    .sort((a, b) => {
-      if (a.status !== b.status) return a.status === "open" ? -1 : 1;
-      return b.last_activity_at.localeCompare(a.last_activity_at);
-    });
+  return rows.map((r) => ({
+    ...r,
+    username: nameById.get(r.user_id) ?? "utilizator",
+    unread: isUnread(r, true, seen.get(r.id)),
+  }));
 }
 
 async function loadMessages(
@@ -428,7 +443,12 @@ export async function getMyTicket(id: string): Promise<TicketDetail | null> {
   after(() => markTicketSeen(id, userId));
   const messages = await loadMessages(id, supabase);
   const username = await usernameOf(t.user_id as string);
-  return { ...(t as Omit<TicketRow, "unread"> & { user_id: string }), username, messages };
+  return {
+    ...(t as Omit<TicketRow, "unread"> & { user_id: string }),
+    username,
+    messages,
+    counterpartSeenAt: await counterpartSeen(id, t.user_id as string, false),
+  };
 }
 
 // A ticket for an admin (any owner).
@@ -445,7 +465,12 @@ export async function getTicketAsAdmin(id: string): Promise<TicketDetail | null>
   after(() => markTicketSeen(id, adminId));
   const messages = await loadMessages(id, admin);
   const username = await usernameOf(t.user_id as string);
-  return { ...(t as Omit<TicketRow, "unread"> & { user_id: string }), username, messages };
+  return {
+    ...(t as Omit<TicketRow, "unread"> & { user_id: string }),
+    username,
+    messages,
+    counterpartSeenAt: await counterpartSeen(id, t.user_id as string, true),
+  };
 }
 
 // ── Replies ─────────────────────────────────────────────────────────────────
@@ -636,6 +661,8 @@ export async function closeTicket(id: string): Promise<void> {
   const subject = ticket.subject as string;
   const ownerId = ticket.user_id as string;
 
+  // Nothing is sent to the owner when the owner IS the admin doing the closing —
+  // no in-app notice and no email about your own action.
   if (ownerId !== adminId) {
     await notifyUserEvent(
       ownerId,
@@ -643,10 +670,10 @@ export async function closeTicket(id: string): Promise<void> {
       { subiect: subject },
       `${APP_ORIGIN}/support/${id}`,
     );
-  }
-  const email = await emailOf(ownerId);
-  if (email) {
-    void sendTicketClosed({ email, subject, ticketId: id }).catch(() => {});
+    const email = await emailOf(ownerId);
+    if (email) {
+      void sendTicketClosed({ email, subject, ticketId: id }).catch(() => {});
+    }
   }
   // The support inbox gets an email for both ends of a ticket's life.
   void sendTicketClosedAdmin({
