@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { emailHasAccount } from "@/server/invites/service";
 import { sendEmailChangedNotice, sendEmailActivation } from "@/server/email/resend";
-import { notifyUserSafe } from "@/server/notifications/service";
+import { notifyUserEvent } from "@/server/notifications/service";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -146,13 +146,7 @@ export async function changePassword(
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw new Error("Nu am putut schimba parola. Reîncearcă.");
 
-  await notifyUserSafe({
-    userId: id,
-    type: "password_changed",
-    title: "🔒 Parolă schimbată",
-    body: "Parola contului tău a fost schimbată. Dacă nu ai fost tu, resetează-ți parola imediat.",
-    link: "/profil",
-  });
+  await notifyUserEvent(id, "password_changed", {}, "/profil");
 }
 
 // Change the account email. Applies immediately (login is by username, so a
@@ -215,13 +209,7 @@ export async function changeEmail(
     // non-critical
   }
 
-  await notifyUserSafe({
-    userId: id,
-    type: "email_change_sent",
-    title: "✉️ Confirmă noua adresă de email",
-    body: `Ți-am trimis un link de activare pe ${email}. Confirmă-l pentru a finaliza schimbarea.`,
-    link: "/profil",
-  });
+  await notifyUserEvent(id, "email_change_sent", { email }, "/profil");
 }
 
 // Activate a changed email via its one-time token (from the activation link).
@@ -238,13 +226,7 @@ export async function confirmEmailToken(token: string): Promise<boolean> {
   if (error) throw error;
   const activated = data?.[0]?.id as string | undefined;
   if (activated) {
-    await notifyUserSafe({
-      userId: activated,
-      type: "email_activated",
-      title: "✅ Email confirmat",
-      body: "Noua ta adresă de email a fost activată cu succes.",
-      link: "/profil",
-    });
+    await notifyUserEvent(activated, "email_activated", {}, "/profil");
   }
   return (data?.length ?? 0) > 0;
 }

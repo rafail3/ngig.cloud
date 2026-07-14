@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { verifyTurnstile } from "@/lib/turnstile";
-import { notifyUserSafe, notifyAdminsSafe } from "@/server/notifications/service";
+import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
 import type { RegisterState } from "@/lib/auth-state";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
@@ -116,19 +116,8 @@ export async function registerWithInvite(
 
   // Welcome the new user + let the admins know a new account was created.
   // Best-effort: never block registration on a notification.
-  await notifyUserSafe({
-    userId: created.user.id,
-    type: "welcome",
-    title: "🎉 Bine ai venit pe ngig.cloud!",
-    body: "Contul tău e gata. Încarcă-ți primele fișiere și explorează-ți cloud-ul.",
-    link: "/",
-  });
-  await notifyAdminsSafe({
-    type: "user_registered",
-    title: "🎉 Utilizator nou",
-    body: `${username} (${email}) și-a creat un cont.`,
-    link: "/users",
-  });
+  await notifyUserEvent(created.user.id, "welcome", {}, "/");
+  await notifyAdminsEvent("user_registered", { utilizator: username, email }, "/users");
 
   // 5. Sign in (sets session cookies), then go home.
   const supabase = await createClient();

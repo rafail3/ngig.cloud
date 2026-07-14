@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { User, Shield, Users, Plus, BellOff } from "lucide-react";
-import { setNotificationEnabledAction } from "@/app/dashboard/(panel)/notifications/actions";
+import { User, Shield, Plus, BellOff, Pencil, X, RotateCcw } from "lucide-react";
+import {
+  setNotificationEnabledAction,
+  setNotificationTemplateAction,
+  resetNotificationTemplateAction,
+} from "@/app/dashboard/(panel)/notifications/actions";
 import type {
   NotificationAudience,
   NotificationTypeMeta,
@@ -24,17 +28,11 @@ const AUDIENCE: Record<
     icon: <Shield className="h-3 w-3" />,
     cls: "border-violet-800/60 bg-violet-950/40 text-violet-300",
   },
-  both: {
-    label: "Ambii",
-    icon: <Users className="h-3 w-3" />,
-    cls: "border-zinc-700/60 bg-zinc-900/60 text-zinc-300",
-  },
 };
 
 const SECTIONS: { key: NotificationAudience; label: string }[] = [
   { key: "user", label: "Pentru utilizatori" },
   { key: "admin", label: "Pentru administratori" },
-  { key: "both", label: "Pentru ambii" },
 ];
 
 function AudienceBadge({ audience }: { audience: NotificationAudience }) {
@@ -78,8 +76,146 @@ function Toggle({
   );
 }
 
+function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => void }) {
+  const [title, setTitle] = useState(t.title);
+  const [body, setBody] = useState(t.body);
+  const [pending, start] = useTransition();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  function save() {
+    start(async () => {
+      const res = await setNotificationTemplateAction(t.key, title, body);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Mesajul notificării a fost salvat.");
+      onClose();
+    });
+  }
+
+  function reset() {
+    start(async () => {
+      await resetNotificationTemplateAction(t.key);
+      toast.success("Mesajul a fost readus la varianta implicită.");
+      onClose();
+    });
+  }
+
+  const inputCls =
+    "w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-indigo-500/60 focus:outline-none";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative flex max-h-[85vh] w-full max-w-lg flex-col overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-zinc-100">Editează mesajul</h3>
+            <p className="mt-0.5 text-xs text-zinc-500">{t.label}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Închide"
+            className="rounded-md p-1 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4">
+          <div>
+            <label htmlFor="nt-title" className="mb-1.5 block text-xs font-medium text-zinc-400">
+              Titlu
+            </label>
+            <input
+              id="nt-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={200}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="nt-body" className="mb-1.5 block text-xs font-medium text-zinc-400">
+              Mesaj
+            </label>
+            <textarea
+              id="nt-body"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={3}
+              maxLength={1000}
+              className={`${inputCls} resize-y`}
+            />
+          </div>
+
+          {t.vars.length > 0 && (
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+              <p className="text-xs text-zinc-400">
+                Valori dinamice — folosește-le în titlu sau mesaj și se completează automat:
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {t.vars.map((v) => (
+                  <code
+                    key={v}
+                    className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-0.5 font-mono text-xs text-indigo-300"
+                  >
+                    {`{${v}}`}
+                  </code>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={reset}
+            disabled={pending || !t.customized}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Implicit
+          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={pending}
+              className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
+            >
+              Anulează
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={pending}
+              className="rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
+            >
+              {pending ? "Se salvează…" : "Salvează"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Row({ t }: { t: NotificationTypeStatus }) {
   const [on, setOn] = useState(t.enabled);
+  const [editing, setEditing] = useState(false);
   const [pending, start] = useTransition();
 
   function flip() {
@@ -99,13 +235,30 @@ function Row({ t }: { t: NotificationTypeStatus }) {
   return (
     <div className="flex items-center gap-3 border-b border-zinc-900 px-4 py-3.5 last:border-b-0 sm:gap-4">
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-zinc-100">{t.label}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-medium text-zinc-100">{t.label}</p>
+          {t.customized && (
+            <span className="rounded-full border border-indigo-800/60 bg-indigo-950/40 px-2 py-0.5 text-[11px] font-medium text-indigo-300">
+              Personalizat
+            </span>
+          )}
+        </div>
         <p className="mt-0.5 text-xs text-zinc-400">{t.description}</p>
       </div>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        aria-label="Editează mesajul"
+        title="Editează mesajul"
+        className="shrink-0 rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
+      >
+        <Pencil className="h-4 w-4" />
+      </button>
       <div className="hidden w-20 shrink-0 sm:flex sm:justify-end">
         <AudienceBadge audience={t.audience} />
       </div>
       <Toggle enabled={on} onFlip={flip} pending={pending} />
+      {editing && <EditModal t={t} onClose={() => setEditing(false)} />}
     </div>
   );
 }
@@ -140,9 +293,7 @@ function ExistingTab({ types }: { types: NotificationTypeStatus[] }) {
         if (group.length === 0) return null;
         return (
           <section key={key} className="flex flex-col gap-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              {label}
-            </h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</h2>
             <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
               {group.map((t) => (
                 <Row key={t.key} t={t} />
@@ -168,8 +319,7 @@ function AddTab({ addable }: { addable: NotificationTypeMeta[] }) {
           Momentan nu există acțiuni noi pentru care să adaugi o notificare.
         </p>
         <p className="max-w-sm text-xs text-zinc-500">
-          Pe măsură ce apar acțiuni noi în platformă, ele vor apărea automat aici, gata de
-          adăugat.
+          Pe măsură ce apar acțiuni noi în platformă, ele vor apărea automat aici, gata de adăugat.
         </p>
       </div>
     );
