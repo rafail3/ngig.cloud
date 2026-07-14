@@ -71,25 +71,34 @@ export function NotificationBell() {
     };
   }, [mutate]);
 
-  async function openItem(n: (typeof items)[number]) {
+  function markRead(n: (typeof items)[number]) {
+    if (n.read_at) return;
+    void mutate(
+      items.map((it) => (it.id === n.id ? { ...it, read_at: new Date().toISOString() } : it)),
+      { revalidate: false },
+    );
+    void markNotificationReadAction(n.id);
+  }
+
+  // External links open in a new tab; internal paths navigate in-app.
+  function navigate(href: string) {
+    if (!href) return;
+    if (/^https?:\/\//i.test(href)) window.open(href, "_blank", "noopener,noreferrer");
+    else router.push(href);
+  }
+
+  // Clicking a link inside the message goes to THAT link; clicking anywhere else
+  // on the notification goes to the notification's own link.
+  function rowClick(e: React.MouseEvent, n: (typeof items)[number]) {
+    const anchor = (e.target as HTMLElement).closest("a");
     setOpen(false);
-    if (!n.read_at) {
-      // optimistic
-      void mutate(
-        items.map((it) => (it.id === n.id ? { ...it, read_at: new Date().toISOString() } : it)),
-        { revalidate: false },
-      );
-      await markNotificationReadAction(n.id);
+    markRead(n);
+    if (anchor) {
+      e.preventDefault();
+      navigate(anchor.getAttribute("href") ?? "");
+      return;
     }
-    if (n.link) {
-      // External links (announcements can carry them) open in a new tab; internal
-      // paths navigate in-app.
-      if (/^https?:\/\//i.test(n.link)) {
-        window.open(n.link, "_blank", "noopener,noreferrer");
-      } else {
-        router.push(n.link);
-      }
-    }
+    if (n.link) navigate(n.link);
   }
 
   async function markAll() {
@@ -176,10 +185,17 @@ export function NotificationBell() {
                     n.read_at ? "" : "bg-indigo-500/5"
                   }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => openItem(n)}
-                    className="flex min-w-0 flex-1 gap-2.5 px-4 py-3 text-left"
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => rowClick(e, n)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        rowClick(e as unknown as React.MouseEvent, n);
+                      }
+                    }}
+                    className="flex min-w-0 flex-1 cursor-pointer gap-2.5 px-4 py-3 text-left outline-none focus-visible:bg-zinc-800/40"
                   >
                     <span
                       className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
@@ -199,7 +215,7 @@ export function NotificationBell() {
                       )}
                     </span>
                     {n.read_at && <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-zinc-600" />}
-                  </button>
+                  </div>
                   <button
                     type="button"
                     onClick={() => removeItem(n.id)}
