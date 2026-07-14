@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { UserCog, KeyRound, AtSign, type LucideIcon } from "lucide-react";
 import {
   changeUsernameAction,
   changePasswordAction,
@@ -20,34 +19,33 @@ const inputCls =
 const btnCls =
   "rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-400 active:bg-indigo-600 disabled:opacity-60";
 
-// Shared card chrome for the three account forms: tinted icon chip, title +
-// one-line description, content, button pinned bottom-left.
-function FormCard({
-  icon: Icon,
+// Settings-page grammar: one container card per tab, one row per setting.
+// Title + explanation live in the left column, the form in the right one —
+// the layout does the talking, no icon chips needed.
+export function SettingsCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="divide-y divide-zinc-800/50 rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
+      {children}
+    </div>
+  );
+}
+
+export function SettingsRow({
   title,
   description,
   children,
 }: {
-  icon: LucideIcon;
   title: string;
   description: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-      <div className="mb-4 flex items-start gap-3">
-        <span
-          aria-hidden
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10"
-        >
-          <Icon className="h-[18px] w-[18px] text-indigo-400" />
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-zinc-100">{title}</h2>
-          <p className="mt-0.5 text-xs text-zinc-500">{description}</p>
-        </div>
+    <section className="grid gap-x-10 gap-y-4 p-4 sm:p-6 md:grid-cols-[220px_1fr]">
+      <div>
+        <h3 className="text-sm font-semibold text-zinc-100">{title}</h3>
+        <p className="mt-1 text-xs leading-relaxed text-zinc-500">{description}</p>
       </div>
-      {children}
+      <div className="min-w-0 md:max-w-md">{children}</div>
     </section>
   );
 }
@@ -57,12 +55,11 @@ export function UsernameForm({ currentUsername }: { currentUsername: string }) {
   useToastState(state);
 
   return (
-    <FormCard
-      icon={UserCog}
+    <SettingsRow
       title="Username"
       description="Numele cu care te conectezi și apari în cloud."
     >
-      <form noValidate action={action} className="flex flex-1 flex-col gap-3">
+      <form noValidate action={action} className="flex flex-col gap-3">
         <div>
           <label htmlFor="username" className={labelCls}>Username nou</label>
           <input
@@ -71,7 +68,7 @@ export function UsernameForm({ currentUsername }: { currentUsername: string }) {
             type="text"
             required
             defaultValue={state.username}
-            placeholder="username nou"
+            placeholder={currentUsername}
             autoComplete="username"
             className={inputCls}
           />
@@ -84,13 +81,13 @@ export function UsernameForm({ currentUsername }: { currentUsername: string }) {
           <label htmlFor="u-password" className={labelCls}>Parola curentă</label>
           <PasswordInput name="password" autoComplete="current-password" defaultValue={state.password} className={inputCls} />
         </div>
-        <div className="mt-auto pt-1">
+        <div className="pt-1">
           <button type="submit" disabled={pending} className={btnCls}>
             {pending ? "Se schimbă…" : "Schimbă username"}
           </button>
         </div>
       </form>
-    </FormCard>
+    </SettingsRow>
   );
 }
 
@@ -99,12 +96,11 @@ export function PasswordForm() {
   useToastState(state);
 
   return (
-    <FormCard
-      icon={KeyRound}
+    <SettingsRow
       title="Parolă"
       description="Schimb-o periodic și nu o refolosi pe alte site-uri."
     >
-      <form noValidate action={action} className="flex flex-1 flex-col gap-3">
+      <form noValidate action={action} className="flex flex-col gap-3">
         <div>
           <label htmlFor="oldPassword" className={labelCls}>Parola veche</label>
           <PasswordInput name="oldPassword" autoComplete="current-password" defaultValue={state.oldPassword} className={inputCls} />
@@ -116,13 +112,13 @@ export function PasswordForm() {
             Minim 10 caractere, cu literă mare, mică, cifră și simbol.
           </p>
         </div>
-        <div className="mt-auto pt-1">
+        <div className="pt-1">
           <button type="submit" disabled={pending} className={btnCls}>
             {pending ? "Se schimbă…" : "Schimbă parola"}
           </button>
         </div>
       </form>
-    </FormCard>
+    </SettingsRow>
   );
 }
 
@@ -137,12 +133,11 @@ export function EmailForm({ currentEmail }: { currentEmail: string }) {
   const emailInvalid = emailTrimmed !== "" && !EMAIL_RE.test(emailTrimmed);
 
   return (
-    <FormCard
-      icon={AtSign}
+    <SettingsRow
       title="Email"
-      description="Adresa pe care primești notificările și linkurile de cont."
+      description="Adresa pe care primești notificările și linkurile de cont. Se schimbă imediat; primești un link de activare pe noua adresă."
     >
-      <form noValidate action={action} className="flex flex-1 flex-col gap-3">
+      <form noValidate action={action} className="flex flex-col gap-3">
         <div>
           <label htmlFor="email" className={labelCls}>Email nou</label>
           <input
@@ -167,11 +162,8 @@ export function EmailForm({ currentEmail }: { currentEmail: string }) {
         <div>
           <label htmlFor="e-password" className={labelCls}>Parola curentă</label>
           <PasswordInput name="password" autoComplete="current-password" defaultValue={state.password} className={inputCls} />
-          <p className="mt-1.5 text-xs text-zinc-500">
-            Se schimbă imediat; îți trimitem un link de activare pe noua adresă.
-          </p>
         </div>
-        <div className="mt-auto pt-1">
+        <div className="pt-1">
           <button
             type="submit"
             disabled={pending || emailInvalid || emailTrimmed === ""}
@@ -181,6 +173,6 @@ export function EmailForm({ currentEmail }: { currentEmail: string }) {
           </button>
         </div>
       </form>
-    </FormCard>
+    </SettingsRow>
   );
 }

@@ -24,6 +24,8 @@ function TypeIcon({ ua }: { ua: string | null }) {
   );
 }
 
+// Same settings-card grammar as the account forms: header row + one divided
+// row per session, no nested boxes.
 export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -40,14 +42,14 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
   }
 
   return (
-    <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+    <section className="divide-y divide-zinc-800/50 rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:px-6 sm:py-5">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-zinc-100">
             Sesiuni active
-            <span className="ml-1.5 tabular-nums text-zinc-500">({sessions.length})</span>
+            <span className="ml-1.5 font-normal tabular-nums text-zinc-500">({sessions.length})</span>
           </h2>
-          <p className="mt-0.5 text-xs text-zinc-500">
+          <p className="mt-1 text-xs text-zinc-500">
             Dispozitivele conectate acum la contul tău.
           </p>
         </div>
@@ -56,7 +58,7 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
             type="button"
             onClick={() => run("all", revokeOtherSessionsAction)}
             disabled={pending}
-            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-60"
+            className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:border-red-500/50 hover:bg-red-500/10 disabled:opacity-60"
           >
             {busy === "all"
               ? "Se deconectează…"
@@ -66,57 +68,55 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
       </div>
 
       {sessions.length === 0 ? (
-        <p className="text-sm text-zinc-500">Nicio sesiune activă.</p>
+        <p className="p-4 text-sm text-zinc-500 sm:px-6">Nicio sesiune activă.</p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {sessions.map((s) => {
-            const location = [s.city, s.country].filter(Boolean).join(", ");
-            return (
-              <li
-                key={s.id}
-                className="flex flex-col gap-3 rounded-xl border border-zinc-800/70 bg-zinc-950/30 p-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex min-w-0 items-start gap-3">
-                  <TypeIcon ua={s.user_agent} />
-                  <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-100">
-                      <span className="truncate">{deviceLabel(s.user_agent)}</span>
-                      <span className="rounded bg-zinc-800/80 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
-                        {deviceType(s.user_agent)}
+        sessions.map((s) => {
+          const location = [s.city, s.country].filter(Boolean).join(", ");
+          return (
+            <div
+              key={s.id}
+              className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+            >
+              <div className="flex min-w-0 items-start gap-3">
+                <TypeIcon ua={s.user_agent} />
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-100">
+                    <span className="truncate">{deviceLabel(s.user_agent)}</span>
+                    <span className="rounded bg-zinc-800/80 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
+                      {deviceType(s.user_agent)}
+                    </span>
+                    {s.is_current && (
+                      <span className="flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-300">
+                        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        Sesiunea curentă
                       </span>
-                      {s.is_current && (
-                        <span className="flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-300">
-                          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                          Sesiunea curentă
-                        </span>
-                      )}
-                    </p>
-                    <p className="mt-1 truncate text-xs text-zinc-500">
-                      IP: {s.ip ?? "necunoscut"}
-                      {location && <span> · {location}</span>}
-                    </p>
-                    <p className="mt-0.5 text-xs text-zinc-500">
-                      Activă din {fmt(s.created_at)} · ultima activitate{" "}
-                      {fmt(s.last_seen)}
-                    </p>
-                  </div>
+                    )}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-zinc-500">
+                    IP: {s.ip ?? "necunoscut"}
+                    {location && <span> · {location}</span>}
+                  </p>
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    Activă din {fmt(s.created_at)} · ultima activitate{" "}
+                    {fmt(s.last_seen)}
+                  </p>
                 </div>
+              </div>
 
-                {!s.is_current && (
-                  <button
-                    type="button"
-                    onClick={() => run(s.id, () => revokeSessionAction(s.id))}
-                    disabled={pending}
-                    className="flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60 sm:self-auto"
-                  >
-                    <LogOut className="h-3.5 w-3.5" />
-                    {busy === s.id ? "Se deconectează…" : "Deconectează"}
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+              {!s.is_current && (
+                <button
+                  type="button"
+                  onClick={() => run(s.id, () => revokeSessionAction(s.id))}
+                  disabled={pending}
+                  className="flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60 sm:self-auto"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  {busy === s.id ? "Se deconectează…" : "Deconectează"}
+                </button>
+              )}
+            </div>
+          );
+        })
       )}
     </section>
   );
