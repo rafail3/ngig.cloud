@@ -24,6 +24,7 @@ import {
   TICKET_MAX_SUBJECT,
   type TicketPriority,
   type TicketStatus,
+  type IncomingAttachment,
 } from "@/lib/tickets";
 
 export type TicketRow = {
@@ -63,15 +64,6 @@ export type TicketDetail = TicketRow & {
   user_id: string;
   username: string;
   messages: TicketMessage[];
-};
-
-// One attachment as accepted from the client: it was uploaded to B2 via a
-// presigned PUT (see presignTicketUpload) and we now store its metadata.
-export type IncomingAttachment = {
-  key: string;
-  name: string;
-  size: number;
-  mimeType: string | null;
 };
 
 const APP_ORIGIN = "https://ngig.cloud";

@@ -5,6 +5,16 @@
 export type TicketStatus = "open" | "closed";
 export type TicketPriority = "low" | "medium" | "high";
 
+// One attachment already uploaded to B2 (via a presigned PUT), passed from the
+// client into the create/reply actions. Lives here (not in the server-only
+// service) so client upload helpers can import the type.
+export type IncomingAttachment = {
+  key: string;
+  name: string;
+  size: number;
+  mimeType: string | null;
+};
+
 // A broad set of support categories so tickets triage themselves.
 export const TICKET_CATEGORIES = [
   { key: "account", label: "Cont și autentificare" },
