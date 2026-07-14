@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Mail, ShieldCheck, CalendarClock, LogIn } from "lucide-react";
 import { getMyProfile, listMySessions } from "@/server/account/profile";
 import { AccountForms } from "@/components/account/AccountForms";
+import { ActivityPanel } from "@/components/account/ActivityPanel";
 import { ActiveSessions } from "@/components/account/ActiveSessions";
 import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
 import { formatDateTime as fmt } from "@/lib/format-date";
@@ -44,6 +45,8 @@ async function ProfileContent() {
       </div>
 
       <AccountForms currentUsername={me.username} currentEmail={me.email} />
+
+      <ActivityPanel />
 
       <ActiveSessions sessions={sessions} />
     </>

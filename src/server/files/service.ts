@@ -6,6 +6,7 @@ import { requireActiveUser } from "@/server/auth/active-user";
 import { getSettings } from "@/server/admin/settings";
 import { platformUsage } from "@/server/admin/stats";
 import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
+import { logEvent } from "@/server/insights/engine";
 import * as repo from "./repository";
 import { extensionOf } from "@/lib/file-type";
 import { formatBytes } from "@/lib/format";
@@ -276,6 +277,7 @@ export async function searchDrive(
     .filter(Boolean)
     .map(escapeLike);
   const noQuery = tokens.length === 0;
+  if (!noQuery) after(() => logEvent("search"));
 
   const [allFolders, files] = await Promise.all([
     repo.listAllFolders(),
@@ -513,6 +515,7 @@ export async function getViewUrl(
   if (!file) throw new Error("Fișier inexistent.");
   assertOwnedKey(userId, file.storage_key);
   const url = await presignView(file.storage_key);
+  after(() => logEvent("preview", { ext: extensionOf(file.name) }));
   return { url, name: file.name, mime: file.mime_type };
 }
 
@@ -710,6 +713,7 @@ export async function confirmUpload(input: {
     throw e;
   }
 
+  after(() => logEvent("upload", { ext: extensionOf(input.name) }));
   return repo.insertFile({
     owner_id: userId,
     name: input.name,
@@ -733,6 +737,7 @@ export async function getDownloadUrl(id: string) {
     .update({ last_download_at: new Date().toISOString() })
     .eq("id", userId);
 
+  after(() => logEvent("download", { ext: extensionOf(file.name) }));
   return presignDownload(file.storage_key, file.name);
 }
 

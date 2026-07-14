@@ -2,6 +2,7 @@
 
 import * as files from "@/server/files/service";
 import type { UploadPlan } from "@/server/files/service";
+import { getSuggestedFiles } from "@/server/insights/engine";
 import { SESSION_REVOKED } from "@/server/auth/active-user";
 
 // Thin server-action wrappers over the files service (the actual logic lives
@@ -379,10 +380,12 @@ export async function getFolderAction(
 }
 
 export async function getSuggestedFilesAction(): Promise<
-  Awaited<ReturnType<typeof files.listRecentFiles>> | Revoked
+  Awaited<ReturnType<typeof getSuggestedFiles>> | Revoked
 > {
   try {
-    return await files.listRecentFiles(6);
+    // Ranked by the private insights engine (recency + type affinity), falling
+    // back to plain recency shape-compatible with the old listRecentFiles.
+    return await getSuggestedFiles(6);
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     throw e;
