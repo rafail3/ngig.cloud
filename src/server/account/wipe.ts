@@ -2,6 +2,10 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { deletePrefix, deleteObject } from "@/server/storage/b2";
 import { notifyAdminsEvent } from "@/server/notifications/service";
+import {
+  sendAccountDeletedUser,
+  sendAccountDeletedAdmin,
+} from "@/server/email/resend";
 import { dashboardOrigin } from "@/lib/dashboard";
 
 // Deleting an account must leave NOTHING behind. Two systems are involved and
@@ -58,13 +62,17 @@ async function deleteForeignTicketMedia(userId: string): Promise<void> {
 // about their own action.
 export async function wipeUserData(userId: string, actorId?: string): Promise<void> {
   const client = createAdminClient();
-  // Read the name before the row is gone — the notification needs it.
+  // Read the identity BEFORE anything is destroyed — the notification needs the
+  // name, and the farewell email needs an address that only exists on the auth
+  // user we're about to delete.
   const { data: profile } = await client
     .from("profiles")
     .select("username")
     .eq("id", userId)
     .maybeSingle();
   const username = (profile?.username as string) ?? "utilizator";
+  const { data: authUser } = await client.auth.admin.getUserById(userId);
+  const email = authUser.user?.email ?? null;
 
   await deleteForeignTicketMedia(userId);
 
@@ -87,6 +95,17 @@ export async function wipeUserData(userId: string, actorId?: string): Promise<vo
     `${dashboardOrigin()}/users`,
     actorId,
   );
+
+  // Best-effort: the account is already gone, so a mail failure must not surface
+  // as "deletion failed".
+  if (email) {
+    void sendAccountDeletedUser({ email, username }).catch(() => {});
+  }
+  void sendAccountDeletedAdmin({
+    username,
+    email,
+    bySelf: actorId === userId,
+  }).catch(() => {});
 }
 
 // The platform must never be left without an admin — that state is only

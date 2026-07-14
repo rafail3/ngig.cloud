@@ -134,6 +134,13 @@ export async function deleteMyAccount(
   // A cloud with no admin can only be fixed by hand in Supabase.
   await assertNotLastAdmin(id);
 
+  // Sign out BEFORE the wipe, while the account still exists: signOut is what
+  // clears the auth cookies, and it can only do that cleanly against a live
+  // user. Skipping this left the browser holding a still-valid JWT for an
+  // account that no longer existed. The wipe below runs on the admin client and
+  // needs no session of its own.
+  await supabase.auth.signOut({ scope: "local" });
+
   await wipeUserData(id, id);
 }
 

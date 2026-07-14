@@ -6,6 +6,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
+import {
+  sendAccountCreatedUser,
+  sendAccountCreatedAdmin,
+} from "@/server/email/resend";
+import { dashboardOrigin } from "@/lib/dashboard";
 import type { RegisterState } from "@/lib/auth-state";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
@@ -117,7 +122,14 @@ export async function registerWithInvite(
   // Welcome the new user + let the admins know a new account was created.
   // Best-effort: never block registration on a notification.
   await notifyUserEvent(created.user.id, "welcome", {}, "/");
-  await notifyAdminsEvent("user_registered", { utilizator: username, email }, "/users");
+  await notifyAdminsEvent(
+    "user_registered",
+    { utilizator: username, email },
+    `${dashboardOrigin()}/users`,
+  );
+  // Same news by email — best-effort, and never awaited into the response.
+  void sendAccountCreatedUser({ email, username }).catch(() => {});
+  void sendAccountCreatedAdmin({ username, email }).catch(() => {});
 
   // 5. Sign in (sets session cookies), then go home.
   const supabase = await createClient();

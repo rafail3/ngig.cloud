@@ -15,7 +15,9 @@ const inputCls =
 // the current password (proves it's them) and the username typed by hand
 // (proves they meant it). The server re-checks both.
 export function DeleteAccount({ username }: { username: string }) {
-  const [open, setOpen] = useState(false);
+  // "form" collects the credentials; "sure" is the final point-of-no-return
+  // prompt, deliberately separate so the last click is its own decision.
+  const [step, setStep] = useState<"closed" | "form" | "sure">("closed");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [pending, startTransition] = useTransition();
@@ -24,7 +26,7 @@ export function DeleteAccount({ username }: { username: string }) {
 
   function close() {
     if (pending) return;
-    setOpen(false);
+    setStep("closed");
     setPassword("");
     setConfirm("");
   }
@@ -34,6 +36,9 @@ export function DeleteAccount({ username }: { username: string }) {
       const res = await deleteMyAccountAction({ password, username: confirm });
       if (!res.ok) {
         toast.error(res.error);
+        // Back to the fields — the server rejected something there (a wrong
+        // password), and there's nothing to fix on the confirmation step.
+        setStep("form");
         return;
       }
       // The session is gone with the account — a full load lands on /login and
@@ -53,7 +58,7 @@ export function DeleteAccount({ username }: { username: string }) {
         </div>
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => setStep("form")}
           className="shrink-0 rounded-lg border border-red-500/40 px-3.5 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/10"
         >
           Șterge contul
@@ -61,7 +66,7 @@ export function DeleteAccount({ username }: { username: string }) {
       </div>
 
       <AnimatePresence>
-        {open && (
+        {step === "form" && (
           <ModalShell key="del-account" onClose={close}>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
               <TriangleAlert className="h-5 w-5 text-red-400" />
@@ -106,6 +111,39 @@ export function DeleteAccount({ username }: { username: string }) {
               <button
                 type="button"
                 onClick={close}
+                className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+              >
+                Anulează
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep("sure")}
+                disabled={!armed}
+                className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-50"
+              >
+                Continuă
+              </button>
+            </div>
+          </ModalShell>
+        )}
+
+        {step === "sure" && (
+          <ModalShell key="del-sure" onClose={close}>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
+              <TriangleAlert className="h-5 w-5 text-red-400" />
+            </div>
+            <h3 className="mt-4 text-base font-semibold text-zinc-100">
+              Sigur ștergi contul?
+            </h3>
+            <p className="mt-1.5 text-sm text-zinc-400">
+              Ăsta e ultimul pas. Odată confirmat, contul{" "}
+              <span className="font-medium text-zinc-300">{username}</span> și toate datele
+              lui dispar definitiv și nu mai pot fi recuperate.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={close}
                 disabled={pending}
                 className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-60"
               >
@@ -114,11 +152,11 @@ export function DeleteAccount({ username }: { username: string }) {
               <button
                 type="button"
                 onClick={remove}
-                disabled={!armed || pending}
-                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-50"
+                disabled={pending}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-60"
               >
                 {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-                {pending ? "Se șterge…" : "Șterge definitiv"}
+                {pending ? "Se șterge…" : "Da, șterge definitiv"}
               </button>
             </div>
           </ModalShell>

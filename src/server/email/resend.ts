@@ -289,6 +289,158 @@ export async function sendEmailActivation(input: {
   if (error) throw new Error("Nu am putut trimite emailul de activare.");
 }
 
+// ── Account lifecycle ───────────────────────────────────────────────────────
+
+// Welcome email, sent right after registration.
+export async function sendAccountCreatedUser(input: {
+  email: string;
+  username: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Salut <strong style="color:#fafafa">${escapeHtml(input.username)}</strong>,<br/>
+      Contul tău ngig.cloud e gata. Îți poți încărca fișierele și le ai cu tine de oriunde.
+    </p>
+    ${button(appOrigin(), "Deschide cloud-ul")}
+    <p style="margin:16px 0 0;color:#71717a;font-size:12px">
+      Dacă ai nevoie de ajutor, deschide un ticket din secțiunea Suport.
+    </p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: "Bine ai venit pe ngig.cloud",
+    text: [
+      `Salut ${input.username},`,
+      "Contul tău ngig.cloud e gata.",
+      "",
+      `Deschide cloud-ul: ${appOrigin()}`,
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Bine ai venit", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite emailul de bun venit.");
+}
+
+// Heads-up to the owner's inbox that someone joined.
+export async function sendAccountCreatedAdmin(input: {
+  username: string;
+  email: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const url = `${dashboardOrigin()}/users`;
+  const inner = `
+    ${row("Utilizator", escapeHtml(input.username))}
+    ${row("Email", escapeHtml(input.email))}
+    <p style="margin:16px 0 0"></p>
+    ${button(url, "Vezi userii")}
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: INVITE_TO,
+    subject: `Utilizator nou: ${input.username} — ngig.cloud`,
+    text: [
+      `Utilizator: ${input.username}`,
+      `Email: ${input.email}`,
+      "",
+      `Vezi userii: ${url}`,
+    ].join("\n"),
+    html: shell("Utilizator nou", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite alerta.");
+}
+
+// Confirmation that the account (and everything in it) is gone. Must be sent
+// BEFORE the auth user is deleted — that's where the address lives.
+export async function sendAccountDeletedUser(input: {
+  email: string;
+  username: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Salut <strong style="color:#fafafa">${escapeHtml(input.username)}</strong>,<br/>
+      Contul tău ngig.cloud a fost șters, împreună cu toate fișierele și tot istoricul.
+    </p>
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Nu mai păstrăm nimic — ștergerea e definitivă și nu poate fi anulată. Dacă
+      vrei să revii, ai nevoie de o invitație nouă.
+    </p>
+    <p style="margin:0;color:#71717a;font-size:12px">
+      Dacă <strong style="color:#fafafa">nu</strong> tu ai cerut ștergerea, răspunde la acest email.
+    </p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: "Contul tău ngig.cloud a fost șters",
+    text: [
+      `Salut ${input.username},`,
+      "Contul tău ngig.cloud a fost șters, împreună cu toate fișierele și tot istoricul.",
+      "",
+      "Ștergerea e definitivă. Dacă vrei să revii, ai nevoie de o invitație nouă.",
+      "",
+      "Dacă nu tu ai cerut ștergerea, răspunde la acest email.",
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Cont șters", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite confirmarea.");
+}
+
+// Heads-up to the owner's inbox that an account is gone.
+export async function sendAccountDeletedAdmin(input: {
+  username: string;
+  email: string | null;
+  bySelf: boolean;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const how = input.bySelf
+    ? "Utilizatorul și-a șters singur contul."
+    : "Contul a fost șters din dashboard.";
+  const inner = `
+    ${row("Utilizator", escapeHtml(input.username))}
+    ${input.email ? row("Email", escapeHtml(input.email)) : ""}
+    <p style="margin:16px 0 0;color:#a1a1aa;font-size:14px">${how}</p>
+    <p style="margin:8px 0 0;color:#71717a;font-size:12px">
+      Toate fișierele, ticketele și istoricul lui au fost șterse definitiv.
+    </p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: INVITE_TO,
+    subject: `Cont șters: ${input.username} — ngig.cloud`,
+    text: [
+      `Utilizator: ${input.username}`,
+      input.email ? `Email: ${input.email}` : "",
+      "",
+      how,
+      "Toate fișierele, ticketele și istoricul lui au fost șterse definitiv.",
+    ].filter(Boolean).join("\n"),
+    html: shell("Cont șters", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite alerta.");
+}
+
 // Category labels for the emails (mirror TICKET_CATEGORIES on the app side).
 const TICKET_CATEGORY_LABEL: Record<string, string> = {
   account: "Cont și autentificare",

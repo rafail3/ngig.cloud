@@ -65,7 +65,7 @@ export async function updateSession(request: NextRequest) {
   // returns a flag the client uses to navigate.
   const userId = data?.claims?.sub as string | undefined;
   if (userId && request.method === "GET") {
-    const { data: rows } = await supabase.rpc("account_gate");
+    const { data: rows, error } = await supabase.rpc("account_gate");
     const gate = (Array.isArray(rows) ? rows[0] : rows) as
       | { blocked_until: string | null; session_active: boolean }
       | undefined;
@@ -74,7 +74,15 @@ export async function updateSession(request: NextRequest) {
       !!gate?.blocked_until && new Date(gate.blocked_until).getTime() > Date.now();
     const signedOut = gate?.session_active === false;
 
-    if (blocked || signedOut) {
+    // account_gate selects FROM profiles, so a deleted account yields no row at
+    // all — and `undefined === false` is false, which used to wave the holder of
+    // a deleted account straight through into a broken shell. An access token
+    // stays cryptographically valid until it expires, so the row's absence is
+    // the only signal that the account is gone. Guarded by `!error`: on a
+    // transient RPC failure we must not sign out a perfectly good user.
+    const deleted = !error && !gate;
+
+    if (blocked || signedOut || deleted) {
       await supabase.auth.signOut();
       const url = request.nextUrl.clone();
       url.pathname = "/login";
