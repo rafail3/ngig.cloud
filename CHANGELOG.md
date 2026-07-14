@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.14.0](https://github.com/rafail3/ngig.cloud/compare/v2.13.0...v2.14.0) (2026-07-14)
+
+
+### Features
+
+* **tickets:** admin dashboard — ticket list, thread, reply and status controls ([1982247](https://github.com/rafail3/ngig.cloud/commit/19822472649a81a1b4d4f1577211780021f92662))
+* **tickets:** chat-style thread, media previews, admin priority and nav badge ([58271a0](https://github.com/rafail3/ngig.cloud/commit/58271a02f7da7bce8c1b40ba7586697adf4cb014))
+* **tickets:** live read receipts, badge clears per opened ticket ([5273e45](https://github.com/rafail3/ngig.cloud/commit/5273e45cb370b852d921fb1f9585ad8cce4fba09))
+* **tickets:** schema, service, notification types and emails for support tickets ([8e48e0d](https://github.com/rafail3/ngig.cloud/commit/8e48e0dacdf5285d5a6edb419d845d4f2ffbf130))
+* **tickets:** support ticket system with attachments, notifications and emails ([84b5236](https://github.com/rafail3/ngig.cloud/commit/84b5236388562f0de0d9f1d380ebcda177de5ced))
+* **tickets:** unread state, search/filters, user close, retention and rate limit ([71a4214](https://github.com/rafail3/ngig.cloud/commit/71a42141c238b798971d67d14dd78aff8b2b73a1))
+* **tickets:** user support UI — list, new ticket, thread with attachments ([7a81f39](https://github.com/rafail3/ngig.cloud/commit/7a81f3905f39fcb3f52473221fafaf1ef2d6ea4a))
+
+
+### Bug Fixes
+
+* **tickets:** host-correct notification and email links across both shells ([6839e40](https://github.com/rafail3/ngig.cloud/commit/6839e402941fd1605e54a0d2c1e9cc5d560639f8))
+* **tickets:** stale badge and unread marks, chronological order, read receipts ([13b7283](https://github.com/rafail3/ngig.cloud/commit/13b7283bdbcd7a7a98cc1c954c536899a2d6da31))
+
 ## [2.13.0](https://github.com/rafail3/ngig.cloud/compare/v2.12.0...v2.13.0) (2026-07-14)
 
 
