@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.11.0](https://github.com/rafail3/ngig.cloud/compare/v2.10.0...v2.11.0) (2026-07-14)
+
+
+### Features
+
+* **announcements:** admin broadcast page with history and recall ([1b5a75c](https://github.com/rafail3/ngig.cloud/commit/1b5a75c3c696402ad7062d088796929f761d52b9))
+* **announcements:** admin broadcast page with history and recall ([faf5468](https://github.com/rafail3/ngig.cloud/commit/faf5468b97839b09556051c1c7a8e3e85bc14908))
+* **announcements:** custom date picker, action feedback, settings tabs ([88cfff7](https://github.com/rafail3/ngig.cloud/commit/88cfff7f00bdb3be2b27d2ddae8a210ca22b44f5))
+* **announcements:** deliver to all accounts including the sender ([ac0deea](https://github.com/rafail3/ngig.cloud/commit/ac0deeab2717a421892b516148fd979537d7bd36))
+* **announcements:** highlight active formatting in the editor toolbar ([f4ccfc3](https://github.com/rafail3/ngig.cloud/commit/f4ccfc3015f08a8dd44cc3ba15249e9079a54f85))
+* **announcements:** resend a past announcement from history ([ca3b436](https://github.com/rafail3/ngig.cloud/commit/ca3b436b30f5b3ac392d5f9b3a0b44307ad94f99))
+* **announcements:** rich-text messages + notification UX polish ([680b1b7](https://github.com/rafail3/ngig.cloud/commit/680b1b725acef26a5a09c01138624fd0a9218aae))
+* **announcements:** schedule sends via pg_cron ([84b99fb](https://github.com/rafail3/ngig.cloud/commit/84b99fb710a3e131f4bb856b69c9f5c9b9da2cbf))
+* **cloud:** global toast notifications (sonner), wired to announcements ([9560e3f](https://github.com/rafail3/ngig.cloud/commit/9560e3fccf37bcd4eb7dacafd0d962d88615ad9a))
+* **cloud:** route action feedback through toasts app-wide ([4a58e75](https://github.com/rafail3/ngig.cloud/commit/4a58e7599b2d5b01c47373f39fa065d1c04ea4ca))
+* **notifications:** admin registry to toggle event types ([b1cdd00](https://github.com/rafail3/ngig.cloud/commit/b1cdd00717b3fa0b20d041a62e616c6a7a330071))
+* **notifications:** editable message templates per type ([e222089](https://github.com/rafail3/ngig.cloud/commit/e2220893c0e0c7eeda8488dc879bbb509e0f9829))
+* **notifications:** highlighted message editor + time-field polish ([10a489f](https://github.com/rafail3/ngig.cloud/commit/10a489f66aea8db1a568df65a9f741634c2a3ad9))
+* **notifications:** inline caret autocomplete + edit-guard polish ([bd2c512](https://github.com/rafail3/ngig.cloud/commit/bd2c51263dd6c13cab5d72de201a0b0bf3f472e4))
+
+
+### Bug Fixes
+
+* **announcements:** send from confirm dialog via requestSubmit ([2e79da7](https://github.com/rafail3/ngig.cloud/commit/2e79da7e84ba6f000f744a20e44d527d7571292a))
+* **announcements:** typable rich editor, responsive date picker ([86adad7](https://github.com/rafail3/ngig.cloud/commit/86adad7882708ac4ad7ae5478f0f5b9f00058ad2))
+* **notifications:** deliver realtime by authing the socket + full titles ([95ea98d](https://github.com/rafail3/ngig.cloud/commit/95ea98d011ce5333e28fccabb549ea1efa3d76ad))
+* **notifications:** inline message links navigate to their own href ([4c309bb](https://github.com/rafail3/ngig.cloud/commit/4c309bbca79dc903e42f0f9d26db6575b0843c7c))
+* **notifications:** live feed while panel open, fluent copy, badge ([eb3fd49](https://github.com/rafail3/ngig.cloud/commit/eb3fd4939ca73ddc1c13b31c4e1375c1ad46565e))
+* **realtime:** auth the socket in drive + dashboard subscriptions too ([22abdf7](https://github.com/rafail3/ngig.cloud/commit/22abdf7729a7a44fcab1f2252ee940df97e7a89f))
+
 ## [2.10.0](https://github.com/rafail3/ngig.cloud/compare/v2.9.0...v2.10.0) (2026-07-13)
 
 
