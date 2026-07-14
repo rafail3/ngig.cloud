@@ -43,7 +43,7 @@ export function RenameModal({
     <ModalShell onClose={onClose}>
       <form onSubmit={submit}>
         <h3 className="text-base font-semibold text-zinc-100">{title}</h3>
-        <div className="mt-3 flex items-stretch rounded-xl border border-zinc-50/10 bg-zinc-50/5 transition focus-within:border-indigo-400/60 focus-within:ring-1 focus-within:ring-indigo-400/40">
+        <div className="mt-3 flex items-stretch rounded-xl border border-zinc-800 bg-zinc-950/50 transition focus-within:border-indigo-400/60 focus-within:ring-1 focus-within:ring-indigo-400/40">
           <input
             autoFocus
             value={name}

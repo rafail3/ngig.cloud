@@ -241,7 +241,7 @@ function CreateFolderModal({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nume folder"
-          className="mt-3 w-full rounded-xl border border-zinc-50/10 bg-zinc-50/5 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
+          className="mt-3 w-full rounded-xl border border-zinc-800 bg-zinc-950/50 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
         />
         {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
         <div className="mt-4 flex justify-end gap-2">

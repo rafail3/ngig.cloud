@@ -257,9 +257,9 @@ export function AnnouncementHistory({ items }: { items: AnnouncementRow[] }) {
   return (
     <div>
       {/* ===== Desktop table ===== */}
-      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800 lg:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/20 lg:block">
         <table className="w-full table-fixed text-left text-sm">
-          <thead className="bg-zinc-900/60 text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="bg-zinc-900/40 text-xs font-medium text-zinc-500">
             <tr>
               <th className="w-[46%] px-4 py-3 font-medium">Anunț</th>
               <th className="w-[16%] px-4 py-3 font-medium">Destinatari</th>
@@ -324,7 +324,7 @@ export function AnnouncementHistory({ items }: { items: AnnouncementRow[] }) {
       {/* ===== Mobile / tablet cards ===== */}
       <div className="flex flex-col gap-3 lg:hidden">
         {items.map((a) => (
-          <div key={a.id} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+          <div key={a.id} className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4">
             <p className="text-[15px] font-semibold text-zinc-100">{a.title}</p>
             <p
               className="mt-1 break-words text-sm text-zinc-300 [&_a]:text-indigo-400 [&_a]:underline"

@@ -15,7 +15,7 @@ import { splitUnit } from "@/lib/bytes";
 import { formatDateTime as fmt } from "@/lib/format-date";
 
 const fieldCls =
-  "w-full rounded-xl border border-zinc-50/10 bg-zinc-50/5 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:bg-zinc-50/10 focus:ring-1 focus:ring-indigo-400/40";
+  "w-full rounded-xl border border-zinc-800 bg-zinc-950/50 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-indigo-500/15";
 const labelCls = "mb-1.5 block text-sm font-medium text-zinc-300";
 
 const DURATION_OPTIONS = [
@@ -55,7 +55,7 @@ export function UserActions({
   return (
     <div className="flex flex-col gap-4">
       {/* ===== Block / Unblock ===== */}
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+      <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
         <div className="mb-3 flex items-center gap-2 text-zinc-100">
           <ShieldAlert className="h-5 w-5 text-red-400" />
           <h3 className="text-sm font-semibold">Acces cont</h3>
@@ -122,7 +122,7 @@ export function UserActions({
       </section>
 
       {/* ===== Force sign out ===== */}
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+      <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
         <div className="mb-3 flex items-center gap-2 text-zinc-100">
           <LogOut className="h-5 w-5 text-amber-400" />
           <h3 className="text-sm font-semibold">Sesiuni</h3>
@@ -143,7 +143,7 @@ export function UserActions({
       </section>
 
       {/* ===== Storage limits ===== */}
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-5">
+      <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
         <div className="mb-3 flex items-center gap-2 text-zinc-100">
           <HardDrive className="h-5 w-5 text-indigo-400" />
           <h3 className="text-sm font-semibold">Limite spațiu</h3>
@@ -195,7 +195,7 @@ export function UserActions({
             <button
               type="submit"
               disabled={limitsPending}
-              className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
+              className="rounded-xl bg-indigo-500 hover:bg-indigo-400 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:opacity-60"
             >
               {limitsPending ? "Se salvează…" : "Salvează limite"}
             </button>

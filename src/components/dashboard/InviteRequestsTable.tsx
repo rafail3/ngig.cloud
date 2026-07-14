@@ -227,9 +227,9 @@ export function InviteRequestsTable({ requests }: { requests: InviteRequestRow[]
   return (
     <div>
       {/* ===== Desktop table ===== */}
-      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800 lg:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/20 lg:block">
         <table className="w-full table-fixed text-left text-sm">
-          <thead className="bg-zinc-900/60 text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="bg-zinc-900/40 text-xs font-medium text-zinc-500">
             <tr>
               <th className="w-[20%] px-4 py-3 font-medium">Solicitant</th>
               <th className="w-[26%] px-4 py-3 font-medium">Mesaj</th>
@@ -268,7 +268,7 @@ export function InviteRequestsTable({ requests }: { requests: InviteRequestRow[]
       {/* ===== Mobile / tablet cards ===== */}
       <div className="flex flex-col gap-3 lg:hidden">
         {requests.map((req) => (
-          <div key={req.id} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+          <div key={req.id} className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-zinc-200">{req.name}</p>

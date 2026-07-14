@@ -494,8 +494,8 @@ function ExistingTab({ types }: { types: NotificationTypeStatus[] }) {
         if (group.length === 0) return null;
         return (
           <section key={key} className="flex flex-col gap-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</h2>
-            <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
+            <h2 className="text-xs font-semibold text-zinc-400">{label}</h2>
+            <div className="overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
               {group.map((t) => (
                 <Row key={t.key} t={t} />
               ))}
@@ -527,7 +527,7 @@ function AddTab({ addable }: { addable: NotificationTypeMeta[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+    <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-5">
       <label htmlFor="add-action" className="mb-1.5 block text-xs font-medium text-zinc-400">
         Acțiune
       </label>
@@ -569,7 +569,7 @@ export function NotificationSettings({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="inline-flex w-fit rounded-lg border border-zinc-800 bg-zinc-900/40 p-0.5">
+      <div className="inline-flex w-fit rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-0.5">
         <TabButton active={tab === "existing"} onClick={() => setTab("existing")}>
           Notificări existente
         </TabButton>

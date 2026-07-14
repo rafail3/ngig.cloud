@@ -37,9 +37,9 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
   return (
     <div>
       {/* ===== Desktop table ===== */}
-      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800 lg:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/20 lg:block">
         <table className="w-full text-left text-sm">
-          <thead className="bg-zinc-900/60 text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="bg-zinc-900/40 text-xs font-medium text-zinc-500">
             <tr>
               <th className="px-4 py-3 font-medium">User</th>
               <th className="px-4 py-3 font-medium">Creat</th>
@@ -110,7 +110,7 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
             <Link
               key={u.id}
               href={`/users/${u.id}`}
-              className="block rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 transition-colors hover:border-zinc-700"
+              className="block rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 transition-colors hover:border-zinc-700"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2">

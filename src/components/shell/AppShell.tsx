@@ -16,6 +16,7 @@ import { UploadPanel } from "@/components/drive/UploadPanel";
 import { ContextMenuProvider } from "@/components/drive/ContextMenu";
 import { prefetchDrive, useDriveRealtime, useFolder } from "@/components/drive/useDriveData";
 import { useClickOutside } from "@/lib/useClickOutside";
+import { Avatar } from "./Avatar";
 
 type ShellUser = { username: string; role: string; email: string };
 
@@ -41,18 +42,6 @@ const NAV: NavItem[] = [
     adminOnly: true,
   },
 ];
-
-// Round accent avatar with the user's initial — the anchor of the user menu.
-function Avatar({ username, className = "h-7 w-7 text-xs" }: { username: string; className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={`flex shrink-0 select-none items-center justify-center rounded-full bg-indigo-500/15 font-semibold uppercase text-indigo-300 ring-1 ring-inset ring-indigo-500/25 ${className}`}
-    >
-      {username.slice(0, 1) || "?"}
-    </span>
-  );
-}
 
 // Storage summary pinned to the drawer's footer. Reads the same SWR cache as
 // the drive, so it's free (no extra request) and live-updates with uploads.

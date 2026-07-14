@@ -13,7 +13,7 @@ async function RequestsContent() {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+      <h2 className="text-sm font-medium text-zinc-400">
         Cereri ({requests.length}
         {pending > 0 ? ` · ${pending} în așteptare` : ""})
       </h2>

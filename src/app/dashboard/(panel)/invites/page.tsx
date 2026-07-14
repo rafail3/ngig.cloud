@@ -23,7 +23,7 @@ async function InvitesContent({
       <InviteGenerator prefillEmail={email} />
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+        <h2 className="text-sm font-medium text-zinc-400">
           Istoric ({invites.length})
         </h2>
         <InvitesTable invites={invites} />

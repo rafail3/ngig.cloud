@@ -10,7 +10,7 @@ import type { GlobalSettings } from "@/server/admin/settings";
 
 const initial: SettingsState = {};
 const fieldCls =
-  "w-full rounded-xl border border-zinc-50/10 bg-zinc-50/5 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-400/60 focus:bg-zinc-50/10 focus:ring-1 focus:ring-indigo-400/40";
+  "w-full rounded-xl border border-zinc-800 bg-zinc-950/50 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-indigo-500/15";
 const labelCls = "mb-1.5 block text-sm font-medium text-zinc-300";
 
 function Field({
@@ -53,7 +53,7 @@ export function SettingsForm({ settings }: { settings: GlobalSettings }) {
   useToastState(state);
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 sm:p-6">
+    <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-6">
       <div className="mb-4 flex items-center gap-2 text-zinc-100">
         <HardDrive className="h-5 w-5 text-indigo-400" />
         <h2 className="text-base font-semibold">Limite storage (globale)</h2>
@@ -86,7 +86,7 @@ export function SettingsForm({ settings }: { settings: GlobalSettings }) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60"
+            className="rounded-xl bg-indigo-500 hover:bg-indigo-400 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:opacity-60"
           >
             {pending ? "Se salvează…" : "Salvează setări"}
           </button>

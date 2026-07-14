@@ -165,9 +165,9 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
   return (
     <div>
       {/* ===== Desktop table ===== */}
-      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800 lg:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/20 lg:block">
         <table className="w-full table-fixed text-left text-sm">
-          <thead className="bg-zinc-900/60 text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="bg-zinc-900/40 text-xs font-medium text-zinc-500">
             <tr>
               <th className="w-[26%] px-4 py-3 font-medium">Cod</th>
               <th className="w-[9%] px-4 py-3 font-medium">Status</th>
@@ -227,7 +227,7 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
         {invites.map((inv) => {
           const status = inviteStatus(inv);
           return (
-            <div key={inv.id} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+            <div key={inv.id} className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <CodeCell code={inv.code} />
