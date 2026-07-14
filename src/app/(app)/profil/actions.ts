@@ -8,8 +8,24 @@ import {
   changeEmail,
   revokeMySession,
   revokeMyOtherSessions,
+  deleteMyAccount,
 } from "@/server/account/profile";
 import type { AccountState } from "@/lib/account-state";
+
+// Wipes the caller's account for good. The client sends the browser to /login
+// on success — the auth user no longer exists, so the session cookie is dead and
+// a full load is the cleanest way to drop every cached page.
+export async function deleteMyAccountAction(input: {
+  password: string;
+  username: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await deleteMyAccount(input.password, input.username);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Eroare." };
+  }
+}
 
 export async function changeUsernameAction(
   _prev: AccountState,

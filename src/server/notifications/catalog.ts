@@ -65,6 +65,8 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultTitle: "📩 Cerere nouă de invitație", defaultBody: "{nume} ({email}) a cerut o invitație.", vars: ["nume", "email"] },
   { key: "user_registered", label: "Utilizator nou", description: "Anunță administratorii de fiecare dată când se creează un cont nou pe platformă.", audience: "admin",
     defaultTitle: "🎉 Utilizator nou", defaultBody: "{utilizator} ({email}) și-a creat un cont.", vars: ["utilizator", "email"] },
+  { key: "account_deleted", label: "Cont șters", description: "Anunță administratorii când un cont dispare de pe platformă — fie că utilizatorul l-a șters singur, fie că a fost șters din dashboard.", audience: "admin",
+    defaultTitle: "🗑️ Cont șters", defaultBody: "Contul {utilizator} a fost șters, împreună cu toate datele lui.", vars: ["utilizator"] },
   { key: "user_quota", label: "User la limita de spațiu", description: "Anunță administratorii când un utilizator atinge limita totală a contului său.", audience: "admin",
     defaultTitle: "📊 Un utilizator a atins limita", defaultBody: "{utilizator} a atins limita de spațiu ({limita}).", vars: ["utilizator", "limita"] },
   { key: "platform_full", label: "Platformă aproape plină", description: "Anunță administratorii când un upload e respins fiindcă spațiul total al platformei este la limită.", audience: "admin",

@@ -10,6 +10,11 @@ type Props = {
   placeholder?: string;
   // Override the field styling (the eye-button padding is always applied).
   className?: string;
+  // Controlled mode — pass both. Forms that post FormData leave these out and
+  // stay uncontrolled (defaultValue); callers that need to react to typing
+  // (e.g. arming a destructive button) pass them.
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 const defaultInputCls =
@@ -22,8 +27,11 @@ export function PasswordInput({
   minLength,
   placeholder,
   className,
+  value,
+  onChange,
 }: Props) {
   const [show, setShow] = useState(false);
+  const controlled = value !== undefined;
 
   return (
     <div className="relative">
@@ -33,7 +41,7 @@ export function PasswordInput({
         required
         minLength={minLength}
         autoComplete={autoComplete}
-        defaultValue={defaultValue}
+        {...(controlled ? { value, onChange } : { defaultValue })}
         placeholder={placeholder}
         className={`${className ?? defaultInputCls} pr-12`}
       />

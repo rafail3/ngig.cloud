@@ -275,6 +275,48 @@ export async function deleteObject(key: string) {
   } while (keyMarker);
 }
 
+// Permanently delete EVERYTHING under a prefix — every object, every version,
+// every delete marker. Used when wiping an account: the bucket is versioned, so
+// deleting just the current version would leave the bytes recoverable.
+// Returns how many versions were removed.
+export async function deletePrefix(prefix: string): Promise<number> {
+  let removed = 0;
+  let keyMarker: string | undefined;
+  let versionIdMarker: string | undefined;
+
+  do {
+    const listed = await client.send(
+      new ListObjectVersionsCommand({
+        Bucket: bucket,
+        Prefix: prefix,
+        KeyMarker: keyMarker,
+        VersionIdMarker: versionIdMarker,
+      }),
+    );
+
+    const targets = [...(listed.Versions ?? []), ...(listed.DeleteMarkers ?? [])].filter(
+      (v) => v.Key && v.VersionId,
+    );
+    await Promise.all(
+      targets.map((v) =>
+        client.send(
+          new DeleteObjectCommand({
+            Bucket: bucket,
+            Key: v.Key!,
+            VersionId: v.VersionId,
+          }),
+        ),
+      ),
+    );
+    removed += targets.length;
+
+    keyMarker = listed.IsTruncated ? listed.NextKeyMarker : undefined;
+    versionIdMarker = listed.IsTruncated ? listed.NextVersionIdMarker : undefined;
+  } while (keyMarker);
+
+  return removed;
+}
+
 // Sweep a prefix clean of leftovers, regardless of how they appeared (deleting
 // from the B2 console, an interrupted upload, etc.):
 //  - every hide/delete marker (0-byte orphans that "hide" an object)

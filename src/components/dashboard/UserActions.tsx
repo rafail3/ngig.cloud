@@ -9,6 +9,7 @@ import {
   setUserLimitsAction,
   resetUserLimitsAction,
 } from "@/app/dashboard/(panel)/users/actions";
+import { DeleteUser } from "@/components/dashboard/DeleteUser";
 import { isBlocked, isPermanentBlock, type UserActionState } from "@/lib/user-presence";
 import { useToastState } from "@/lib/useToastState";
 import { splitUnit } from "@/lib/bytes";
@@ -35,6 +36,7 @@ export function UserActions({
 }: {
   user: {
     id: string;
+    username: string;
     blocked_until: string | null;
     blocked_reason: string | null;
     max_file_size: number | null;
@@ -209,6 +211,11 @@ export function UserActions({
           </div>
         </form>
       </section>
+
+      {/* ===== Danger zone ===== */}
+      {/* Hidden on your own account: deleting yourself goes through /profil,
+          where you re-authenticate first. */}
+      {!isSelf && <DeleteUser id={user.id} username={user.username} />}
     </div>
   );
 }

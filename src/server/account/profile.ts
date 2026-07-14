@@ -6,6 +6,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { emailHasAccount } from "@/server/invites/service";
 import { sendEmailChangedNotice, sendEmailActivation } from "@/server/email/resend";
 import { notifyUserEvent } from "@/server/notifications/service";
+import { wipeUserData, assertNotLastAdmin } from "@/server/account/wipe";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -103,6 +104,37 @@ async function verifyPassword(email: string, password: string): Promise<boolean>
   // session (scope: local) — global would kill the user's real session too.
   if (!error) await probe.auth.signOut({ scope: "local" });
   return !error;
+}
+
+// Self-service account deletion. Irreversible: it wipes the B2 objects and then
+// the auth user, whose cascade clears every row (see wipeUserData).
+//
+// Two proofs are required before anything is touched: the current password (it's
+// really them, not a hijacked tab) and the username typed by hand (they meant
+// it, not a stray click on an autofilled form).
+export async function deleteMyAccount(
+  password: string,
+  usernameConfirmation: string,
+): Promise<void> {
+  const { supabase, id, email } = await currentUser();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", id)
+    .single();
+  const username = (profile?.username as string) ?? "";
+
+  if (usernameConfirmation.trim() !== username) {
+    throw new Error("Username-ul tastat nu se potrivește.");
+  }
+  if (!(await verifyPassword(email, password))) {
+    throw new Error("Parola e greșită.");
+  }
+  // A cloud with no admin can only be fixed by hand in Supabase.
+  await assertNotLastAdmin(id);
+
+  await wipeUserData(id, id);
 }
 
 export async function changeUsername(
