@@ -34,6 +34,44 @@ function clamp(min: number, max: number, v: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
+// A 2-digit time field. Shows the padded value ("00") when idle; clears on focus
+// so you type the number directly.
+function TimeField({
+  value,
+  max,
+  onCommit,
+  ariaLabel,
+}: {
+  value: number;
+  max: number;
+  onCommit: (v: number) => void;
+  ariaLabel: string;
+}) {
+  const [focused, setFocused] = useState(false);
+  const [text, setText] = useState("");
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      maxLength={2}
+      aria-label={ariaLabel}
+      value={focused ? text : pad(value)}
+      onFocus={(e) => {
+        setFocused(true);
+        setText("");
+        e.target.select();
+      }}
+      onChange={(e) => {
+        const v = e.target.value.replace(/\D/g, "").slice(0, 2);
+        setText(v);
+        onCommit(v === "" ? 0 : clamp(0, max, parseInt(v, 10)));
+      }}
+      onBlur={() => setFocused(false)}
+      className="w-8 bg-transparent text-center text-sm tabular-nums text-zinc-100 focus:outline-none"
+    />
+  );
+}
+
 export function DateTimePicker({
   value,
   onChange,
@@ -152,25 +190,9 @@ export function DateTimePicker({
           <div className="mt-3 flex items-center gap-2 border-t border-zinc-800 pt-3">
             <Clock className="h-4 w-4 shrink-0 text-zinc-500" />
             <div className="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 focus-within:border-indigo-500/60">
-              <input
-                type="number"
-                min={0}
-                max={23}
-                aria-label="Ora"
-                value={hh}
-                onChange={(e) => setTime(clamp(0, 23, parseInt(e.target.value, 10)), mm)}
-                className="w-8 bg-transparent text-center text-sm tabular-nums text-zinc-100 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-              />
+              <TimeField value={hh} max={23} ariaLabel="Ora" onCommit={(h) => setTime(h, mm)} />
               <span className="text-zinc-500">:</span>
-              <input
-                type="number"
-                min={0}
-                max={59}
-                aria-label="Minutul"
-                value={mm}
-                onChange={(e) => setTime(hh, clamp(0, 59, parseInt(e.target.value, 10)))}
-                className="w-8 bg-transparent text-center text-sm tabular-nums text-zinc-100 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-              />
+              <TimeField value={mm} max={59} ariaLabel="Minutul" onCommit={(m) => setTime(hh, m)} />
             </div>
             <button
               type="button"

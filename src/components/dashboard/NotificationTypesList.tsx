@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { User, Shield, Plus, BellOff, Pencil, X, RotateCcw } from "lucide-react";
 import {
@@ -76,6 +76,128 @@ function Toggle({
   );
 }
 
+// Render text with {placeholder} tokens highlighted (known vars = indigo chip,
+// unknown = muted), for the overlay behind the message textarea.
+function renderTokens(text: string, vars: string[]): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const re = /\{(\w+)\}/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const known = vars.includes(m[1]);
+    parts.push(
+      <span
+        key={i++}
+        className={
+          known
+            ? "rounded bg-indigo-500/20 font-medium text-indigo-300"
+            : "text-zinc-500"
+        }
+      >
+        {m[0]}
+      </span>,
+    );
+    last = re.lastIndex;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+// Message editor: a textarea with its {variables} highlighted (via an aligned
+// overlay) and an autocomplete that pops the available vars when you type "{".
+function HighlightedTextarea({
+  id,
+  value,
+  onChange,
+  vars,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  vars: string[];
+}) {
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [sugg, setSugg] = useState<{ start: number; query: string } | null>(null);
+  const box = "px-3.5 py-2 text-sm leading-6";
+
+  function detect(val: string, cursor: number | null) {
+    if (cursor == null) return setSugg(null);
+    const before = val.slice(0, cursor);
+    const open = before.lastIndexOf("{");
+    if (open === -1) return setSugg(null);
+    const between = before.slice(open + 1);
+    if (/[}\s]/.test(between)) return setSugg(null);
+    setSugg({ start: open, query: between });
+  }
+
+  const matches = sugg ? vars.filter((v) => v.startsWith(sugg.query)) : [];
+
+  function insert(v: string) {
+    const ta = taRef.current;
+    if (!ta || !sugg) return;
+    const cursor = ta.selectionStart;
+    const next = value.slice(0, sugg.start) + `{${v}}` + value.slice(cursor);
+    onChange(next);
+    setSugg(null);
+    const pos = sugg.start + v.length + 2;
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(pos, pos);
+    });
+  }
+
+  return (
+    <div className="relative rounded-lg border border-zinc-800 bg-zinc-950 focus-within:border-indigo-500/60">
+      <div
+        ref={overlayRef}
+        aria-hidden
+        className={`pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-zinc-100 ${box}`}
+      >
+        {renderTokens(value, vars)}
+        {"\n"}
+      </div>
+      <textarea
+        id={id}
+        ref={taRef}
+        value={value}
+        rows={3}
+        maxLength={1000}
+        onChange={(e) => {
+          onChange(e.target.value);
+          detect(e.target.value, e.target.selectionStart);
+        }}
+        onClick={(e) => detect(e.currentTarget.value, e.currentTarget.selectionStart)}
+        onKeyUp={(e) => detect(e.currentTarget.value, e.currentTarget.selectionStart)}
+        onScroll={(e) => {
+          if (overlayRef.current) overlayRef.current.scrollTop = e.currentTarget.scrollTop;
+        }}
+        onBlur={() => setTimeout(() => setSugg(null), 150)}
+        className={`relative z-10 block w-full resize-none bg-transparent text-transparent caret-zinc-100 outline-none selection:bg-indigo-500/30 ${box}`}
+      />
+      {matches.length > 0 && (
+        <div className="absolute left-2 top-full z-20 mt-1 flex flex-wrap gap-1 rounded-lg border border-zinc-800 bg-zinc-900 p-2 shadow-xl">
+          {matches.map((v) => (
+            <button
+              key={v}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                insert(v);
+              }}
+              className="rounded-md border border-zinc-800 bg-zinc-950 px-2 py-0.5 font-mono text-xs text-indigo-300 transition hover:border-indigo-500/50"
+            >
+              {`{${v}}`}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => void }) {
   const [title, setTitle] = useState(t.title);
   const [body, setBody] = useState(t.body);
@@ -104,10 +226,13 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
   }
 
   function reset() {
+    // Put the defaults back in the fields and persist the reset, but keep the
+    // dialog open so the admin can review / re-edit.
+    setTitle(t.defaultTitle);
+    setBody(t.defaultBody);
     start(async () => {
       await resetNotificationTemplateAction(t.key);
       toast.success("Mesajul a fost readus la varianta implicită.");
-      onClose();
     });
   }
 
@@ -150,20 +275,14 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
             <label htmlFor="nt-body" className="mb-1.5 block text-xs font-medium text-zinc-400">
               Mesaj
             </label>
-            <textarea
-              id="nt-body"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={3}
-              maxLength={1000}
-              className={`${inputCls} resize-y`}
-            />
+            <HighlightedTextarea id="nt-body" value={body} onChange={setBody} vars={t.vars} />
           </div>
 
           {t.vars.length > 0 && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
               <p className="text-xs text-zinc-400">
-                Valori dinamice — folosește-le în titlu sau mesaj și se completează automat:
+                Valori dinamice — scrie <span className="text-zinc-300">{"{"}</span> în mesaj ca să
+                le sugereze, sau apasă una:
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {t.vars.map((v) => (
@@ -183,8 +302,8 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
           <button
             type="button"
             onClick={reset}
-            disabled={pending || !t.customized}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
+            disabled={pending}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-50"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             Implicit
