@@ -12,6 +12,7 @@ import { formatBytes } from "@/lib/format";
 import { formatDateShort } from "@/lib/format-date";
 import { fileTypeShort } from "@/lib/file-type";
 import { listContainer, listItem, ModalShell } from "./anim";
+import { FileTypeIcon } from "./FileTypeIcon";
 import { revalidateDrive } from "./useDriveData";
 
 export type TrashFile = {
@@ -84,12 +85,16 @@ export function TrashList({ files }: { files: TrashFile[] }) {
 
   if (files.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 px-6 py-16 text-center">
-        <Trash className="h-7 w-7 text-zinc-600" />
-        <p className="mt-3 text-base font-medium text-zinc-300">Coșul e gol</p>
-        <p className="mt-1 text-sm text-zinc-500">
-          Fișierele pe care le muți în coș apar aici.
-        </p>
+      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-800 px-6 py-14 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900">
+          <Trash className="h-5 w-5 text-zinc-500" aria-hidden="true" />
+        </span>
+        <div>
+          <p className="text-sm font-medium text-zinc-300">Coșul e gol</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            Fișierele pe care le muți în coș apar aici.
+          </p>
+        </div>
       </div>
     );
   }
@@ -128,7 +133,7 @@ export function TrashList({ files }: { files: TrashFile[] }) {
         variants={listContainer}
         initial="hidden"
         animate="show"
-        className="divide-y divide-zinc-800 overflow-hidden rounded-xl border border-zinc-800"
+        className="divide-y divide-zinc-800/40 overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900/20"
       >
         <AnimatePresence initial={false}>
           {files.map((file) => {
@@ -141,13 +146,14 @@ export function TrashList({ files }: { files: TrashFile[] }) {
                 variants={listItem}
                 exit={{ opacity: 0, scale: 0.97 }}
                 style={{ opacity: busy ? 0.5 : 1 }}
-                className="flex items-center gap-3 px-4 py-3"
+                className="flex items-center gap-3 px-3.5 py-3"
               >
+                <FileTypeIcon name={file.name} mime={file.mimeType} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-medium text-zinc-100">
+                  <p className="truncate text-sm font-medium text-zinc-100">
                     {file.name}
                   </p>
-                  <p className="truncate text-sm text-zinc-500">
+                  <p className="mt-0.5 truncate text-xs text-zinc-500">
                     {fileTypeShort(file.name, file.mimeType)} · {formatBytes(file.size)} ·
                     șters {formatDateShort(file.deletedAt)} ·{" "}
                     <span className={soon ? "text-amber-400" : undefined}>
