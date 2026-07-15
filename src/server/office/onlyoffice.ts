@@ -27,6 +27,17 @@ import { officeDocType, officeFileType } from "@/lib/office";
 const DS_URL = process.env.NEXT_PUBLIC_ONLYOFFICE_URL ?? "";
 const SECRET = process.env.ONLYOFFICE_JWT_SECRET ?? "";
 
+// Where the Document Server should POST the finished file. Defaults to our own
+// origin, which is right in production — but the Document Server has to REACH
+// it, and in local dev it runs inside Docker, where "localhost" means the
+// container itself, not the machine. Set this to
+// http://host.docker.internal:3002 locally; leave it unset everywhere else.
+const CALLBACK_ORIGIN = process.env.ONLYOFFICE_CALLBACK_ORIGIN || "";
+
+function callbackOrigin(): string {
+  return CALLBACK_ORIGIN.replace(/\/$/, "") || appOrigin();
+}
+
 function secretKey(): Uint8Array {
   if (!SECRET) throw new Error("Editorul Office nu e configurat.");
   return new TextEncoder().encode(SECRET);
@@ -78,7 +89,7 @@ export async function buildEditorConfig(fileId: string): Promise<EditorConfig> {
   // Proves to our own callback which file is being saved, and for whom. The
   // callback has no session, so this token is the only authority it gets.
   const callbackToken = await sign({ fileId, ownerId: userId }, "24h");
-  const callbackUrl = `${appOrigin()}/api/onlyoffice/callback?t=${encodeURIComponent(callbackToken)}`;
+  const callbackUrl = `${callbackOrigin()}/api/onlyoffice/callback?t=${encodeURIComponent(callbackToken)}`;
 
   const config: Record<string, unknown> = {
     documentType: docType,
