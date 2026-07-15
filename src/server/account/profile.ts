@@ -106,6 +106,15 @@ async function verifyPassword(email: string, password: string): Promise<boolean>
   return !error;
 }
 
+// Is this the caller's password? Lets the delete flow reject a wrong password on
+// the form itself, instead of dragging the user through the final confirmation
+// only to fail there. deleteMyAccount re-checks it anyway — this is a courtesy,
+// not the gate.
+export async function checkMyPassword(password: string): Promise<boolean> {
+  const { email } = await currentUser();
+  return verifyPassword(email, password);
+}
+
 // Self-service account deletion. Irreversible: it wipes the B2 objects and then
 // the auth user, whose cascade clears every row (see wipeUserData).
 //

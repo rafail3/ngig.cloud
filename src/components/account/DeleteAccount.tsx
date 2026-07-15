@@ -6,7 +6,10 @@ import { TriangleAlert, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ModalShell } from "@/components/drive/anim";
 import { PasswordInput } from "@/components/auth/PasswordInput";
-import { deleteMyAccountAction } from "@/app/(app)/profil/actions";
+import {
+  deleteMyAccountAction,
+  verifyMyPasswordAction,
+} from "@/app/(app)/profil/actions";
 
 const inputCls =
   "w-full rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-600 focus:border-red-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-red-500/15";
@@ -21,8 +24,22 @@ export function DeleteAccount({ username }: { username: string }) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [pending, startTransition] = useTransition();
+  const [checking, setChecking] = useState(false);
 
   const armed = password.length > 0 && confirm === username;
+
+  // Validate the password HERE, on the form, rather than letting a typo sail
+  // through the final "are you sure?" and fail on the other side of it.
+  async function proceed() {
+    setChecking(true);
+    const res = await verifyMyPasswordAction(password);
+    setChecking(false);
+    if (!res.ok) {
+      toast.error("Parola e greșită.");
+      return;
+    }
+    setStep("sure");
+  }
 
   function close() {
     if (pending) return;
@@ -111,17 +128,19 @@ export function DeleteAccount({ username }: { username: string }) {
               <button
                 type="button"
                 onClick={close}
-                className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+                disabled={checking}
+                className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-60"
               >
                 Anulează
               </button>
               <button
                 type="button"
-                onClick={() => setStep("sure")}
-                disabled={!armed}
-                className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-50"
+                onClick={proceed}
+                disabled={!armed || checking}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-50"
               >
-                Continuă
+                {checking && <Loader2 className="h-4 w-4 animate-spin" />}
+                {checking ? "Se verifică…" : "Continuă"}
               </button>
             </div>
           </ModalShell>
