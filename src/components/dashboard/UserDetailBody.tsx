@@ -87,6 +87,7 @@ export function UserDetailBody({ user, isSelf }: { user: AdminUser; isSelf: bool
         <UserActions
           user={{
             id: user.id,
+            username: user.username ?? "",
             blocked_until: user.blocked_until,
             blocked_reason: user.blocked_reason,
             max_file_size: user.max_file_size,

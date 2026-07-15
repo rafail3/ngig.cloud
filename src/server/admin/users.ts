@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
+import { wipeUserData, assertNotLastAdmin } from "@/server/account/wipe";
 import { formatBytes } from "@/lib/format";
 
 export type AdminUser = {
@@ -120,6 +121,35 @@ export async function signOutUser(id: string): Promise<void> {
   await revokeSessions(admin, id);
 
   await notifyUserEvent(id, "forced_signout", {}, "/profil");
+}
+
+// Admin-side account deletion — the same total wipe as the self-service flow
+// (wipeUserData). Irreversible.
+//
+// `usernameConfirmation` must equal the target's username and is checked HERE,
+// server-side and before anything is touched: a client-side-only check would be
+// a suggestion, and the cost of getting the order wrong is someone else's data.
+// Returns the username so the caller can name it in the confirmation.
+export async function deleteUserAccount(
+  id: string,
+  usernameConfirmation: string,
+  actorId?: string,
+): Promise<string> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("profiles")
+    .select("username")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) throw new Error("Utilizator inexistent.");
+  const username = data.username as string;
+
+  if (usernameConfirmation.trim() !== username) {
+    throw new Error("Username-ul tastat nu se potrivește.");
+  }
+  await assertNotLastAdmin(id);
+  await wipeUserData(id, actorId);
+  return username;
 }
 
 // null = remove the per-user override (falls back to global / unlimited).

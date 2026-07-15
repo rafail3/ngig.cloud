@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Mail, CalendarClock, LogIn } from "lucide-react";
 import { getMyProfile, listMySessions } from "@/server/account/profile";
 import { SettingsCard, UsernameForm, PasswordForm, EmailForm } from "@/components/account/AccountForms";
+import { DeleteAccount } from "@/components/account/DeleteAccount";
 import { ProfileTabs } from "@/components/account/ProfileTabs";
 import { ActivityPanel } from "@/components/account/ActivityPanel";
 import { ActiveSessions } from "@/components/account/ActiveSessions";
@@ -59,10 +60,13 @@ async function ProfileContent() {
       {/* ===== Tabs: Cont / Securitate / Activitate ===== */}
       <ProfileTabs
         cont={
-          <SettingsCard>
-            <UsernameForm currentUsername={me.username} />
-            <EmailForm currentEmail={me.email} />
-          </SettingsCard>
+          <div className="flex flex-col gap-4">
+            <SettingsCard>
+              <UsernameForm currentUsername={me.username} />
+              <EmailForm currentEmail={me.email} />
+            </SettingsCard>
+            <DeleteAccount username={me.username} />
+          </div>
         }
         securitate={
           <div className="flex flex-col gap-4">

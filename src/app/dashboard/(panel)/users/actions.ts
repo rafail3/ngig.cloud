@@ -7,6 +7,7 @@ import {
   unblockUser,
   signOutUser,
   setUserLimits,
+  deleteUserAccount,
   type BlockDuration,
 } from "@/server/admin/users";
 import type { UserActionState } from "@/lib/user-presence";
@@ -45,6 +46,35 @@ export async function blockUserAction(
     return { ok: "User blocat." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la blocare." };
+  }
+}
+
+// Wipes a user completely (B2 + every row). Irreversible, so the caller must
+// echo back the exact username — the same lock the self-service flow uses.
+// Deleting yourself from here is refused: that belongs on your own profile,
+// where re-authentication happens.
+export async function deleteUserAction(input: {
+  id: string;
+  username: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  let adminId: string;
+  try {
+    adminId = await requireAdmin();
+  } catch {
+    return { ok: false, error: "Acces interzis." };
+  }
+  if (!input.id) return { ok: false, error: "User invalid." };
+  if (input.id === adminId) {
+    return { ok: false, error: "Îți poți șterge propriul cont doar din pagina ta de profil." };
+  }
+
+  try {
+    // The confirmation is validated inside, before the wipe.
+    await deleteUserAccount(input.id, input.username, adminId);
+    revalidatePath("/dashboard/users");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Eroare la ștergere." };
   }
 }
 

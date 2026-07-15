@@ -8,8 +8,37 @@ import {
   changeEmail,
   revokeMySession,
   revokeMyOtherSessions,
+  deleteMyAccount,
+  checkMyPassword,
 } from "@/server/account/profile";
 import type { AccountState } from "@/lib/account-state";
+
+// Used by the delete flow to validate the password on the form, before the
+// point-of-no-return prompt. The deletion itself re-checks server-side.
+export async function verifyMyPasswordAction(
+  password: string,
+): Promise<{ ok: boolean }> {
+  try {
+    return { ok: await checkMyPassword(password) };
+  } catch {
+    return { ok: false };
+  }
+}
+
+// Wipes the caller's account for good. The client sends the browser to /login
+// on success — the auth user no longer exists, so the session cookie is dead and
+// a full load is the cleanest way to drop every cached page.
+export async function deleteMyAccountAction(input: {
+  password: string;
+  username: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await deleteMyAccount(input.password, input.username);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Eroare." };
+  }
+}
 
 export async function changeUsernameAction(
   _prev: AccountState,

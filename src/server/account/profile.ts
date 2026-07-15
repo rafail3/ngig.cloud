@@ -6,6 +6,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { emailHasAccount } from "@/server/invites/service";
 import { sendEmailChangedNotice, sendEmailActivation } from "@/server/email/resend";
 import { notifyUserEvent } from "@/server/notifications/service";
+import { wipeUserData, assertNotLastAdmin } from "@/server/account/wipe";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -103,6 +104,53 @@ async function verifyPassword(email: string, password: string): Promise<boolean>
   // session (scope: local) — global would kill the user's real session too.
   if (!error) await probe.auth.signOut({ scope: "local" });
   return !error;
+}
+
+// Is this the caller's password? Lets the delete flow reject a wrong password on
+// the form itself, instead of dragging the user through the final confirmation
+// only to fail there. deleteMyAccount re-checks it anyway — this is a courtesy,
+// not the gate.
+export async function checkMyPassword(password: string): Promise<boolean> {
+  const { email } = await currentUser();
+  return verifyPassword(email, password);
+}
+
+// Self-service account deletion. Irreversible: it wipes the B2 objects and then
+// the auth user, whose cascade clears every row (see wipeUserData).
+//
+// Two proofs are required before anything is touched: the current password (it's
+// really them, not a hijacked tab) and the username typed by hand (they meant
+// it, not a stray click on an autofilled form).
+export async function deleteMyAccount(
+  password: string,
+  usernameConfirmation: string,
+): Promise<void> {
+  const { supabase, id, email } = await currentUser();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", id)
+    .single();
+  const username = (profile?.username as string) ?? "";
+
+  if (usernameConfirmation.trim() !== username) {
+    throw new Error("Username-ul tastat nu se potrivește.");
+  }
+  if (!(await verifyPassword(email, password))) {
+    throw new Error("Parola e greșită.");
+  }
+  // A cloud with no admin can only be fixed by hand in Supabase.
+  await assertNotLastAdmin(id);
+
+  // Sign out BEFORE the wipe, while the account still exists: signOut is what
+  // clears the auth cookies, and it can only do that cleanly against a live
+  // user. Skipping this left the browser holding a still-valid JWT for an
+  // account that no longer existed. The wipe below runs on the admin client and
+  // needs no session of its own.
+  await supabase.auth.signOut({ scope: "local" });
+
+  await wipeUserData(id, id);
 }
 
 export async function changeUsername(
