@@ -7,8 +7,12 @@ import { getOfficeEditorConfigAction } from "@/app/drive-actions";
 import { revalidateDrive } from "./useDriveData";
 
 // The Document Server's JS API, injected by its own script.
+// The teardown method is `destroyEditor()` — there is no `destroy()`.
 type DocsApi = {
-  DocEditor: new (id: string, config: Record<string, unknown>) => { destroy: () => void };
+  DocEditor: new (
+    id: string,
+    config: Record<string, unknown>,
+  ) => { destroyEditor: () => void };
 };
 declare global {
   interface Window {
@@ -53,7 +57,7 @@ export function OfficeEditor({
 
   useEffect(() => {
     let cancelled = false;
-    let editor: { destroy: () => void } | null = null;
+    let editor: { destroyEditor: () => void } | null = null;
 
     void (async () => {
       const res = await getOfficeEditorConfigAction(fileId);
@@ -94,7 +98,7 @@ export function OfficeEditor({
 
     return () => {
       cancelled = true;
-      editor?.destroy();
+      editor?.destroyEditor();
       // The save lands via the callback moments after the editor closes, so
       // refresh the drive to pick up the new size / modified date.
       revalidateDrive();

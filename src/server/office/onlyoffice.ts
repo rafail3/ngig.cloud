@@ -86,10 +86,14 @@ export async function buildEditorConfig(fileId: string): Promise<EditorConfig> {
   const version = new Date(file.updated_at ?? file.created_at).getTime();
   const key = `${fileId}-${version}`;
 
-  // Proves to our own callback which file is being saved, and for whom. The
-  // callback has no session, so this token is the only authority it gets.
-  const callbackToken = await sign({ fileId, ownerId: userId }, "24h");
-  const callbackUrl = `${callbackOrigin()}/api/onlyoffice/callback?t=${encodeURIComponent(callbackToken)}`;
+  // One token for both directions. Neither endpoint has a session — the caller
+  // is the Document Server — so this is the only authority they get: it says
+  // which file, and whose. Long-lived enough to outlast an editing session.
+  const access = await sign({ fileId, ownerId: userId }, "24h");
+  const t = encodeURIComponent(access);
+  const callbackUrl = `${callbackOrigin()}/api/onlyoffice/callback?t=${t}`;
+  // The document is served BY US, not straight from B2 — see the route for why.
+  const documentUrl = `${callbackOrigin()}/api/office/file?t=${t}`;
 
   const config: Record<string, unknown> = {
     documentType: docType,
@@ -97,7 +101,7 @@ export async function buildEditorConfig(fileId: string): Promise<EditorConfig> {
       fileType: officeFileType(file.name),
       key,
       title: file.name,
-      url: await presignView(file.storage_key, 3600),
+      url: documentUrl,
       permissions: { edit: true, download: true, print: true },
     },
     editorConfig: {
@@ -111,6 +115,38 @@ export async function buildEditorConfig(fileId: string): Promise<EditorConfig> {
   // The Document Server rejects a config whose token doesn't match its contents.
   const token = await sign(config, "12h");
   return { dsUrl: DS_URL, config: { ...config, token } };
+}
+
+// ── Serving the document to the editor ──────────────────────────────────────
+// Streams the file out of B2 for the Document Server. No session here either —
+// the token minted at open time is what authorises this, and ownership is
+// re-checked against the row before a single byte moves.
+export async function openFileForEditor(token: string): Promise<{
+  stream: ReadableStream<Uint8Array>;
+  name: string;
+  contentType: string;
+  size: number | null;
+}> {
+  const { fileId, ownerId } = await verifyCallbackToken(token);
+
+  const admin = createAdminClient();
+  const { data: file } = await admin
+    .from("files")
+    .select("name, owner_id, storage_key, mime_type, size")
+    .eq("id", fileId)
+    .maybeSingle();
+  if (!file) throw new Error("Fișier inexistent.");
+  if (file.owner_id !== ownerId) throw new Error("Fișier străin.");
+
+  const res = await fetch(await presignView(file.storage_key as string, 600));
+  if (!res.ok || !res.body) throw new Error("Nu am putut citi fișierul.");
+
+  return {
+    stream: res.body,
+    name: file.name as string,
+    contentType: (file.mime_type as string) ?? "application/octet-stream",
+    size: (file.size as number) ?? null,
+  };
 }
 
 // ── Saving ──────────────────────────────────────────────────────────────────
