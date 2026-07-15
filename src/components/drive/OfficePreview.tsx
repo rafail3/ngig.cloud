@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Download, FileQuestion, Loader2 } from "lucide-react";
+import type { OfficeTheme } from "@/lib/office";
 import { DocxViewer } from "./DocxViewer";
 import { XlsxViewer } from "./XlsxViewer";
 import { officeServerConfigured, useOnlyOffice } from "./useOnlyOffice";
@@ -12,11 +13,20 @@ const HOST_ID = "onlyoffice-preview-host";
 // is the same engine that edits the file, so what the user sees here is the
 // document exactly as Word/Excel/PowerPoint lays it out — pagination, fonts,
 // charts and all.
-function OnlyOfficePreview({ fileId, onFail }: { fileId: string; onFail: () => void }) {
+function OnlyOfficePreview({
+  fileId,
+  theme,
+  onFail,
+}: {
+  fileId: string;
+  theme: OfficeTheme;
+  onFail: () => void;
+}) {
   const { ready } = useOnlyOffice({
     fileId,
     mode: "view",
     hostId: HOST_ID,
+    theme,
     onFail,
     // An error after the document opened means this session is no good either.
     onError: onFail,
@@ -81,17 +91,28 @@ export function OfficePreview({
   fileId,
   name,
   url,
+  theme,
   onDownload,
 }: {
   fileId: string;
   name: string;
   url: string | null;
+  theme: OfficeTheme;
   onDownload: () => void;
 }) {
   const [failed, setFailed] = useState(false);
 
   if (officeServerConfigured && !failed) {
-    return <OnlyOfficePreview fileId={fileId} onFail={() => setFailed(true)} />;
+    return (
+      // Keyed by theme: a session can't be re-themed in place, so switching
+      // themes builds a fresh one — and the loading state resets with it.
+      <OnlyOfficePreview
+        key={theme}
+        fileId={fileId}
+        theme={theme}
+        onFail={() => setFailed(true)}
+      />
+    );
   }
   return <LocalPreview name={name} url={url} onDownload={onDownload} />;
 }

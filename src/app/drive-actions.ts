@@ -8,6 +8,7 @@ import {
   forceSave,
   type EditorConfig,
   type OfficeMode,
+  type OfficeTheme,
 } from "@/server/office/onlyoffice";
 import { SESSION_REVOKED } from "@/server/auth/active-user";
 
@@ -255,9 +256,10 @@ export async function saveTextFileAction(
 export async function getOfficeEditorConfigAction(
   id: string,
   mode: OfficeMode = "edit",
+  theme: OfficeTheme = "dark",
 ): Promise<EditorConfig | { error: string } | Revoked> {
   try {
-    return await buildEditorConfig(id, mode);
+    return await buildEditorConfig(id, mode, theme);
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     return { error: e instanceof Error ? e.message : "Nu am putut deschide documentul." };

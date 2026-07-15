@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getOfficeEditorConfigAction } from "@/app/drive-actions";
-import type { OfficeMode } from "@/lib/office";
+import type { OfficeMode, OfficeTheme } from "@/lib/office";
 
 // The Document Server's JS API, injected by its own script. The teardown method
 // is `destroyEditor()` — there is no `destroy()`.
@@ -53,6 +53,12 @@ export function useOnlyOffice(opts: {
   fileId: string;
   mode: OfficeMode;
   hostId: string;
+  /**
+   * The Document Server reads its theme from the config and offers no way to
+   * change it afterwards, so a session is tied to one theme for life. Remount
+   * the component (key it by theme) to switch.
+   */
+  theme: OfficeTheme;
   /** The session could not be opened at all (not configured, script or config failed). */
   onFail: (message: string) => void;
   /** The document reports unsaved changes. Editing only. */
@@ -72,7 +78,7 @@ export function useOnlyOffice(opts: {
     cb.current = opts;
   });
 
-  const { fileId, mode, hostId } = opts;
+  const { fileId, mode, hostId, theme } = opts;
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +89,7 @@ export function useOnlyOffice(opts: {
       // config is a round-trip — running them in series made the first open
       // needlessly slow.
       const [res] = await Promise.all([
-        getOfficeEditorConfigAction(fileId, mode),
+        getOfficeEditorConfigAction(fileId, mode, theme),
         loadDocsApi().catch(() => undefined),
       ]);
       if (cancelled) return;
@@ -126,7 +132,7 @@ export function useOnlyOffice(opts: {
       cancelled = true;
       editor?.destroyEditor();
     };
-  }, [fileId, mode, hostId]);
+  }, [fileId, mode, hostId, theme]);
 
   return { ready, keyRef };
 }

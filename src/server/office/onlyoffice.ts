@@ -13,6 +13,7 @@ import {
   officeDocType,
   officeFileType,
   type OfficeMode,
+  type OfficeTheme,
 } from "@/lib/office";
 
 // Integration with a self-hosted OnlyOffice Document Server, which serves both
@@ -65,7 +66,7 @@ async function sign(payload: Record<string, unknown>, expires: string): Promise<
 }
 
 // ── Opening ─────────────────────────────────────────────────────────────────
-export type { OfficeMode };
+export type { OfficeMode, OfficeTheme };
 
 export type EditorConfig = {
   dsUrl: string;
@@ -77,6 +78,7 @@ export type EditorConfig = {
 export async function buildEditorConfig(
   fileId: string,
   mode: OfficeMode = "edit",
+  theme: OfficeTheme = "dark",
 ): Promise<EditorConfig> {
   if (!isOfficeEditingConfigured()) {
     throw new Error("Serverul de documente nu e configurat.");
@@ -149,6 +151,12 @@ export async function buildEditorConfig(
       user: { id: userId, name: profile?.username ?? "Utilizator" },
       customization: {
         compactHeader: false,
+        // Column headers, row numbers and the bottom bar are the editor's own
+        // chrome, so they only go dark if its theme does. Our app's theme is
+        // what decides. NOTE: if a theme is ever picked from inside the editor's
+        // own UI, the Document Server remembers that in the browser's local
+        // storage and it wins over this value.
+        uiTheme: theme === "dark" ? "theme-dark" : "theme-light",
         ...(editing ? { autosave: true, forcesave: true } : {}),
       },
     },

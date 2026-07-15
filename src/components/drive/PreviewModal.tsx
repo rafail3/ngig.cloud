@@ -9,9 +9,11 @@ import {
   Loader2,
   FileQuestion,
   Info,
+  Moon,
   Pencil,
   Printer,
   Save,
+  Sun,
 } from "lucide-react";
 import {
   getViewUrlAction,
@@ -19,7 +21,8 @@ import {
   getTextContentAction,
   saveTextFileAction,
 } from "@/app/drive-actions";
-import { isOfficeEditable, isOfficeViewable } from "@/lib/office";
+import { isOfficeEditable, isOfficeViewable, type OfficeTheme } from "@/lib/office";
+import { useTheme } from "@/components/theme/ThemeProvider";
 import { OfficeEditor } from "./OfficeEditor";
 import { OfficePreview } from "./OfficePreview";
 import { officeServerConfigured } from "./useOnlyOffice";
@@ -93,6 +96,14 @@ export function PreviewModal({
   const [tooLarge, setTooLarge] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // The Document Server paints its own chrome — a spreadsheet's column headers,
+  // row numbers and sheet bar — in its own theme, so it opens in whatever theme
+  // the app is wearing. From there it's the reader's call: a dark document on a
+  // dark page is not everyone's idea of readable.
+  const { resolved } = useTheme();
+  const [themeOverride, setThemeOverride] = useState<OfficeTheme | null>(null);
+  const officeTheme: OfficeTheme = themeOverride ?? resolved;
 
   // The preview renders on the Document Server's own origin, so we can't reach
   // into it to print. It converts the document to a PDF instead, which the
@@ -334,6 +345,25 @@ export function PreviewModal({
                 {canPrintOffice && (
                   <button
                     type="button"
+                    onClick={() =>
+                      setThemeOverride(officeTheme === "dark" ? "light" : "dark")
+                    }
+                    aria-label={
+                      officeTheme === "dark" ? "Fundal deschis" : "Fundal întunecat"
+                    }
+                    title={officeTheme === "dark" ? "Fundal deschis" : "Fundal întunecat"}
+                    className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800"
+                  >
+                    {officeTheme === "dark" ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
+                {canPrintOffice && (
+                  <button
+                    type="button"
                     onClick={printOffice}
                     disabled={printing}
                     className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-60"
@@ -457,6 +487,7 @@ export function PreviewModal({
                   fileId={file.id}
                   name={file.name}
                   url={url}
+                  theme={officeTheme}
                   onDownload={onDownload}
                 />
               )}

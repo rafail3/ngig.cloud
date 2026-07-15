@@ -7,6 +7,9 @@ export type OfficeDocType = "word" | "cell" | "slide";
 /** How a Document Server session is opened: a read-only preview, or the editor. */
 export type OfficeMode = "edit" | "view";
 
+/** Which of its two themes the Document Server paints its own chrome in. */
+export type OfficeTheme = "light" | "dark";
+
 // Modern OOXML + OpenDocument: the Document Server round-trips these losslessly,
 // so we let it save over the original.
 const EDITABLE: Record<string, OfficeDocType> = {

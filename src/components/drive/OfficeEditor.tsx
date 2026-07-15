@@ -6,6 +6,7 @@ import { AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { ModalShell } from "./anim";
 import { forceSaveOfficeAction } from "@/app/drive-actions";
+import { useTheme } from "@/components/theme/ThemeProvider";
 import { useOnlyOffice } from "./useOnlyOffice";
 import { revalidateDrive } from "./useDriveData";
 
@@ -33,10 +34,18 @@ export function OfficeEditor({
     closeRef.current = onClose;
   }, [onClose]);
 
+  // Opens in the app's theme. Unlike the preview, the editor has a theme
+  // switcher of its own, so we don't add a second one — and the theme is frozen
+  // at open: changing it rebuilds the session, which is fine for a preview but
+  // would yank the document out from under someone mid-edit.
+  const { resolved } = useTheme();
+  const [theme] = useState(resolved);
+
   const { ready, keyRef } = useOnlyOffice({
     fileId,
     mode: "edit",
     hostId: HOST_ID,
+    theme,
     onFail: (message) => {
       toast.error(message);
       closeRef.current();
