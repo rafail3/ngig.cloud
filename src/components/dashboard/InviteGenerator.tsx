@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Check, Copy, Ticket } from "lucide-react";
+import { Copy, Ticket } from "lucide-react";
+import { toast } from "sonner";
 import { createInviteAction, sendInviteCodeAction } from "@/app/dashboard/(panel)/invites/actions";
 import { useToastState } from "@/lib/useToastState";
 import type { GenerateState, SendCodeState } from "@/lib/invite-status";
@@ -23,19 +24,70 @@ const EXPIRY_OPTIONS = [
   { value: "1mo", label: "1 lună" },
 ];
 
-export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
-  const [state, formAction, pending] = useActionState(createInviteAction, initial);
+// The freshly generated code. Copying it is the end of the job, so the panel
+// dismisses itself — until now it lingered until the next generate or a reload,
+// leaving a live invite code sitting on screen.
+//
+// Mounted with `key={code}` by the parent: a new code is a new instance, which
+// resets the dismissed state without an effect syncing props to state.
+function NewCode({ code, email }: { code: string; email?: string }) {
   const [sendState, sendAction, sendPending] = useActionState(sendInviteCodeAction, sendInitial);
-  const [copied, setCopied] = useState(false);
-  useToastState(state);
+  const [dismissed, setDismissed] = useState(false);
   useToastState(sendState);
 
+  if (dismissed) return null;
+
   async function copy() {
-    if (!state.code) return;
-    await navigator.clipboard.writeText(state.code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    await navigator.clipboard.writeText(code);
+    // The panel vanishing is the feedback, so the toast carries the confirmation.
+    toast.success("Cod copiat.");
+    setDismissed(true);
   }
+
+  return (
+    <div className="mt-4 flex flex-col gap-3">
+      <div className="flex flex-col gap-2 rounded-xl border border-emerald-900/50 bg-emerald-950/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-emerald-400/80">Cod nou</p>
+          <p className="mt-0.5 overflow-x-auto whitespace-nowrap font-mono text-sm font-semibold text-emerald-200 sm:text-base">
+            {code}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={copy}
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-emerald-800/60 px-3 py-2 text-sm text-emerald-200 transition hover:bg-emerald-900/40"
+        >
+          <Copy className="h-4 w-4" />
+          Copiază
+        </button>
+      </div>
+
+      {email && (
+        <form action={sendAction} className="flex flex-col gap-2 rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-4">
+          <input type="hidden" name="code" value={code} />
+          <input type="hidden" name="email" value={email} />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-zinc-400">
+              Trimite codul pe <span className="text-zinc-200">{email}</span>
+            </p>
+            <button
+              type="submit"
+              disabled={sendPending}
+              className="shrink-0 rounded-lg bg-indigo-500 hover:bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition disabled:opacity-60"
+            >
+              {sendPending ? "Se trimite…" : "Trimite codul pe email"}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
+  const [state, formAction, pending] = useActionState(createInviteAction, initial);
+  useToastState(state);
 
   return (
     <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-6">
@@ -90,43 +142,7 @@ export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
       </form>
 
       {state.code && (
-        <div className="mt-4 flex flex-col gap-3">
-          <div className="flex flex-col gap-2 rounded-xl border border-emerald-900/50 bg-emerald-950/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-emerald-400/80">Cod nou</p>
-              <p className="mt-0.5 overflow-x-auto whitespace-nowrap font-mono text-sm font-semibold text-emerald-200 sm:text-base">
-                {state.code}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={copy}
-              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-emerald-800/60 px-3 py-2 text-sm text-emerald-200 transition hover:bg-emerald-900/40"
-            >
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? "Copiat" : "Copiază"}
-            </button>
-          </div>
-
-          {state.email && (
-            <form action={sendAction} className="flex flex-col gap-2 rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-4">
-              <input type="hidden" name="code" value={state.code} />
-              <input type="hidden" name="email" value={state.email} />
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-zinc-400">
-                  Trimite codul pe <span className="text-zinc-200">{state.email}</span>
-                </p>
-                <button
-                  type="submit"
-                  disabled={sendPending}
-                  className="shrink-0 rounded-lg bg-indigo-500 hover:bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition disabled:opacity-60"
-                >
-                  {sendPending ? "Se trimite…" : "Trimite codul pe email"}
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
+        <NewCode key={state.code} code={state.code} email={state.email} />
       )}
     </div>
   );
