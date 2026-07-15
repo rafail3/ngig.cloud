@@ -2,21 +2,29 @@ import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
 
+// The self-hosted OnlyOffice Document Server, when configured. Its editor is an
+// iframe that pulls its own scripts, styles, fonts and sockets from that origin,
+// so every directive below has to know about it — otherwise the editor silently
+// fails to load, and only in production (the CSP is prod-only).
+const officeOrigin = process.env.NEXT_PUBLIC_ONLYOFFICE_URL?.replace(/\/$/, "") ?? "";
+const office = officeOrigin ? ` ${officeOrigin}` : "";
+const officeWs = officeOrigin ? ` ${officeOrigin.replace(/^http/, "ws")}` : "";
+
 // Lock outbound connections to the only hosts we talk to. Tightening script-src
 // to a nonce (dropping 'unsafe-inline') is a future hardening step.
 const csp = [
   "default-src 'self'",
   // 'wasm-unsafe-eval' lets the Shiki code highlighter instantiate its inlined
   // WebAssembly grammar engine. It permits WASM only — NOT string eval().
-  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.backblazeb2.com",
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com${office}`,
+  `style-src 'self' 'unsafe-inline'${office}`,
+  `img-src 'self' data: blob: https://*.backblazeb2.com${office}`,
   // Audio/video previews stream straight from B2.
   "media-src 'self' blob: https://*.backblazeb2.com",
-  "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.backblazeb2.com https://challenges.cloudflare.com",
+  `font-src 'self' data:${office}`,
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.backblazeb2.com https://challenges.cloudflare.com${office}${officeWs}`,
   // PDF print spins up a hidden same-origin blob iframe of the document.
-  "frame-src 'self' blob: https://challenges.cloudflare.com https://*.backblazeb2.com",
+  `frame-src 'self' blob: https://challenges.cloudflare.com https://*.backblazeb2.com${office}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

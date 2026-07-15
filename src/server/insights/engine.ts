@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { fileCategory, type FileCategory } from "@/lib/file-type";
 import { notifyUserEvent } from "@/server/notifications/service";
 
@@ -389,8 +390,23 @@ export async function getSuggestedFiles(limit = 6): Promise<SuggestedFile[]> {
 }
 
 // Best-effort behavior log. Owner-scoped by RLS (the user's own client).
-export async function logEvent(type: string, meta?: Record<string, unknown>): Promise<void> {
+//
+// `userId` is for the callers that have no session to derive it from — the
+// OnlyOffice save-back is the Document Server talking to us, not the user — and
+// then the write goes through the service-role client. It's still the user's own
+// event: nothing else is read, and the row lands under their id exactly as it
+// would have.
+export async function logEvent(
+  type: string,
+  meta?: Record<string, unknown>,
+  userId?: string,
+): Promise<void> {
   try {
+    if (userId) {
+      const admin = createAdminClient();
+      await admin.from("user_events").insert({ user_id: userId, type, meta: meta ?? null });
+      return;
+    }
     const supabase = await createClient();
     const { data } = await supabase.auth.getClaims();
     const uid = data?.claims?.sub as string | undefined;
