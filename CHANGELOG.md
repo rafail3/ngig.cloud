@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.15.0](https://github.com/rafail3/ngig.cloud/compare/v2.14.0...v2.15.0) (2026-07-15)
+
+
+### Features
+
+* **account:** delete account with full B2 and database wipe ([b272408](https://github.com/rafail3/ngig.cloud/commit/b272408ee68181a54921d93a091bc27ccd1ae230))
+* **account:** delete account with full B2 and database wipe ([f67aec4](https://github.com/rafail3/ngig.cloud/commit/f67aec4e935eb9232d745fdda2e901fd53888be7))
+* **email:** richer admin notices for account created and deleted ([0074151](https://github.com/rafail3/ngig.cloud/commit/0074151bed24d1fda18542a786405752fbfa80a8))
+
+
+### Bug Fixes
+
+* **account:** reject a wrong password on the delete form, not after the final prompt ([3cdfb6f](https://github.com/rafail3/ngig.cloud/commit/3cdfb6f92b317d042137d2b833a4b1902b93d07e))
+* **account:** sign out on delete, second confirm step, lifecycle emails ([6954457](https://github.com/rafail3/ngig.cloud/commit/69544578c4bb7318ad2900551ea5f9451c7ea6c5))
+* **invites:** dismiss the new code panel once it is copied ([5973aa3](https://github.com/rafail3/ngig.cloud/commit/5973aa33d57712d09f0981cd95b4a26eaac9d969))
+
 ## [2.14.0](https://github.com/rafail3/ngig.cloud/compare/v2.13.0...v2.14.0) (2026-07-14)
 
 
