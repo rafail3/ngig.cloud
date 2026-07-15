@@ -21,8 +21,11 @@ export async function GET(request: Request) {
     const headers = new Headers({
       "Content-Type": contentType,
       // The Document Server reads the filename from here when the URL has no
-      // extension of its own.
-      "Content-Disposition": `inline; filename="${name.replace(/"/g, "")}"`,
+      // extension of its own. Header values are ASCII-only, and a Romanian file
+      // name is very often not ("Achiziție…" threw on the ț and the whole
+      // response blew up as a 404) — hence the plain fallback plus the RFC 5987
+      // form that carries the real name.
+      "Content-Disposition": contentDisposition(name),
       "Cache-Control": "no-store",
     });
     if (size) headers.set("Content-Length", String(size));
@@ -30,4 +33,9 @@ export async function GET(request: Request) {
   } catch {
     return new NextResponse("Not found", { status: 404 });
   }
+}
+
+function contentDisposition(name: string): string {
+  const ascii = name.replace(/[^\x20-\x7E]/g, "_").replace(/"/g, "");
+  return `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
 }

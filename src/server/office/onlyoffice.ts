@@ -58,6 +58,8 @@ async function sign(payload: Record<string, unknown>, expires: string): Promise<
 // ── Opening ─────────────────────────────────────────────────────────────────
 export type EditorConfig = {
   dsUrl: string;
+  // The document's version key — needed to command a force-save on this session.
+  key: string;
   config: Record<string, unknown>;
 };
 
@@ -114,7 +116,29 @@ export async function buildEditorConfig(fileId: string): Promise<EditorConfig> {
 
   // The Document Server rejects a config whose token doesn't match its contents.
   const token = await sign(config, "12h");
-  return { dsUrl: DS_URL, config: { ...config, token } };
+  return { dsUrl: DS_URL, key, config: { ...config, token } };
+}
+
+// Tell the Document Server to flush the current session to us NOW. It answers
+// the command, then posts the document to our callback (status 6) — which is
+// what actually stores it. Used by the editor's Save button and before closing,
+// so a user never has to trust autosave's timing.
+export async function forceSave(key: string): Promise<void> {
+  if (!isOfficeEditingConfigured()) throw new Error("Editorul Office nu e configurat.");
+
+  const payload = { c: "forcesave", key };
+  const token = await sign(payload, "5m");
+  const res = await fetch(`${DS_URL.replace(/\/$/, "")}/coauthoring/CommandService.ashx`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...payload, token }),
+  });
+  const body = (await res.json()) as { error?: number };
+
+  // 0 = saved, 4 = nothing had changed. Everything else is a real failure.
+  if (body.error !== 0 && body.error !== 4) {
+    throw new Error("Nu am putut salva documentul.");
+  }
 }
 
 // ── Serving the document to the editor ──────────────────────────────────────

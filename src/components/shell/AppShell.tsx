@@ -15,6 +15,7 @@ import { UploadProvider } from "@/components/drive/UploadProvider";
 import { UploadPanel } from "@/components/drive/UploadPanel";
 import { ContextMenuProvider } from "@/components/drive/ContextMenu";
 import { prefetchDrive, useDriveRealtime, useFolder } from "@/components/drive/useDriveData";
+import { loadDocsApi } from "@/components/drive/OfficeEditor";
 import { useClickOutside } from "@/lib/useClickOutside";
 import { Avatar } from "./Avatar";
 
@@ -91,6 +92,10 @@ export function AppShell({
   // Warm the drive data caches in the background once per session.
   useEffect(() => {
     prefetchDrive();
+    // The Office editor's api.js is ~1 MB. Fetching it now, while the user is
+    // still looking at their files, is why the FIRST "Editează" opens as fast
+    // as the second one.
+    void loadDocsApi().catch(() => {});
   }, []);
 
   // Live sync: reflect drive changes from other tabs/devices instantly.

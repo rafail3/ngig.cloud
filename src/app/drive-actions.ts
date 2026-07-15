@@ -3,7 +3,7 @@
 import * as files from "@/server/files/service";
 import type { UploadPlan } from "@/server/files/service";
 import { getSuggestedFiles } from "@/server/insights/engine";
-import { buildEditorConfig, type EditorConfig } from "@/server/office/onlyoffice";
+import { buildEditorConfig, forceSave, type EditorConfig } from "@/server/office/onlyoffice";
 import { SESSION_REVOKED } from "@/server/auth/active-user";
 
 // Thin server-action wrappers over the files service (the actual logic lives
@@ -254,6 +254,18 @@ export async function getOfficeEditorConfigAction(
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     return { error: e instanceof Error ? e.message : "Nu am putut deschide editorul." };
+  }
+}
+
+// Flush the open editing session to storage on demand (Save button / closing).
+export async function forceSaveOfficeAction(
+  key: string,
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await forceSave(key);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nu am putut salva." };
   }
 }
 

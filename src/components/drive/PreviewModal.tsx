@@ -9,6 +9,8 @@ import {
   getTextContentAction,
   saveTextFileAction,
 } from "@/app/drive-actions";
+import { isOfficeEditable } from "@/lib/office";
+import { OfficeEditor } from "./OfficeEditor";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
 import { fileTypeLabel } from "@/lib/file-type";
@@ -86,6 +88,10 @@ export function PreviewModal({
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const canEdit = k === "text";
+  // Office documents don't edit in this modal — they hand off to the OnlyOffice
+  // editor, which replaces the preview entirely.
+  const canEditOffice = isOfficeEditable(file.name);
+  const [officeOpen, setOfficeOpen] = useState(false);
   // When opened straight into edit mode (the "Editează" menu action), kick off
   // editing once the modal mounts.
   const autoEditRef = useRef(false);
@@ -206,6 +212,22 @@ export function PreviewModal({
     return () => clearTimeout(t);
   }, []);
 
+  // The Office editor takes over the whole screen; the preview underneath would
+  // only fight it for focus and scroll.
+  if (officeOpen) {
+    return (
+      <OfficeEditor
+        fileId={file.id}
+        name={file.name}
+        onClose={() => {
+          setOfficeOpen(false);
+          onSaved?.();
+          onClose();
+        }}
+      />
+    );
+  }
+
   return (
     <motion.div
       className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
@@ -279,15 +301,13 @@ export function PreviewModal({
                 >
                   <Download className="h-3.5 w-3.5" /> Descarcă
                 </button>
-                {canEdit && (
+                {(canEdit || canEditOffice) && (
                   <button
                     type="button"
-                    onClick={startEdit}
-                    aria-label="Editează"
-                    title="Editează"
-                    className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800"
+                    onClick={canEditOffice ? () => setOfficeOpen(true) : startEdit}
+                    className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-3.5 w-3.5" /> Editează
                   </button>
                 )}
                 <button
