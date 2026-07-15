@@ -119,6 +119,14 @@ export async function buildEditorConfig(
 
   const config: Record<string, unknown> = {
     documentType: docType,
+    // "embedded" is the Document Server's minimal viewer: no toolbar tabs, no
+    // title bar of its own, just the document — which is what lets our preview
+    // modal keep a single header instead of stacking one on top of theirs.
+    // (Hiding those in the full editor is a white-label licence feature; this
+    // isn't.) Its own slim toolbar carries only page nav and zoom: the download
+    // and share buttons appear solely if we hand it URLs for them, and we don't
+    // — Descarcă lives in our header.
+    ...(editing ? {} : { type: "embedded" }),
     document: {
       fileType: officeFileType(file.name),
       key,
@@ -128,7 +136,7 @@ export async function buildEditorConfig(
       // "Edit current file" button — with it on, that button appears and does
       // nothing unless we handle onRequestEditRights. Our own toolbar owns the
       // switch into editing.
-      permissions: { edit: editing, download: true, print: true },
+      permissions: { edit: editing, download: editing, print: true },
     },
     editorConfig: {
       mode,
@@ -136,7 +144,7 @@ export async function buildEditorConfig(
       // Document Server cannot write anything back.
       ...(editing
         ? { callbackUrl: `${callbackOrigin()}/api/onlyoffice/callback?t=${t}` }
-        : {}),
+        : { embedded: { toolbarDocked: "bottom" } }),
       lang: "ro",
       user: { id: userId, name: profile?.username ?? "Utilizator" },
       customization: {
@@ -170,6 +178,66 @@ export async function forceSave(key: string): Promise<void> {
   // 0 = saved, 4 = nothing had changed. Everything else is a real failure.
   if (body.error !== 0 && body.error !== 4) {
     throw new Error("Nu am putut salva documentul.");
+  }
+}
+
+// ── Printing ────────────────────────────────────────────────────────────────
+// The preview runs in an iframe on the Document Server's origin, so we cannot
+// reach into it to call print() — the same-origin policy stops us, and the
+// Document Server exposes no print method of its own. So we print what the
+// browser can always print: a PDF. The Document Server converts it for us, from
+// the same document it is already rendering, which also gives .doc/.xls/.ppt a
+// print that no browser-side renderer could.
+const CONVERT_TIMEOUT_MS = 25_000;
+const CONVERT_POLL_MS = 700;
+
+export async function convertToPdf(fileId: string): Promise<{ bytes: Buffer; name: string }> {
+  if (!isOfficeEditingConfigured()) throw new Error("Serverul de documente nu e configurat.");
+  const { id: ownerId } = await requireActiveUser();
+
+  // RLS-scoped: converting is reading, and a user can only read their own file.
+  const file = await repo.getFileById(fileId);
+  if (!file) throw new Error("Fișier inexistent.");
+  if (!officeDocType(file.name)) throw new Error("Tipul acestui fișier nu se poate printa.");
+
+  const access = await sign({ fileId, ownerId, mode: "view" satisfies OfficeMode }, "5m");
+  const version = new Date(file.updated_at ?? file.created_at).getTime();
+
+  const payload = {
+    async: false,
+    filetype: officeFileType(file.name),
+    outputtype: "pdf",
+    // Same rule as the editor's key: tie it to the bytes, or the Document Server
+    // hands back the PDF of a version the user has already edited past.
+    key: `${fileId}-${version}-pdf`,
+    title: file.name,
+    url: `${callbackOrigin()}/api/office/file?t=${encodeURIComponent(access)}`,
+  };
+  const token = await sign(payload, "5m");
+
+  const deadline = Date.now() + CONVERT_TIMEOUT_MS;
+  for (;;) {
+    const res = await fetch(`${DS_URL.replace(/\/$/, "")}/ConvertService.ashx`, {
+      method: "POST",
+      // Without this the Document Server answers in XML.
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ ...payload, token }),
+    });
+    const body = (await res.json()) as {
+      fileUrl?: string;
+      endConvert?: boolean;
+      error?: number;
+    };
+    if (body.error) throw new Error("Nu am putut pregăti documentul pentru printare.");
+    if (body.endConvert && body.fileUrl) {
+      const pdf = await fetch(body.fileUrl);
+      if (!pdf.ok) throw new Error("Nu am putut pregăti documentul pentru printare.");
+      return { bytes: Buffer.from(await pdf.arrayBuffer()), name: file.name };
+    }
+    // Long documents keep converting past the first answer: ask again until it's
+    // done, rather than handing the user a half-made PDF.
+    if (Date.now() > deadline) throw new Error("Documentul e prea mare pentru printare.");
+    await new Promise((r) => setTimeout(r, CONVERT_POLL_MS));
   }
 }
 

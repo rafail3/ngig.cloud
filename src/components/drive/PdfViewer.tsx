@@ -17,6 +17,7 @@ import type {
   PDFDocumentProxy,
   RenderTask,
 } from "pdfjs-dist";
+import { printPdf } from "./print-blob";
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -145,26 +146,7 @@ export function PdfViewer({
     setPrinting(true);
     try {
       const data = await doc.getData();
-      const blob = new Blob([data as BlobPart], { type: "application/pdf" });
-      const blobUrl = URL.createObjectURL(blob);
-      const frame = document.createElement("iframe");
-      frame.style.position = "fixed";
-      frame.style.right = "0";
-      frame.style.bottom = "0";
-      frame.style.width = "0";
-      frame.style.height = "0";
-      frame.style.border = "0";
-      frame.src = blobUrl;
-      frame.onload = () => {
-        frame.contentWindow?.focus();
-        frame.contentWindow?.print();
-      };
-      document.body.appendChild(frame);
-      // Clean up well after the print dialog has had time to open.
-      window.setTimeout(() => {
-        URL.revokeObjectURL(blobUrl);
-        frame.remove();
-      }, 60_000);
+      printPdf(new Blob([data as BlobPart], { type: "application/pdf" }));
     } finally {
       setPrinting(false);
     }

@@ -2,7 +2,17 @@
 
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { X, Download, Loader2, FileQuestion, Info, Pencil, Save } from "lucide-react";
+import { toast } from "sonner";
+import {
+  X,
+  Download,
+  Loader2,
+  FileQuestion,
+  Info,
+  Pencil,
+  Printer,
+  Save,
+} from "lucide-react";
 import {
   getViewUrlAction,
   getTextPreviewAction,
@@ -12,6 +22,8 @@ import {
 import { isOfficeEditable, isOfficeViewable } from "@/lib/office";
 import { OfficeEditor } from "./OfficeEditor";
 import { OfficePreview } from "./OfficePreview";
+import { officeServerConfigured } from "./useOnlyOffice";
+import { printPdf } from "./print-blob";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
 import { fileTypeLabel } from "@/lib/file-type";
@@ -81,6 +93,29 @@ export function PreviewModal({
   const [tooLarge, setTooLarge] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // The preview renders on the Document Server's own origin, so we can't reach
+  // into it to print. It converts the document to a PDF instead, which the
+  // browser can always print — and which also covers the legacy formats no
+  // browser-side renderer can even open.
+  const canPrintOffice = k === "office" && officeServerConfigured;
+  const [printing, setPrinting] = useState(false);
+
+  async function printOffice() {
+    setPrinting(true);
+    try {
+      const res = await fetch(`/api/office/print?id=${encodeURIComponent(file.id)}`);
+      if (!res.ok) {
+        toast.error((await res.text()) || "Nu am putut printa documentul.");
+        return;
+      }
+      printPdf(await res.blob());
+    } catch {
+      toast.error("Nu am putut printa documentul.");
+    } finally {
+      setPrinting(false);
+    }
+  }
 
   const canEdit = k === "text";
   // Office documents don't edit in this modal — they hand off to the OnlyOffice
@@ -296,6 +331,21 @@ export function PreviewModal({
                 >
                   <Download className="h-3.5 w-3.5" /> Descarcă
                 </button>
+                {canPrintOffice && (
+                  <button
+                    type="button"
+                    onClick={printOffice}
+                    disabled={printing}
+                    className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-60"
+                  >
+                    {printing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Printer className="h-3.5 w-3.5" />
+                    )}
+                    {printing ? "Se pregătește…" : "Printează"}
+                  </button>
+                )}
                 {(canEdit || canEditOffice) && (
                   <button
                     type="button"
