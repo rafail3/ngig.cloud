@@ -5,47 +5,11 @@ import { X, Loader2, Save, Check } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { ModalShell } from "./anim";
-import { getOfficeEditorConfigAction, forceSaveOfficeAction } from "@/app/drive-actions";
+import { forceSaveOfficeAction } from "@/app/drive-actions";
+import { useOnlyOffice } from "./useOnlyOffice";
 import { revalidateDrive } from "./useDriveData";
 
-// The Document Server's JS API, injected by its own script. The teardown method
-// is `destroyEditor()` — there is no `destroy()`.
-type DocsApi = {
-  DocEditor: new (
-    id: string,
-    config: Record<string, unknown>,
-  ) => { destroyEditor: () => void };
-};
-declare global {
-  interface Window {
-    DocsAPI?: DocsApi;
-  }
-}
-
-const DS_URL = process.env.NEXT_PUBLIC_ONLYOFFICE_URL ?? "";
-
-// Load the Document Server's api.js once per page, not once per open. It's a
-// big script, so this is also what makes the SECOND open feel instant — and why
-// we start it in parallel with (not after) fetching the config.
-let apiScript: Promise<void> | null = null;
-export function loadDocsApi(dsUrl = DS_URL): Promise<void> {
-  if (typeof window === "undefined" || !dsUrl) return Promise.resolve();
-  if (window.DocsAPI) return Promise.resolve();
-  if (apiScript) return apiScript;
-
-  apiScript = new Promise<void>((resolve, reject) => {
-    const el = document.createElement("script");
-    el.src = `${dsUrl.replace(/\/$/, "")}/web-apps/apps/api/documents/api.js`;
-    el.onload = () => resolve();
-    el.onerror = () => {
-      // Let a later attempt retry instead of caching the failure forever.
-      apiScript = null;
-      reject(new Error("Serverul de documente nu răspunde."));
-    };
-    document.head.appendChild(el);
-  });
-  return apiScript;
-}
+const HOST_ID = "onlyoffice-editor-host";
 
 // Full-screen Office editor. The document never passes through the browser: the
 // Document Server fetches it from us and posts the edited copy back to our
@@ -59,77 +23,36 @@ export function OfficeEditor({
   name: string;
   onClose: () => void;
 }) {
-  const [loading, setLoading] = useState(true);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
-  // The document version key, needed to command a save on this session.
-  const keyRef = useRef<string | null>(null);
-  // Kept in a ref so a new inline `onClose` from the parent can't retrigger the
-  // effect below — that tore the editor down and rebuilt it mid-session (which
-  // is what made closing the print dialog look like a reload).
+  // Kept in a ref so a new inline `onClose` from the parent can't be read
+  // stale by the callbacks below.
   const closeRef = useRef(onClose);
   useEffect(() => {
     closeRef.current = onClose;
   }, [onClose]);
 
+  const { ready, keyRef } = useOnlyOffice({
+    fileId,
+    mode: "edit",
+    hostId: HOST_ID,
+    onFail: (message) => {
+      toast.error(message);
+      closeRef.current();
+    },
+    // Tracks whether there's anything worth saving.
+    onStateChange: setDirty,
+    onError: () => toast.error("Eroare în editorul de documente."),
+  });
+
   useEffect(() => {
-    let cancelled = false;
-    let editor: { destroyEditor: () => void } | null = null;
-
-    void (async () => {
-      // Both halves of the wait, at the same time: the script is ~1 MB and the
-      // config is a round-trip — running them in series made the first open
-      // needlessly slow.
-      const [res] = await Promise.all([
-        getOfficeEditorConfigAction(fileId),
-        loadDocsApi().catch(() => undefined),
-      ]);
-      if (cancelled) return;
-
-      if ("revoked" in res) {
-        window.location.assign("/login");
-        return;
-      }
-      if ("error" in res) {
-        toast.error(res.error);
-        closeRef.current();
-        return;
-      }
-
-      try {
-        await loadDocsApi(res.dsUrl);
-      } catch (e) {
-        if (cancelled) return;
-        toast.error(e instanceof Error ? e.message : "Editorul nu s-a putut încărca.");
-        closeRef.current();
-        return;
-      }
-      if (cancelled || !window.DocsAPI) return;
-
-      keyRef.current = res.key;
-      editor = new window.DocsAPI.DocEditor("onlyoffice-host", {
-        ...res.config,
-        width: "100%",
-        height: "100%",
-        events: {
-          onAppReady: () => setLoading(false),
-          // Tracks whether there's anything worth saving.
-          onDocumentStateChange: (e: { data?: boolean }) => setDirty(Boolean(e?.data)),
-          onError: () => toast.error("Eroare în editorul de documente."),
-        },
-      });
-    })();
-
+    // The save lands via the callback moments later; refresh on the way out so
+    // the drive picks up the new size / modified date.
     return () => {
-      cancelled = true;
-      editor?.destroyEditor();
-      // The save lands via the callback moments later; refresh so the drive
-      // picks up the new size / modified date.
-      revalidateDrive();
+      void revalidateDrive();
     };
-    // Deliberately only fileId: see closeRef above.
-  }, [fileId]);
+  }, []);
 
   const save = useCallback(async (): Promise<boolean> => {
     if (!keyRef.current) return true;
@@ -142,7 +65,7 @@ export function OfficeEditor({
     }
     setDirty(false);
     return true;
-  }, []);
+  }, [keyRef]);
 
   async function saveOnly() {
     if (await save()) toast.success("Document salvat.");
@@ -192,12 +115,12 @@ export function OfficeEditor({
       </header>
 
       <div className="relative min-h-0 flex-1">
-        {loading && (
+        {!ready && (
           <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-zinc-400">
             <Loader2 className="h-4 w-4 animate-spin" /> Se deschide editorul…
           </div>
         )}
-        <div id="onlyoffice-host" className="h-full w-full" />
+        <div id={HOST_ID} className="h-full w-full" />
       </div>
 
       <AnimatePresence>

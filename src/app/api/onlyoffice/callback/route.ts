@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import {
-  verifyCallbackToken,
+  verifyAccessToken,
   verifyDocumentServerToken,
   saveEditedFile,
 } from "@/server/office/onlyoffice";
@@ -25,12 +25,15 @@ export async function POST(request: Request) {
   const token = new URL(request.url).searchParams.get("t");
   if (!token) return NextResponse.json({ error: 1 });
 
-  let file: { fileId: string; ownerId: string };
+  let file: { fileId: string; ownerId: string; mode: string };
   try {
-    file = await verifyCallbackToken(token);
+    file = await verifyAccessToken(token);
   } catch {
     return NextResponse.json({ error: 1 });
   }
+  // A token minted for a preview carries no right to write, whatever it is
+  // presented with. Previews are never given this URL in the first place.
+  if (file.mode !== "edit") return NextResponse.json({ error: 1 });
 
   const body = (await request.json()) as {
     status?: number;

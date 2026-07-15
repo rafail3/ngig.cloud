@@ -9,8 +9,9 @@ import {
   getTextContentAction,
   saveTextFileAction,
 } from "@/app/drive-actions";
-import { isOfficeEditable } from "@/lib/office";
+import { isOfficeEditable, isOfficeViewable } from "@/lib/office";
 import { OfficeEditor } from "./OfficeEditor";
+import { OfficePreview } from "./OfficePreview";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
 import { fileTypeLabel } from "@/lib/file-type";
@@ -19,8 +20,6 @@ import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { PdfViewer } from "./PdfViewer";
 import { CodeViewer } from "./CodeViewer";
-import { DocxViewer } from "./DocxViewer";
-import { XlsxViewer } from "./XlsxViewer";
 import { panelSpring } from "./anim";
 
 // CodeMirror is heavy — only load it when the user actually edits.
@@ -38,26 +37,22 @@ export type PreviewFile = {
 const TEXT_EXT =
   /\.(txt|md|markdown|json|jsonc|js|jsx|ts|tsx|css|scss|html|xml|yml|yaml|csv|log|ini|env|sh|py|rb|go|rs|java|c|h|cpp|sql|toml)$/i;
 
-const DOCX_MIME =
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-const XLSX_MIME =
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-
 function kind(mime: string | null, name: string) {
   const m = mime ?? "";
   if (m.startsWith("image/")) return "image";
   if (m.startsWith("video/")) return "video";
   if (m.startsWith("audio/")) return "audio";
   if (m === "application/pdf") return "pdf";
-  if (m === DOCX_MIME || /\.docx$/i.test(name)) return "docx";
-  if (m === XLSX_MIME || m === "application/vnd.ms-excel" || /\.xlsx?$/i.test(name))
-    return "xlsx";
+  // Word, Excel and PowerPoint documents, by extension: the browser's MIME
+  // guess for these is unreliable, and the extension is what the Document
+  // Server keys off anyway.
+  if (isOfficeViewable(name)) return "office";
   if (m.startsWith("text/") || TEXT_EXT.test(name)) return "text";
   return "other";
 }
 
 // Document-style previews get a large, full-height modal.
-const BIG_WINDOW = new Set(["pdf", "docx", "xlsx"]);
+const BIG_WINDOW = new Set(["pdf", "office"]);
 
 export function PreviewModal({
   file,
@@ -383,7 +378,7 @@ export function PreviewModal({
           ) : (
             <>
               {error && <p className="py-10 text-sm text-red-400">{error}</p>}
-              {!error && !url && k !== "video" && (
+              {!error && !url && k !== "video" && k !== "office" && (
                 <div className={big ? "flex w-full items-center justify-center" : ""}>
                   <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
                 </div>
@@ -404,8 +399,17 @@ export function PreviewModal({
               {url && k === "pdf" && (
                 <PdfViewer url={url} fileName={file.name} onDownload={onDownload} />
               )}
-              {url && k === "docx" && <DocxViewer url={url} onDownload={onDownload} />}
-              {url && k === "xlsx" && <XlsxViewer url={url} onDownload={onDownload} />}
+              {/* Deliberately not waiting on `url`: the Document Server fetches
+                  the document itself, so making it wait for a presigned link it
+                  won't use would only delay the open. Only the fallback needs it. */}
+              {k === "office" && (
+                <OfficePreview
+                  fileId={file.id}
+                  name={file.name}
+                  url={url}
+                  onDownload={onDownload}
+                />
+              )}
               {url && k === "text" &&
                 (text === null ? (
                   <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />

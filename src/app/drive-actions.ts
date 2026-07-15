@@ -3,7 +3,12 @@
 import * as files from "@/server/files/service";
 import type { UploadPlan } from "@/server/files/service";
 import { getSuggestedFiles } from "@/server/insights/engine";
-import { buildEditorConfig, forceSave, type EditorConfig } from "@/server/office/onlyoffice";
+import {
+  buildEditorConfig,
+  forceSave,
+  type EditorConfig,
+  type OfficeMode,
+} from "@/server/office/onlyoffice";
 import { SESSION_REVOKED } from "@/server/auth/active-user";
 
 // Thin server-action wrappers over the files service (the actual logic lives
@@ -243,17 +248,19 @@ export async function saveTextFileAction(
   }
 }
 
-// Everything the browser needs to boot the Office editor for a file: the
-// Document Server's address and a signed config. Returns an error string when
-// the server isn't configured, so the UI can say so instead of hanging.
+// Everything the browser needs to boot the Document Server for a file: its
+// address and a signed config. `mode` decides whether this is a read-only
+// preview or a real editing session. Returns an error string when the server
+// isn't configured, so the UI can fall back instead of hanging.
 export async function getOfficeEditorConfigAction(
   id: string,
+  mode: OfficeMode = "edit",
 ): Promise<EditorConfig | { error: string } | Revoked> {
   try {
-    return await buildEditorConfig(id);
+    return await buildEditorConfig(id, mode);
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
-    return { error: e instanceof Error ? e.message : "Nu am putut deschide editorul." };
+    return { error: e instanceof Error ? e.message : "Nu am putut deschide documentul." };
   }
 }
 

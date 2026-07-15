@@ -15,7 +15,7 @@ import { UploadProvider } from "@/components/drive/UploadProvider";
 import { UploadPanel } from "@/components/drive/UploadPanel";
 import { ContextMenuProvider } from "@/components/drive/ContextMenu";
 import { prefetchDrive, useDriveRealtime, useFolder } from "@/components/drive/useDriveData";
-import { loadDocsApi } from "@/components/drive/OfficeEditor";
+import { loadDocsApi } from "@/components/drive/useOnlyOffice";
 import { useClickOutside } from "@/lib/useClickOutside";
 import { Avatar } from "./Avatar";
 

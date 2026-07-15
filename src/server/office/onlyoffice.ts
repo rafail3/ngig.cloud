@@ -8,9 +8,15 @@ import { presignView, putObject } from "@/server/storage/b2";
 import { logEvent } from "@/server/insights/engine";
 import { appOrigin } from "@/lib/dashboard";
 import { extensionOf } from "@/lib/file-type";
-import { officeDocType, officeFileType } from "@/lib/office";
+import {
+  isOfficeEditable,
+  officeDocType,
+  officeFileType,
+  type OfficeMode,
+} from "@/lib/office";
 
-// Integration with a self-hosted OnlyOffice Document Server.
+// Integration with a self-hosted OnlyOffice Document Server, which serves both
+// the previews and the editor — same config, different mode.
 //
 // How an edit flows:
 //   1. the browser asks us for a config (buildEditorConfig) and hands it to the
@@ -19,6 +25,9 @@ import { officeDocType, officeFileType } from "@/lib/office";
 //      in that config (server-to-server — it never goes through us);
 //   3. when the last editor closes the tab, the Document Server POSTs the
 //      finished file's URL to our callback, which stores it back in B2.
+//
+// A preview stops at step 2: it gets no callback URL and no write permission,
+// so nothing can flow back.
 //
 // Everything is signed with a shared secret both ends know: our config is only
 // honoured if it carries a valid token, and the callback is only honoured if it
@@ -56,6 +65,8 @@ async function sign(payload: Record<string, unknown>, expires: string): Promise<
 }
 
 // ── Opening ─────────────────────────────────────────────────────────────────
+export type { OfficeMode };
+
 export type EditorConfig = {
   dsUrl: string;
   // The document's version key — needed to command a force-save on this session.
@@ -63,9 +74,12 @@ export type EditorConfig = {
   config: Record<string, unknown>;
 };
 
-export async function buildEditorConfig(fileId: string): Promise<EditorConfig> {
+export async function buildEditorConfig(
+  fileId: string,
+  mode: OfficeMode = "edit",
+): Promise<EditorConfig> {
   if (!isOfficeEditingConfigured()) {
-    throw new Error("Editorul Office nu e configurat.");
+    throw new Error("Serverul de documente nu e configurat.");
   }
   const { id: userId } = await requireActiveUser();
 
@@ -74,7 +88,12 @@ export async function buildEditorConfig(fileId: string): Promise<EditorConfig> {
   if (!file) throw new Error("Fișier inexistent.");
 
   const docType = officeDocType(file.name);
-  if (!docType) throw new Error("Tipul acestui fișier nu se poate edita.");
+  if (!docType) throw new Error("Tipul acestui fișier nu se poate deschide.");
+  // Legacy .doc/.xls/.ppt render fine but must never be saved back — that would
+  // mean converting the file to OOXML behind the user's back.
+  if (mode === "edit" && !isOfficeEditable(file.name)) {
+    throw new Error("Tipul acestui fișier nu se poate edita.");
+  }
 
   const { data: profile } = await createAdminClient()
     .from("profiles")
@@ -90,12 +109,13 @@ export async function buildEditorConfig(fileId: string): Promise<EditorConfig> {
 
   // One token for both directions. Neither endpoint has a session — the caller
   // is the Document Server — so this is the only authority they get: it says
-  // which file, and whose. Long-lived enough to outlast an editing session.
-  const access = await sign({ fileId, ownerId: userId }, "24h");
+  // which file, whose, and whether this session may write. Long-lived enough to
+  // outlast an editing session.
+  const access = await sign({ fileId, ownerId: userId, mode }, "24h");
   const t = encodeURIComponent(access);
-  const callbackUrl = `${callbackOrigin()}/api/onlyoffice/callback?t=${t}`;
   // The document is served BY US, not straight from B2 — see the route for why.
   const documentUrl = `${callbackOrigin()}/api/office/file?t=${t}`;
+  const editing = mode === "edit";
 
   const config: Record<string, unknown> = {
     documentType: docType,
@@ -104,13 +124,25 @@ export async function buildEditorConfig(fileId: string): Promise<EditorConfig> {
       key,
       title: file.name,
       url: documentUrl,
-      permissions: { edit: true, download: true, print: true },
+      // In a preview `edit: false` is also what hides the Document Server's own
+      // "Edit current file" button — with it on, that button appears and does
+      // nothing unless we handle onRequestEditRights. Our own toolbar owns the
+      // switch into editing.
+      permissions: { edit: editing, download: true, print: true },
     },
     editorConfig: {
-      callbackUrl,
+      mode,
+      // A preview gets no callback URL at all: with nowhere to post, the
+      // Document Server cannot write anything back.
+      ...(editing
+        ? { callbackUrl: `${callbackOrigin()}/api/onlyoffice/callback?t=${t}` }
+        : {}),
       lang: "ro",
       user: { id: userId, name: profile?.username ?? "Utilizator" },
-      customization: { autosave: true, forcesave: true, compactHeader: false },
+      customization: {
+        compactHeader: false,
+        ...(editing ? { autosave: true, forcesave: true } : {}),
+      },
     },
   };
 
@@ -151,7 +183,7 @@ export async function openFileForEditor(token: string): Promise<{
   contentType: string;
   size: number | null;
 }> {
-  const { fileId, ownerId } = await verifyCallbackToken(token);
+  const { fileId, ownerId } = await verifyAccessToken(token);
 
   const admin = createAdminClient();
   const { data: file } = await admin
@@ -174,11 +206,18 @@ export async function openFileForEditor(token: string): Promise<{
 }
 
 // ── Saving ──────────────────────────────────────────────────────────────────
-export async function verifyCallbackToken(
+// The token we minted at open time, carried by both the document URL and the
+// callback URL. `mode` is what keeps a preview a preview: a session opened for
+// viewing must never be able to write, even if its URL leaks.
+export async function verifyAccessToken(
   token: string,
-): Promise<{ fileId: string; ownerId: string }> {
+): Promise<{ fileId: string; ownerId: string; mode: OfficeMode }> {
   const { payload } = await jwtVerify(token, secretKey());
-  return { fileId: payload.fileId as string, ownerId: payload.ownerId as string };
+  return {
+    fileId: payload.fileId as string,
+    ownerId: payload.ownerId as string,
+    mode: payload.mode === "view" ? "view" : "edit",
+  };
 }
 
 // The Document Server signs its own requests with the same secret. Without this
