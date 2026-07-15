@@ -129,7 +129,7 @@ export async function registerWithInvite(
   );
   // Same news by email — best-effort, and never awaited into the response.
   void sendAccountCreatedUser({ email, username }).catch(() => {});
-  void sendAccountCreatedAdmin({ username, email }).catch(() => {});
+  void sendAccountCreatedAdmin({ username, email, inviteCode: invite.code }).catch(() => {});
 
   // 5. Sign in (sets session cookies), then go home.
   const supabase = await createClient();

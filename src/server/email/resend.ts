@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { appOrigin, dashboardOrigin } from "@/lib/dashboard";
+import { formatDateTime } from "@/lib/format-date";
 
 // FROM must be on a Resend-verified domain (ngig.cloud). INVITE_REQUEST_TO is
 // the inbox that receives invite requests (the owner's Gmail).
@@ -332,16 +333,32 @@ export async function sendAccountCreatedUser(input: {
 export async function sendAccountCreatedAdmin(input: {
   username: string;
   email: string;
+  inviteCode?: string | null;
 }): Promise<void> {
   if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
   const resend = new Resend(API_KEY);
 
   const url = `${dashboardOrigin()}/users`;
+  const when = formatDateTime(new Date().toISOString());
+  const codeRow = input.inviteCode
+    ? row("Invitație folosită", escapeHtml(input.inviteCode))
+    : "";
+
   const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      <strong style="color:#fafafa">${escapeHtml(input.username)}</strong> și-a creat contul
+      și are de acum acces la cloud. Codul de invitație folosit a fost consumat.
+    </p>
     ${row("Utilizator", escapeHtml(input.username))}
     ${row("Email", escapeHtml(input.email))}
+    ${codeRow}
+    ${row("Înregistrat", when)}
     <p style="margin:16px 0 0"></p>
     ${button(url, "Vezi userii")}
+    <p style="margin:16px 0 0;color:#71717a;font-size:12px">
+      Din dashboard îi poți urmări activitatea, îi poți ajusta limitele de spațiu sau,
+      la nevoie, îi poți suspenda accesul.
+    </p>
   `;
 
   const { error } = await resend.emails.send({
@@ -349,11 +366,16 @@ export async function sendAccountCreatedAdmin(input: {
     to: INVITE_TO,
     subject: `Utilizator nou: ${input.username} — ngig.cloud`,
     text: [
+      `${input.username} și-a creat contul și are de acum acces la cloud.`,
+      "Codul de invitație folosit a fost consumat.",
+      "",
       `Utilizator: ${input.username}`,
       `Email: ${input.email}`,
+      input.inviteCode ? `Invitație folosită: ${input.inviteCode}` : "",
+      `Înregistrat: ${when}`,
       "",
       `Vezi userii: ${url}`,
-    ].join("\n"),
+    ].filter(Boolean).join("\n"),
     html: shell("Utilizator nou", inner),
   });
 
@@ -413,15 +435,28 @@ export async function sendAccountDeletedAdmin(input: {
   const resend = new Resend(API_KEY);
 
   const how = input.bySelf
-    ? "Utilizatorul și-a șters singur contul."
+    ? "Și-a șters singur contul din pagina de profil."
     : "Contul a fost șters din dashboard.";
+  const when = formatDateTime(new Date().toISOString());
+  const url = `${dashboardOrigin()}/users`;
+
   const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Contul <strong style="color:#fafafa">${escapeHtml(input.username)}</strong> nu mai
+      există. ${how}
+    </p>
     ${row("Utilizator", escapeHtml(input.username))}
     ${input.email ? row("Email", escapeHtml(input.email)) : ""}
-    <p style="margin:16px 0 0;color:#a1a1aa;font-size:14px">${how}</p>
-    <p style="margin:8px 0 0;color:#71717a;font-size:12px">
-      Toate fișierele, ticketele și istoricul lui au fost șterse definitiv.
+    ${row("Șters", when)}
+    <p style="margin:16px 0 8px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Am șters tot ce ținea de el: fișierele din stocare, ticketele de suport și
+      întregul istoric. Nu a rămas nimic de curățat manual.
     </p>
+    <p style="margin:0 0 20px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Codurile de invitație și cererile prin care a trecut rămân în istoricul
+      platformei, dar nu mai sunt legate de niciun cont.
+    </p>
+    ${button(url, "Vezi userii")}
   `;
 
   const { error } = await resend.emails.send({
@@ -429,11 +464,16 @@ export async function sendAccountDeletedAdmin(input: {
     to: INVITE_TO,
     subject: `Cont șters: ${input.username} — ngig.cloud`,
     text: [
+      `Contul ${input.username} nu mai există. ${how}`,
+      "",
       `Utilizator: ${input.username}`,
       input.email ? `Email: ${input.email}` : "",
+      `Șters: ${when}`,
       "",
-      how,
-      "Toate fișierele, ticketele și istoricul lui au fost șterse definitiv.",
+      "Am șters tot ce ținea de el: fișierele din stocare, ticketele de suport și întregul istoric. Nu a rămas nimic de curățat manual.",
+      "Codurile de invitație și cererile prin care a trecut rămân în istoricul platformei, dar nu mai sunt legate de niciun cont.",
+      "",
+      `Vezi userii: ${url}`,
     ].filter(Boolean).join("\n"),
     html: shell("Cont șters", inner),
   });
