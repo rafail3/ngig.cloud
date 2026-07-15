@@ -121,14 +121,6 @@ export async function buildEditorConfig(
 
   const config: Record<string, unknown> = {
     documentType: docType,
-    // "embedded" is the Document Server's minimal viewer: no toolbar tabs, no
-    // title bar of its own, just the document — which is what lets our preview
-    // modal keep a single header instead of stacking one on top of theirs.
-    // (Hiding those in the full editor is a white-label licence feature; this
-    // isn't.) Its own slim toolbar carries only page nav and zoom: the download
-    // and share buttons appear solely if we hand it URLs for them, and we don't
-    // — Descarcă lives in our header.
-    ...(editing ? {} : { type: "embedded" }),
     document: {
       fileType: officeFileType(file.name),
       key,
@@ -146,18 +138,29 @@ export async function buildEditorConfig(
       // Document Server cannot write anything back.
       ...(editing
         ? { callbackUrl: `${callbackOrigin()}/api/onlyoffice/callback?t=${t}` }
-        : { embedded: { toolbarDocked: "bottom" } }),
+        : {}),
       lang: "ro",
       user: { id: userId, name: profile?.username ?? "Utilizator" },
       customization: {
         compactHeader: false,
-        // Column headers, row numbers and the bottom bar are the editor's own
+        // Column headers, row numbers and the sheet bar are the editor's own
         // chrome, so they only go dark if its theme does. Our app's theme is
-        // what decides. NOTE: if a theme is ever picked from inside the editor's
-        // own UI, the Document Server remembers that in the browser's local
-        // storage and it wins over this value.
+        // what decides.
+        //
+        // This is also why a preview runs the full editor in view mode rather
+        // than the Document Server's "embedded" viewer, which would spare us its
+        // toolbar: `uiTheme` reaches the frame as a `uitheme` URL parameter, and
+        // nothing under web-apps/apps/*/embed/ so much as mentions it — that
+        // viewer has no themes at all and is always light. Hiding the toolbar in
+        // this one instead is gated on a white-label licence (LayoutManager is
+        // handed `canBrandingExt`), so: their toolbar, in the right theme.
+        //
+        // NOTE: a theme picked from inside the editor's own UI is remembered in
+        // the browser's local storage, and it wins over this value.
         uiTheme: theme === "dark" ? "theme-dark" : "theme-light",
-        ...(editing ? { autosave: true, forcesave: true } : {}),
+        // Our modal header already says which file this is.
+        toolbarHideFileName: true,
+        ...(editing ? { autosave: true, forcesave: true } : { hideRightMenu: true }),
       },
     },
   };
