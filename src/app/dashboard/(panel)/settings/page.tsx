@@ -1,8 +1,10 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getSettings } from "@/server/admin/settings";
+import { getOfficeStatus } from "@/server/office/config";
 import { listNotificationTypes, ADDABLE_ACTIONS } from "@/server/notifications/catalog";
 import { SettingsForm } from "@/components/dashboard/SettingsForm";
+import { OfficeModeSettings } from "@/components/dashboard/OfficeModeSettings";
 import { NotificationSettings } from "@/components/dashboard/NotificationTypesList";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
@@ -16,6 +18,12 @@ async function SettingsContent() {
   await connection();
   const settings = await getSettings();
   return <SettingsForm settings={settings} />;
+}
+
+async function OfficeContent() {
+  await connection();
+  const status = await getOfficeStatus();
+  return <OfficeModeSettings status={status} />;
 }
 
 async function NotificationsContent() {
@@ -37,6 +45,10 @@ export default function SettingsPage() {
 
         <Suspense fallback={<ListSkeleton rows={3} />}>
           <SettingsContent />
+        </Suspense>
+
+        <Suspense fallback={<ListSkeleton rows={3} />}>
+          <OfficeContent />
         </Suspense>
       </section>
 

@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/admin/guard";
 import { updateSettings } from "@/server/admin/settings";
+import { setOfficeMode } from "@/server/office/config";
 import { toBytes } from "@/lib/bytes";
+import { isOfficeServiceMode } from "@/lib/office";
 import type { SettingsState } from "@/lib/settings-state";
 
 export async function resetSettingsAction(): Promise<void> {
@@ -15,6 +17,28 @@ export async function resetSettingsAction(): Promise<void> {
   });
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
+}
+
+export async function saveOfficeModeAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "Acces interzis." };
+  }
+
+  const mode = formData.get("officeMode");
+  if (!isOfficeServiceMode(mode)) return { error: "Mod invalid." };
+
+  try {
+    await setOfficeMode(mode);
+    revalidatePath("/dashboard/settings");
+    return { ok: "Mod salvat." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvare." };
+  }
 }
 
 export async function saveSettingsAction(

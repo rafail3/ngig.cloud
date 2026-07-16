@@ -28,8 +28,9 @@ import {
 import { formatBytes } from "@/lib/format";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { fileTypeShort, fileTypeLabel, isTextEditable } from "@/lib/file-type";
-import { isOfficeEditable } from "@/lib/office";
+import { isOfficeEditable, officeCanEdit, officeEditUnavailable } from "@/lib/office";
 import { useUploads, type UploadJob } from "./UploadProvider";
+import { useOfficeStatus } from "./OfficeStatusProvider";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { OfficeEditor } from "./OfficeEditor";
 import { PreviewModal } from "./PreviewModal";
@@ -106,6 +107,7 @@ function isModified(f: { createdAt: string; updatedAt: string }): boolean {
 
 export function FileList({ folderId }: { folderId: string | null }) {
   const { jobs } = useUploads();
+  const officeStatus = useOfficeStatus();
   // `files` is filtered for display; `rawFiles` is the full set, used only to
   // tell when an upload's real row has arrived (so its ghost can disappear).
   const { files, rawFiles } = useFilter();
@@ -202,6 +204,14 @@ export function FileList({ folderId }: { folderId: string | null }) {
               onPreview={() => setPreview(f)}
               onEdit={() => {
                 if (isOfficeEditable(f.name)) {
+                  // Offered but the server is down (onlyoffice-only mode): say so
+                  // instead of opening an editor that can't load.
+                  if (officeEditUnavailable(officeStatus, f.name)) {
+                    toast.error(
+                      "Serviciul de editare e temporar indisponibil. Revine în scurt timp.",
+                    );
+                    return;
+                  }
                   setOfficeFile(f);
                   return;
                 }
@@ -325,6 +335,7 @@ function FileRow({
 }) {
   const openMenu = useContextMenu();
   const selection = useSelection();
+  const officeStatus = useOfficeStatus();
   const mounted = useMounted();
   const isTouch = useIsTouch();
   const { setNodeRef, attributes, listeners } = useDraggable({
@@ -356,7 +367,8 @@ function FileRow({
 
   const actions: MenuAction[] = [
     { icon: Download, label: "Descarcă", onSelect: onDownload },
-    ...(isTextEditable(file.name, file.mimeType) || isOfficeEditable(file.name)
+    ...(isTextEditable(file.name, file.mimeType) ||
+    officeCanEdit(officeStatus, file.name)
       ? [{ icon: SquarePen, label: "Editează", onSelect: onEdit }]
       : []),
     { icon: Pencil, label: "Redenumește", onSelect: onRename },

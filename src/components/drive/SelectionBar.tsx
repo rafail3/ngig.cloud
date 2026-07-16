@@ -4,6 +4,7 @@ import { useEffect, useState, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { revalidateDrive } from "@/components/drive/useDriveData";
 import { Archive, Copy, Download, FolderInput, Info, Pencil, SquarePen, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   getDownloadUrlAction,
   moveFileAction,
@@ -19,8 +20,9 @@ import {
 import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
 import { fileTypeLabel, isTextEditable } from "@/lib/file-type";
-import { isOfficeEditable } from "@/lib/office";
+import { isOfficeEditable, officeCanEdit, officeEditUnavailable } from "@/lib/office";
 import { useSelection, type SelItem } from "./SelectionProvider";
+import { useOfficeStatus } from "./OfficeStatusProvider";
 import { FolderPickerModal } from "./FolderPickerModal";
 import { RenameModal } from "./RenameModal";
 import { InfoModal } from "./InfoModal";
@@ -63,15 +65,24 @@ export function SelectionBar() {
   const [officeFile, setOfficeFile] = useState<SelItem | null>(null);
   const [textFile, setTextFile] = useState<PreviewFile | null>(null);
 
+  const officeStatus = useOfficeStatus();
   const items = [...selected.values()];
   const single = count === 1 ? items[0] : null;
   const editableSingle =
     single?.kind === "file" &&
-    (isOfficeEditable(single.name) || isTextEditable(single.name, single.mimeType));
+    (officeCanEdit(officeStatus, single.name) ||
+      isTextEditable(single.name, single.mimeType));
 
   function editSingle() {
     if (single?.kind !== "file") return;
     if (isOfficeEditable(single.name)) {
+      // Offered but the server is down (onlyoffice-only mode): say so cleanly.
+      if (officeEditUnavailable(officeStatus, single.name)) {
+        toast.error(
+          "Serviciul de editare e temporar indisponibil. Revine în scurt timp.",
+        );
+        return;
+      }
       setOfficeFile(single);
       return;
     }

@@ -21,11 +21,17 @@ import {
   getTextContentAction,
   saveTextFileAction,
 } from "@/app/drive-actions";
-import { isOfficeEditable, isOfficeViewable, type OfficeTheme } from "@/lib/office";
+import {
+  isOfficeViewable,
+  officeCanEdit,
+  officeEditUnavailable,
+  officePreviewKind,
+  type OfficeTheme,
+} from "@/lib/office";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { useOfficeStatus } from "./OfficeStatusProvider";
 import { OfficeEditor } from "./OfficeEditor";
 import { OfficePreview } from "./OfficePreview";
-import { officeServerConfigured } from "./useOnlyOffice";
 import { printPdf } from "./print-blob";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
@@ -105,11 +111,16 @@ export function PreviewModal({
   const [themeOverride, setThemeOverride] = useState<OfficeTheme | null>(null);
   const officeTheme: OfficeTheme = themeOverride ?? resolved;
 
+  // How the platform is set to handle Office documents right now (admin mode +
+  // whether the Document Server is answering). Everything below reads from this.
+  const officeStatus = useOfficeStatus();
+  const officePreview = k === "office" ? officePreviewKind(officeStatus) : "legacy";
+
   // The preview renders on the Document Server's own origin, so we can't reach
   // into it to print. It converts the document to a PDF instead, which the
   // browser can always print — and which also covers the legacy formats no
-  // browser-side renderer can even open.
-  const canPrintOffice = k === "office" && officeServerConfigured;
+  // browser-side renderer can even open. Only possible when the server is up.
+  const canPrintOffice = k === "office" && officePreview === "onlyoffice";
   const [printing, setPrinting] = useState(false);
 
   async function printOffice() {
@@ -130,9 +141,21 @@ export function PreviewModal({
 
   const canEdit = k === "text";
   // Office documents don't edit in this modal — they hand off to the OnlyOffice
-  // editor, which replaces the preview entirely.
-  const canEditOffice = isOfficeEditable(file.name);
+  // editor, which replaces the preview entirely. Whether it's offered at all is
+  // the admin's mode plus the server's health.
+  const canEditOffice = officeCanEdit(officeStatus, file.name);
+  const editOfficeUnavailable = officeEditUnavailable(officeStatus, file.name);
   const [officeOpen, setOfficeOpen] = useState(false);
+
+  function openOfficeEditor() {
+    // In "onlyoffice-only" mode with the server down, the button is still shown
+    // (editing is a feature of this cloud) but can't run — say so, don't error.
+    if (editOfficeUnavailable) {
+      toast.error("Serviciul de editare e temporar indisponibil. Revine în scurt timp.");
+      return;
+    }
+    setOfficeOpen(true);
+  }
   // When opened straight into edit mode (the "Editează" menu action), kick off
   // editing once the modal mounts.
   const autoEditRef = useRef(false);
@@ -379,7 +402,7 @@ export function PreviewModal({
                 {(canEdit || canEditOffice) && (
                   <button
                     type="button"
-                    onClick={canEditOffice ? () => setOfficeOpen(true) : startEdit}
+                    onClick={canEditOffice ? openOfficeEditor : startEdit}
                     className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Editează
@@ -488,6 +511,7 @@ export function PreviewModal({
                   name={file.name}
                   url={url}
                   theme={officeTheme}
+                  kind={officePreview}
                   onDownload={onDownload}
                 />
               )}

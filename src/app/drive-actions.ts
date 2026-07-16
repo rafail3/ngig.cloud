@@ -10,6 +10,8 @@ import {
   type OfficeMode,
   type OfficeTheme,
 } from "@/server/office/onlyoffice";
+import { getOfficeMode, getOfficeStatus } from "@/server/office/config";
+import type { OfficeStatus } from "@/lib/office";
 import { SESSION_REVOKED } from "@/server/auth/active-user";
 
 // Thin server-action wrappers over the files service (the actual logic lives
@@ -259,11 +261,23 @@ export async function getOfficeEditorConfigAction(
   theme: OfficeTheme = "dark",
 ): Promise<EditorConfig | { error: string } | Revoked> {
   try {
+    // The admin can turn the Document Server off platform-wide; honour that here
+    // too, so a stale client can't open an editor the admin disabled.
+    if ((await getOfficeMode()) === "legacy") {
+      return { error: "Editarea documentelor este dezactivată." };
+    }
     return await buildEditorConfig(id, mode, theme);
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     return { error: e instanceof Error ? e.message : "Nu am putut deschide documentul." };
   }
+}
+
+// The resolved Office capability for the current viewer: which mode the admin
+// picked, and whether the Document Server is answering right now. Drives the
+// preview + edit affordances across the drive.
+export async function getOfficeStatusAction(): Promise<OfficeStatus> {
+  return getOfficeStatus();
 }
 
 // Flush the open editing session to storage on demand (Save button / closing).

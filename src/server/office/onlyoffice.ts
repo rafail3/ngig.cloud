@@ -57,6 +57,39 @@ export function isOfficeEditingConfigured(): boolean {
   return Boolean(DS_URL && SECRET);
 }
 
+// ── Health ───────────────────────────────────────────────────────────────────
+// The Document Server may run on a machine that isn't always on. This asks it
+// whether it's alive, cached briefly so a room full of users polling the drive
+// can't turn into a flood of health checks — the answer only needs to be a few
+// seconds fresh.
+const HEALTH_TTL_MS = 10_000;
+const HEALTH_TIMEOUT_MS = 3_000;
+let healthCache: { at: number; up: boolean } | null = null;
+
+export async function isDocumentServerUp(): Promise<boolean> {
+  if (!DS_URL) return false;
+  const now = Date.now();
+  if (healthCache && now - healthCache.at < HEALTH_TTL_MS) return healthCache.up;
+
+  let up = false;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
+    // The Document Server's own liveness endpoint; it answers the string "true".
+    const res = await fetch(`${DS_URL.replace(/\/$/, "")}/healthcheck`, {
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    clearTimeout(timer);
+    up = res.ok && (await res.text()).trim() === "true";
+  } catch {
+    up = false;
+  }
+
+  healthCache = { at: now, up };
+  return up;
+}
+
 async function sign(payload: Record<string, unknown>, expires: string): Promise<string> {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })

@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileQuestion, Loader2 } from "lucide-react";
+import { CloudOff, Download, FileQuestion, Loader2 } from "lucide-react";
 import type { OfficeTheme } from "@/lib/office";
 import { DocxViewer } from "./DocxViewer";
 import { XlsxViewer } from "./XlsxViewer";
-import { officeServerConfigured, useOnlyOffice } from "./useOnlyOffice";
+import { useOnlyOffice } from "./useOnlyOffice";
+
+/** How the parent has decided this Office file should be previewed. */
+export type OfficePreviewKind = "onlyoffice" | "legacy" | "unavailable";
 
 const HOST_ID = "onlyoffice-preview-host";
 
@@ -87,22 +90,53 @@ function LocalPreview({
   );
 }
 
+// Shown when the admin runs an "onlyoffice-only" cloud and the Document Server
+// is down: no rough fallback, just an honest "back shortly" — never a raw error.
+function Unavailable({ onDownload }: { onDownload: () => void }) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+      <CloudOff className="h-10 w-10 text-zinc-600" />
+      <div>
+        <p className="text-sm font-medium text-zinc-200">
+          Previzualizarea documentelor e temporar indisponibilă
+        </p>
+        <p className="mt-1 text-sm text-zinc-400">
+          Serviciul revine în cel mai scurt timp. Poți descărca documentul între timp.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onDownload}
+        className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400"
+      >
+        <Download className="h-4 w-4" /> Descarcă
+      </button>
+    </div>
+  );
+}
+
 export function OfficePreview({
   fileId,
   name,
   url,
   theme,
+  kind,
   onDownload,
 }: {
   fileId: string;
   name: string;
   url: string | null;
   theme: OfficeTheme;
+  kind: OfficePreviewKind;
   onDownload: () => void;
 }) {
+  // If a live OnlyOffice session fails to load, drop to the rough renderer
+  // rather than a blank frame — a lesser preview beats none.
   const [failed, setFailed] = useState(false);
 
-  if (officeServerConfigured && !failed) {
+  if (kind === "unavailable") return <Unavailable onDownload={onDownload} />;
+
+  if (kind === "onlyoffice" && !failed) {
     return (
       // Keyed by theme: a session can't be re-themed in place, so switching
       // themes builds a fresh one — and the loading state resets with it.

@@ -56,3 +56,89 @@ export function isOfficeViewable(name: string): boolean {
 export function officeFileType(name: string): string {
   return ext(name);
 }
+
+// ── Service mode ─────────────────────────────────────────────────────────────
+// How the whole platform treats Office documents, chosen by an admin. The
+// Document Server may run on a machine that isn't always on (a friend's server,
+// a laptop), so the app has to degrade gracefully when it's down — and the admin
+// decides HOW.
+
+export type OfficeServiceMode = "auto" | "legacy" | "onlyoffice";
+
+export const OFFICE_SERVICE_MODES: {
+  value: OfficeServiceMode;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "auto",
+    label: "Automat",
+    description:
+      "Când serverul de documente e pornit: previzualizare fidelă + editare. Când e oprit: previzualizarea simplă de rezervă, fără editare.",
+  },
+  {
+    value: "legacy",
+    label: "Doar previzualizare simplă",
+    description:
+      "Nu folosește niciodată serverul de documente. Doar previzualizarea din browser, fără editare.",
+  },
+  {
+    value: "onlyoffice",
+    label: "Doar server de documente",
+    description:
+      "Mereu previzualizare fidelă + editare. Când serverul e oprit, afișează un mesaj că serviciul e temporar indisponibil, fără eroare.",
+  },
+];
+
+export function isOfficeServiceMode(v: unknown): v is OfficeServiceMode {
+  return v === "auto" || v === "legacy" || v === "onlyoffice";
+}
+
+/**
+ * A snapshot of the Office capability, resolved on the server and handed to the
+ * client so every surface (preview, edit buttons) decides identically.
+ *  - `mode`       — the admin's choice.
+ *  - `up`         — whether the Document Server answered its health check.
+ *  - `configured` — whether a Document Server address is set at all.
+ */
+export type OfficeStatus = {
+  mode: OfficeServiceMode;
+  up: boolean;
+  configured: boolean;
+};
+
+/** Whether the Document Server can actually serve a request right now. */
+function officeUsable(s: OfficeStatus): boolean {
+  return s.configured && s.up && s.mode !== "legacy";
+}
+
+/** How an Office file should be previewed under the current status. */
+export function officePreviewKind(
+  s: OfficeStatus,
+): "onlyoffice" | "legacy" | "unavailable" {
+  if (officeUsable(s)) return "onlyoffice";
+  // Down (or off). In "onlyoffice" mode the admin asked for no silent fallback:
+  // show a "temporarily unavailable" message instead of the rough renderer.
+  if (s.mode === "onlyoffice" && s.configured) return "unavailable";
+  return "legacy";
+}
+
+/** Whether the "Editează" action should be offered for this file. */
+export function officeCanEdit(s: OfficeStatus, name: string): boolean {
+  if (!isOfficeEditable(name)) return false;
+  if (s.mode === "legacy" || !s.configured) return false;
+  // "auto" only offers editing while the server is actually up. "onlyoffice"
+  // keeps offering it — opening while down surfaces the same friendly message.
+  if (s.mode === "auto") return s.up;
+  return true;
+}
+
+/** In "onlyoffice" mode with the server down, edit is offered but can't run. */
+export function officeEditUnavailable(s: OfficeStatus, name: string): boolean {
+  return (
+    isOfficeEditable(name) &&
+    s.mode === "onlyoffice" &&
+    s.configured &&
+    !s.up
+  );
+}
