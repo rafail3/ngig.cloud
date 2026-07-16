@@ -108,7 +108,7 @@ function LatencyGraph({ samples }: { samples: OfficeHealthSample[] }) {
               x2={p.x}
               y2={p.y}
               stroke="currentColor"
-              strokeWidth={1.6}
+              strokeWidth={2.2}
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
@@ -117,36 +117,22 @@ function LatencyGraph({ samples }: { samples: OfficeHealthSample[] }) {
           );
         })}
 
-        {/* The leading pulse — a glowing head that beats where the trace ends. */}
+        {/* The leading beat — a thin ring that expands and fades where the trace
+            ends, so the line's tip stays as thin as the rest (no solid blob). */}
         {head && (
-          <>
-            <circle
-              cx={head.x}
-              cy={head.y}
-              r={2.4}
-              className={`${head.up ? "fill-emerald-400/30" : "fill-red-500/30"} motion-reduce:hidden`}
-            >
-              <animate
-                attributeName="r"
-                values="1.5;3.4;1.5"
-                dur="1s"
-                repeatCount="indefinite"
-              />
-              <animate
-                attributeName="opacity"
-                values="0.9;0;0.9"
-                dur="1s"
-                repeatCount="indefinite"
-              />
-            </circle>
-            <circle
-              cx={head.x}
-              cy={head.y}
-              r={1.5}
-              vectorEffect="non-scaling-stroke"
-              className={head.up ? "fill-emerald-300" : "fill-red-400"}
-            />
-          </>
+          <circle
+            cx={head.x}
+            cy={head.y}
+            r={1}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1}
+            vectorEffect="non-scaling-stroke"
+            className={`${head.up ? "text-emerald-300" : "text-red-400"} motion-reduce:hidden`}
+          >
+            <animate attributeName="r" values="0.6;3.6;0.6" dur="1.1s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.9;0;0.9" dur="1.1s" repeatCount="indefinite" />
+          </circle>
         )}
       </svg>
       <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-zinc-600">
