@@ -68,25 +68,29 @@ export type OfficeServiceMode = "auto" | "legacy" | "onlyoffice";
 export const OFFICE_SERVICE_MODES: {
   value: OfficeServiceMode;
   label: string;
+  tagline: string;
   description: string;
 }[] = [
   {
     value: "auto",
     label: "Automat",
+    tagline: "Recomandat",
     description:
-      "Când serverul de documente e pornit: previzualizare fidelă + editare. Când e oprit: previzualizarea simplă de rezervă, fără editare.",
+      "Când serverul OnlyOffice e pornit: previzualizare fidelă + editare. Când e oprit: previzualizarea simplă din browser, fără editare.",
   },
   {
     value: "legacy",
     label: "Doar previzualizare simplă",
+    tagline: "Fără OnlyOffice",
     description:
-      "Nu folosește niciodată serverul de documente. Doar previzualizarea din browser, fără editare.",
+      "Nu folosește niciodată serverul OnlyOffice. Doar previzualizarea din browser, fără editare.",
   },
   {
     value: "onlyoffice",
-    label: "Doar server de documente",
+    label: "Doar server OnlyOffice",
+    tagline: "Fără rezervă",
     description:
-      "Mereu previzualizare fidelă + editare. Când serverul e oprit, afișează un mesaj că serviciul e temporar indisponibil, fără eroare.",
+      "Mereu prin serverul OnlyOffice: previzualizare fidelă + editare. Când e oprit, un mesaj că serviciul e temporar indisponibil, fără eroare.",
   },
 ];
 

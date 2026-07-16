@@ -1,13 +1,23 @@
 "use client";
 
 import { useActionState } from "react";
-import { FileText } from "lucide-react";
+import { Check, Eye, FileText, ServerCog, Wand2 } from "lucide-react";
 import { saveOfficeModeAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
-import { OFFICE_SERVICE_MODES, type OfficeStatus } from "@/lib/office";
+import {
+  OFFICE_SERVICE_MODES,
+  type OfficeServiceMode,
+  type OfficeStatus,
+} from "@/lib/office";
 import type { SettingsState } from "@/lib/settings-state";
 
 const initial: SettingsState = {};
+
+const MODE_ICON: Record<OfficeServiceMode, typeof Wand2> = {
+  auto: Wand2,
+  legacy: Eye,
+  onlyoffice: ServerCog,
+};
 
 export function OfficeModeSettings({ status }: { status: OfficeStatus }) {
   const [state, formAction, pending] = useActionState(saveOfficeModeAction, initial);
@@ -23,32 +33,45 @@ export function OfficeModeSettings({ status }: { status: OfficeStatus }) {
         Cum tratează platforma previzualizarea și editarea când serverul e pornit sau oprit.
       </p>
 
-      <form action={formAction} className="flex flex-col gap-3">
-        <div className="flex flex-col gap-2">
-          {OFFICE_SERVICE_MODES.map((m) => (
-            <label
-              key={m.value}
-              className="group flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3.5 transition has-[:checked]:border-indigo-500/60 has-[:checked]:bg-indigo-500/5 hover:border-zinc-700"
-            >
-              <input
-                type="radio"
-                name="officeMode"
-                value={m.value}
-                defaultChecked={status.mode === m.value}
-                className="peer sr-only"
-              />
-              {/* The inner dot is drawn with ::after — a pseudo-element of this
-                  sibling span, which peer-checked CAN reach (a descendant of the
-                  span could not). */}
-              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-zinc-600 transition after:h-1.5 after:w-1.5 after:rounded-full after:bg-white after:opacity-0 after:transition peer-checked:border-indigo-500 peer-checked:bg-indigo-500 peer-checked:after:opacity-100" />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-zinc-100">{m.label}</span>
-                <span className="mt-0.5 block text-xs leading-relaxed text-zinc-400">
+      <form action={formAction} className="flex flex-col gap-4">
+        <div className="grid gap-2.5 sm:grid-cols-3">
+          {OFFICE_SERVICE_MODES.map((m) => {
+            const Icon = MODE_ICON[m.value];
+            return (
+              <label
+                key={m.value}
+                className="group relative flex cursor-pointer flex-col gap-2 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4 transition hover:border-zinc-700 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-500/[0.07] has-[:checked]:shadow-[0_0_0_1px_rgb(99_102_241_/_0.5)]"
+              >
+                <input
+                  type="radio"
+                  name="officeMode"
+                  value={m.value}
+                  defaultChecked={status.mode === m.value}
+                  className="peer sr-only"
+                />
+
+                {/* Selected check — a pseudo-element on this sibling span, which
+                    peer-checked can reach (a descendant could not). */}
+                <span className="pointer-events-none absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 opacity-0 transition peer-checked:opacity-100">
+                  <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                </span>
+
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 transition peer-checked:border-indigo-500/40 peer-checked:bg-indigo-500/15 peer-checked:text-indigo-300">
+                  <Icon className="h-[18px] w-[18px]" />
+                </span>
+
+                <span className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-zinc-100">{m.label}</span>
+                </span>
+                <span className="inline-flex w-fit rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400 transition peer-checked:border-indigo-500/30 peer-checked:bg-indigo-500/10 peer-checked:text-indigo-300">
+                  {m.tagline}
+                </span>
+                <span className="mt-0.5 text-xs leading-relaxed text-zinc-400">
                   {m.description}
                 </span>
-              </span>
-            </label>
-          ))}
+              </label>
+            );
+          })}
         </div>
 
         <div>
