@@ -17,11 +17,10 @@ export function OfficeModeSettings({ status }: { status: OfficeStatus }) {
     <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-6">
       <div className="mb-1 flex items-center gap-2 text-zinc-100">
         <FileText className="h-5 w-5 text-indigo-400" />
-        <h2 className="text-base font-semibold">Documente Office</h2>
+        <h2 className="text-base font-semibold">Mod de funcționare</h2>
       </div>
       <p className="mb-4 text-sm text-zinc-400">
-        Cum tratează platforma previzualizarea și editarea documentelor Word, Excel și
-        PowerPoint.
+        Cum tratează platforma previzualizarea și editarea când serverul e pornit sau oprit.
       </p>
 
       <form action={formAction} className="flex flex-col gap-3">

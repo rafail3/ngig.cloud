@@ -16,8 +16,8 @@ import {
 } from "@/app/dashboard/(panel)/settings/actions";
 
 const POLL_MS = 1000;
-const WINDOW = 40; // samples kept for the graph (~40s of history)
-const BASELINE_MS = 200; // graph never shows a scale smaller than this
+const WINDOW = 60; // samples kept for the graph (~60s of history)
+const BASELINE_MS = 120; // graph never shows a scale smaller than this
 
 type State = "up" | "timeout" | "down" | "unknown";
 
@@ -47,42 +47,107 @@ function Metric({ label, value, unit }: { label: string; value: string; unit?: s
   );
 }
 
-// A compact bar-per-second graph of recent latency. Bars are green when the
-// server answered, red when it didn't — so an outage reads as a wall of red
-// rather than a missing line.
+// A heart-monitor trace of recent latency: a continuous line that rises with
+// response time, green while the server answers — and, when it stops, drops to
+// a red flatline, exactly like an EKG losing its pulse.
+const GW = 60; // graph viewBox width (one unit per sample slot)
+const GH = 40; // graph viewBox height
+const FLATLINE_Y = GH * 0.52; // where a dead server's red flatline sits
+
 function LatencyGraph({ samples }: { samples: OfficeHealthSample[] }) {
-  const peak = Math.max(
-    BASELINE_MS,
-    ...samples.map((s) => s.latencyMs ?? 0),
-  );
-  const slotW = 100 / WINDOW;
+  const peak = Math.max(BASELINE_MS, ...samples.map((s) => s.latencyMs ?? 0));
+
+  // Map each sample to a point. Newest sits at the far right; the strip fills in
+  // from the right as history builds. An answered sample rises from the bottom
+  // with its latency; a dead one sits on the flatline.
+  const pts = samples.map((s, i) => {
+    const x = GW - (samples.length - 1 - i);
+    const up = s.latencyMs != null;
+    const y = up
+      ? GH - 3 - Math.min(GH - 6, (s.latencyMs! / peak) * (GH - 6))
+      : FLATLINE_Y;
+    return { x, y, up };
+  });
+
+  const head = pts[pts.length - 1];
 
   return (
-    <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3">
+    <div className="relative overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-3">
       <svg
-        viewBox="0 0 100 40"
+        viewBox={`0 0 ${GW} ${GH}`}
         preserveAspectRatio="none"
-        className="h-16 w-full"
+        className="h-20 w-full"
         role="img"
         aria-label={`Timp de răspuns pe ultimele ${samples.length} verificări`}
       >
-        {samples.map((s, i) => {
-          // Right-align: the newest sample sits at the far right.
-          const x = 100 - (samples.length - i) * slotW;
-          const answered = s.latencyMs != null;
-          const h = answered ? Math.max(2, (s.latencyMs! / peak) * 36) : 36;
+        {/* Faint monitor grid. */}
+        {[0.25, 0.5, 0.75].map((f) => (
+          <line
+            key={f}
+            x1={0}
+            y1={GH * f}
+            x2={GW}
+            y2={GH * f}
+            stroke="currentColor"
+            strokeWidth={0.25}
+            className="text-zinc-700/40"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+
+        {/* The trace, one segment at a time so each can take its own colour:
+            green between two live samples, red the moment the pulse drops. */}
+        {pts.slice(1).map((p, i) => {
+          const prev = pts[i];
+          const alive = p.up && prev.up;
           return (
-            <rect
-              key={s.checkedAt}
-              x={x + slotW * 0.15}
-              y={40 - h}
-              width={slotW * 0.7}
-              height={h}
-              rx={0.6}
-              className={answered ? "fill-emerald-500/80" : "fill-red-500/45"}
+            <line
+              key={p.x}
+              x1={prev.x}
+              y1={prev.y}
+              x2={p.x}
+              y2={p.y}
+              stroke="currentColor"
+              strokeWidth={1.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              className={alive ? "text-emerald-400" : "text-red-500"}
             />
           );
         })}
+
+        {/* The leading pulse — a glowing head that beats where the trace ends. */}
+        {head && (
+          <>
+            <circle
+              cx={head.x}
+              cy={head.y}
+              r={2.4}
+              className={`${head.up ? "fill-emerald-400/30" : "fill-red-500/30"} motion-reduce:hidden`}
+            >
+              <animate
+                attributeName="r"
+                values="1.5;3.4;1.5"
+                dur="1s"
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values="0.9;0;0.9"
+                dur="1s"
+                repeatCount="indefinite"
+              />
+            </circle>
+            <circle
+              cx={head.x}
+              cy={head.y}
+              r={1.5}
+              vectorEffect="non-scaling-stroke"
+              className={head.up ? "fill-emerald-300" : "fill-red-400"}
+            />
+          </>
+        )}
       </svg>
       <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-zinc-600">
         <span>-{samples.length}s</span>
