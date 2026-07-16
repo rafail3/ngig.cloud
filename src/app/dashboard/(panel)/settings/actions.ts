@@ -4,9 +4,41 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/admin/guard";
 import { updateSettings } from "@/server/admin/settings";
 import { setOfficeMode } from "@/server/office/config";
+import {
+  probeDocumentServer,
+  getDocumentServerVersion,
+  officeServerInfo,
+  type OfficeProbe,
+} from "@/server/office/onlyoffice";
 import { toBytes } from "@/lib/bytes";
 import { isOfficeServiceMode } from "@/lib/office";
 import type { SettingsState } from "@/lib/settings-state";
+
+// ── Office server status panel (admin) ───────────────────────────────────────
+export type OfficeHealthSample = OfficeProbe & { checkedAt: number };
+
+// A single live probe, polled once a second by the status panel.
+export async function getOfficeHealthAction(): Promise<OfficeHealthSample> {
+  await requireAdmin();
+  const probe = await probeDocumentServer();
+  return { ...probe, checkedAt: Date.now() };
+}
+
+export type OfficeServerInfo = {
+  name: string;
+  url: string;
+  image: string;
+  container: string;
+  version: string | null;
+};
+
+// The server's identity + live version. Fetched once when the panel opens.
+export async function getOfficeServerInfoAction(): Promise<OfficeServerInfo> {
+  await requireAdmin();
+  const info = officeServerInfo();
+  const version = await getDocumentServerVersion();
+  return { ...info, version };
+}
 
 export async function resetSettingsAction(): Promise<void> {
   await requireAdmin();

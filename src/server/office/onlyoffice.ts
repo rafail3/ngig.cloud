@@ -90,6 +90,81 @@ export async function isDocumentServerUp(): Promise<boolean> {
   return up;
 }
 
+// A single fresh probe for the admin status panel: no cache, and it measures how
+// long the server took to answer. This is what powers the live latency graph, so
+// each poll must actually hit the wire.
+export type OfficeProbe = {
+  up: boolean;
+  /** Round-trip time in ms, or null if it never answered. */
+  latencyMs: number | null;
+  timedOut: boolean;
+};
+
+export async function probeDocumentServer(): Promise<OfficeProbe> {
+  if (!DS_URL) return { up: false, latencyMs: null, timedOut: false };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
+  const started = Date.now();
+  try {
+    const res = await fetch(`${DS_URL.replace(/\/$/, "")}/healthcheck`, {
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    const latencyMs = Date.now() - started;
+    const up = res.ok && (await res.text()).trim() === "true";
+    return { up, latencyMs, timedOut: false };
+  } catch (e) {
+    const timedOut = e instanceof DOMException && e.name === "AbortError";
+    return { up: false, latencyMs: null, timedOut };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// The version the container is ACTUALLY running, asked of the server itself (not
+// the tag we think we deployed). Rarely changes, so it's cached for a minute.
+const VERSION_TTL_MS = 60_000;
+let versionCache: { at: number; version: string | null } | null = null;
+
+export async function getDocumentServerVersion(): Promise<string | null> {
+  if (!isOfficeEditingConfigured()) return null;
+  const now = Date.now();
+  if (versionCache && now - versionCache.at < VERSION_TTL_MS) return versionCache.version;
+
+  let version: string | null = null;
+  try {
+    const token = await sign({ c: "version" }, "1m");
+    const res = await fetch(`${DS_URL.replace(/\/$/, "")}/coauthoring/CommandService.ashx`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ c: "version", token }),
+    });
+    const body = (await res.json()) as { error?: number; version?: string };
+    if (body.error === 0 && typeof body.version === "string") version = body.version;
+  } catch {
+    version = null;
+  }
+
+  versionCache = { at: now, version };
+  return version;
+}
+
+// Static-ish facts about the deployed server, for the status panel. The image
+// and container name reflect what we run; the host isn't queryable for them.
+export function officeServerInfo(): {
+  name: string;
+  url: string;
+  image: string;
+  container: string;
+} {
+  return {
+    name: process.env.OFFICE_SERVER_NAME || "OnlyOffice Document Server",
+    url: DS_URL,
+    image: "onlyoffice/documentserver",
+    container: process.env.OFFICE_CONTAINER_NAME || "onlyoffice",
+  };
+}
+
 async function sign(payload: Record<string, unknown>, expires: string): Promise<string> {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })

@@ -5,6 +5,7 @@ import { getOfficeStatus } from "@/server/office/config";
 import { listNotificationTypes, ADDABLE_ACTIONS } from "@/server/notifications/catalog";
 import { SettingsForm } from "@/components/dashboard/SettingsForm";
 import { OfficeModeSettings } from "@/components/dashboard/OfficeModeSettings";
+import { OfficeServerStatus } from "@/components/dashboard/OfficeServerStatus";
 import { NotificationSettings } from "@/components/dashboard/NotificationTypesList";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
@@ -46,6 +47,18 @@ export default function SettingsPage() {
         <Suspense fallback={<ListSkeleton rows={3} />}>
           <SettingsContent />
         </Suspense>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <header>
+          <h2 className="text-lg font-semibold text-zinc-100">Documente Office</h2>
+          <p className="mt-1 text-sm text-zinc-400">
+            Serverul de documente și cum tratează platforma previzualizarea și editarea.
+          </p>
+        </header>
+
+        {/* Self-fetching, live — no server data to await. */}
+        <OfficeServerStatus />
 
         <Suspense fallback={<ListSkeleton rows={3} />}>
           <OfficeContent />

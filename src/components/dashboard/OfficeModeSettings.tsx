@@ -1,37 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
-import { FileText, CircleDot, CircleSlash } from "lucide-react";
+import { FileText } from "lucide-react";
 import { saveOfficeModeAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
 import { OFFICE_SERVICE_MODES, type OfficeStatus } from "@/lib/office";
 import type { SettingsState } from "@/lib/settings-state";
 
 const initial: SettingsState = {};
-
-// A live read on the Document Server, so the admin sees WHY "Automat" is doing
-// what it's doing right now.
-function StatusLine({ status }: { status: OfficeStatus }) {
-  if (!status.configured) {
-    return (
-      <p className="flex items-center gap-1.5 text-xs text-amber-400/90">
-        <CircleSlash className="h-3.5 w-3.5" />
-        Niciun server de documente configurat — se folosește doar previzualizarea simplă.
-      </p>
-    );
-  }
-  return status.up ? (
-    <p className="flex items-center gap-1.5 text-xs text-emerald-400">
-      <CircleDot className="h-3.5 w-3.5" />
-      Serverul de documente e pornit acum.
-    </p>
-  ) : (
-    <p className="flex items-center gap-1.5 text-xs text-zinc-400">
-      <CircleDot className="h-3.5 w-3.5" />
-      Serverul de documente e oprit acum.
-    </p>
-  );
-}
 
 export function OfficeModeSettings({ status }: { status: OfficeStatus }) {
   const [state, formAction, pending] = useActionState(saveOfficeModeAction, initial);
@@ -75,8 +51,6 @@ export function OfficeModeSettings({ status }: { status: OfficeStatus }) {
             </label>
           ))}
         </div>
-
-        <StatusLine status={status} />
 
         <div>
           <button
