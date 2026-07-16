@@ -31,7 +31,7 @@ export function SettingsTabs({
       <div
         role="tablist"
         aria-label="Secțiuni setări"
-        className="flex gap-1 overflow-x-auto rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-1"
+        className="flex w-full gap-1 rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-1 sm:w-fit"
       >
         {TABS.map((t) => {
           const on = active === t.id;
@@ -43,14 +43,14 @@ export function SettingsTabs({
               role="tab"
               aria-selected={on}
               onClick={() => setActive(t.id)}
-              className={`flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-medium transition sm:flex-none sm:px-3.5 ${
                 on
                   ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"
                   : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
               }`}
             >
-              <Icon className="h-4 w-4" />
-              {t.label}
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{t.label}</span>
             </button>
           );
         })}

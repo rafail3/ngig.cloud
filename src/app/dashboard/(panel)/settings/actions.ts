@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/admin/guard";
 import { updateSettings } from "@/server/admin/settings";
-import { setOfficeMode } from "@/server/office/config";
+import { setOfficeMode, recordOfficeState } from "@/server/office/config";
 import {
   probeDocumentServer,
   getDocumentServerVersion,
@@ -15,13 +15,20 @@ import { isOfficeServiceMode } from "@/lib/office";
 import type { SettingsState } from "@/lib/settings-state";
 
 // ── Office server status panel (admin) ───────────────────────────────────────
-export type OfficeHealthSample = OfficeProbe & { checkedAt: number };
+export type OfficeHealthSample = OfficeProbe & {
+  checkedAt: number;
+  // Current run: "up"/"down" and the ms epoch it started, for the live
+  // "operational for…" / "down for…" readout.
+  state: "up" | "down";
+  since: number;
+};
 
 // A single live probe, polled once a second by the status panel.
 export async function getOfficeHealthAction(): Promise<OfficeHealthSample> {
   await requireAdmin();
   const probe = await probeDocumentServer();
-  return { ...probe, checkedAt: Date.now() };
+  const stamp = await recordOfficeState(probe.up);
+  return { ...probe, checkedAt: Date.now(), state: stamp.state, since: stamp.since };
 }
 
 export type OfficeServerInfo = {

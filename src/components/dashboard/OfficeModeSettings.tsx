@@ -34,40 +34,42 @@ export function OfficeModeSettings({ status }: { status: OfficeStatus }) {
       </p>
 
       <form action={formAction} className="flex flex-col gap-4">
-        <div className="grid gap-2.5 sm:grid-cols-3">
+        <div className="flex flex-col gap-2.5">
           {OFFICE_SERVICE_MODES.map((m) => {
             const Icon = MODE_ICON[m.value];
             return (
               <label
                 key={m.value}
-                className="group relative flex cursor-pointer flex-col gap-2 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4 transition hover:border-zinc-700 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-500/[0.07] has-[:checked]:shadow-[0_0_0_1px_rgb(99_102_241_/_0.5)]"
+                className="group relative flex cursor-pointer items-center gap-3.5 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 pr-10 transition hover:border-zinc-700 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-500/[0.07] has-[:checked]:shadow-[0_0_0_1px_rgb(99_102_241_/_0.5)] sm:p-3.5 sm:pr-11"
               >
                 <input
                   type="radio"
                   name="officeMode"
                   value={m.value}
                   defaultChecked={status.mode === m.value}
-                  className="peer sr-only"
+                  className="sr-only"
                 />
 
-                {/* Selected check — a pseudo-element on this sibling span, which
-                    peer-checked can reach (a descendant could not). */}
-                <span className="pointer-events-none absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 opacity-0 transition peer-checked:opacity-100">
+                {/* State styling uses group-has-[:checked] (not peer-checked) so
+                    it reaches nested elements like the tag, not only siblings. */}
+                <span className="pointer-events-none absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-indigo-500 opacity-0 transition group-has-[:checked]:opacity-100">
                   <Check className="h-3 w-3 text-white" strokeWidth={3} />
                 </span>
 
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 transition peer-checked:border-indigo-500/40 peer-checked:bg-indigo-500/15 peer-checked:text-indigo-300">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 transition group-has-[:checked]:border-indigo-500/40 group-has-[:checked]:bg-indigo-500/15 group-has-[:checked]:text-indigo-300">
                   <Icon className="h-[18px] w-[18px]" />
                 </span>
 
-                <span className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-zinc-100">{m.label}</span>
-                </span>
-                <span className="inline-flex w-fit rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400 transition peer-checked:border-indigo-500/30 peer-checked:bg-indigo-500/10 peer-checked:text-indigo-300">
-                  {m.tagline}
-                </span>
-                <span className="mt-0.5 text-xs leading-relaxed text-zinc-400">
-                  {m.description}
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-zinc-100">{m.label}</span>
+                    <span className="inline-flex rounded-full border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400 transition group-has-[:checked]:border-indigo-500/30 group-has-[:checked]:bg-indigo-500/10 group-has-[:checked]:text-indigo-300">
+                      {m.tagline}
+                    </span>
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-zinc-400">
+                    {m.description}
+                  </span>
                 </span>
               </label>
             );
@@ -78,7 +80,7 @@ export function OfficeModeSettings({ status }: { status: OfficeStatus }) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-xl bg-indigo-500 hover:bg-indigo-400 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:opacity-60"
+            className="w-full rounded-xl bg-indigo-500 hover:bg-indigo-400 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:opacity-60 sm:w-auto"
           >
             {pending ? "Se salvează…" : "Salvează mod"}
           </button>

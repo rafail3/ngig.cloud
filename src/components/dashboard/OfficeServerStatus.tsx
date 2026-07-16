@@ -35,6 +35,18 @@ const STATE_META: Record<State, { label: string; dot: string; text: string }> = 
   unknown: { label: "Se verifică…", dot: "bg-zinc-500", text: "text-zinc-400" },
 };
 
+// "3h 12m", "5m 40s", "45s" — for how long the server has held its current state.
+function formatDuration(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ${s % 60}s`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${m % 60}m`;
+  const d = Math.floor(h / 24);
+  return `${d}z ${h % 24}h`;
+}
+
 function Metric({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
     <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-3 py-2.5">
@@ -144,13 +156,33 @@ function LatencyGraph({ samples }: { samples: OfficeHealthSample[] }) {
   );
 }
 
-function MetaRow({ label, value }: { label: string; value: string }) {
+function MetaRow({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  // "badge" = highlighted pill (the version); "mono" = code-style tint (image,
+  // container); undefined = plain.
+  accent?: "badge" | "mono";
+}) {
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
       <span className="shrink-0 text-xs text-zinc-500">{label}</span>
-      <span className="min-w-0 truncate text-right text-xs font-medium text-zinc-300">
-        {value}
-      </span>
+      {accent === "badge" ? (
+        <span className="inline-flex min-w-0 items-center truncate rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-xs font-semibold text-emerald-300">
+          {value}
+        </span>
+      ) : accent === "mono" ? (
+        <span className="min-w-0 truncate text-right font-mono text-xs font-medium text-indigo-300/90">
+          {value}
+        </span>
+      ) : (
+        <span className="min-w-0 truncate text-right text-xs font-medium text-zinc-300">
+          {value}
+        </span>
+      )}
     </div>
   );
 }
@@ -203,6 +235,9 @@ export function OfficeServerStatus() {
       ? Math.round((samples.filter((s) => s.up).length / samples.length) * 100)
       : null;
   const agoS = latest ? Math.max(0, Math.round((now - latest.checkedAt) / 1000)) : null;
+  // How long the server has held its current up/down state — measured on the
+  // server (checkedAt vs since), so it survives page reloads.
+  const runMs = latest ? Math.max(0, latest.checkedAt - latest.since) : null;
 
   return (
     <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-6">
@@ -245,6 +280,12 @@ export function OfficeServerStatus() {
             {latest.latencyMs} ms
           </span>
         )}
+        {latest && runMs != null && (
+          <span className="ml-auto text-xs tabular-nums text-zinc-500">
+            {latest.state === "up" ? "activ de " : "jos de "}
+            <span className="font-medium text-zinc-300">{formatDuration(runMs)}</span>
+          </span>
+        )}
       </div>
 
       <LatencyGraph samples={samples} />
@@ -267,9 +308,9 @@ export function OfficeServerStatus() {
       {/* Technical metadata */}
       <div className="mt-4 divide-y divide-zinc-800/60 border-t border-zinc-800/60 pt-1">
         <MetaRow label="Nume" value={info?.name ?? "—"} />
-        <MetaRow label="Imagine" value={info?.image ?? "—"} />
-        <MetaRow label="Versiune" value={info?.version ?? "necunoscută"} />
-        <MetaRow label="Container" value={info?.container ?? "—"} />
+        <MetaRow label="Imagine" value={info?.image ?? "—"} accent="mono" />
+        <MetaRow label="Versiune" value={info?.version ?? "necunoscută"} accent="badge" />
+        <MetaRow label="Container" value={info?.container ?? "—"} accent="mono" />
         <MetaRow label="Adresă" value={info?.url || "neconfigurat"} />
       </div>
 

@@ -61,12 +61,12 @@ function ServersTab() {
         </p>
       </header>
 
-      {/* Self-fetching, live — no server data to await. */}
-      <OfficeServerStatus />
-
       <Suspense fallback={<ListSkeleton rows={3} />}>
         <OfficeContent />
       </Suspense>
+
+      {/* Self-fetching, live — no server data to await. */}
+      <OfficeServerStatus />
     </section>
   );
 }
