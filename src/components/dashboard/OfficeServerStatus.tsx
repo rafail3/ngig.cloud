@@ -238,6 +238,18 @@ export function OfficeServerStatus() {
   // How long the server has held its current up/down state — measured on the
   // server (checkedAt vs since), so it survives page reloads.
   const runMs = latest ? Math.max(0, latest.checkedAt - latest.since) : null;
+  // The opposite state's last run: while down, how long it was up before; while
+  // up, how long it was down before (if ever recorded).
+  const lastOther =
+    latest?.state === "up"
+      ? latest.lastDownMs != null
+        ? { label: "Ultimul downtime", ms: latest.lastDownMs, tone: "text-red-400/80" }
+        : null
+      : latest?.state === "down"
+        ? latest.lastUpMs != null
+          ? { label: "Ultimul uptime", ms: latest.lastUpMs, tone: "text-emerald-400/80" }
+          : null
+        : null;
 
   return (
     <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-6">
@@ -287,6 +299,15 @@ export function OfficeServerStatus() {
           </span>
         )}
       </div>
+
+      {lastOther && (
+        <p className="-mt-2 mb-4 text-xs tabular-nums text-zinc-500">
+          {lastOther.label}:{" "}
+          <span className={`font-medium ${lastOther.tone}`}>
+            {formatDuration(lastOther.ms)}
+          </span>
+        </p>
+      )}
 
       <LatencyGraph samples={samples} />
 

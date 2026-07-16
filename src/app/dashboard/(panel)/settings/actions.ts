@@ -21,6 +21,9 @@ export type OfficeHealthSample = OfficeProbe & {
   // "operational for…" / "down for…" readout.
   state: "up" | "down";
   since: number;
+  // Duration of the last completed up / down run, ms (if any recorded yet).
+  lastUpMs: number | null;
+  lastDownMs: number | null;
 };
 
 // A single live probe, polled once a second by the status panel.
@@ -28,7 +31,14 @@ export async function getOfficeHealthAction(): Promise<OfficeHealthSample> {
   await requireAdmin();
   const probe = await probeDocumentServer();
   const stamp = await recordOfficeState(probe.up);
-  return { ...probe, checkedAt: Date.now(), state: stamp.state, since: stamp.since };
+  return {
+    ...probe,
+    checkedAt: Date.now(),
+    state: stamp.state,
+    since: stamp.since,
+    lastUpMs: stamp.lastUpMs ?? null,
+    lastDownMs: stamp.lastDownMs ?? null,
+  };
 }
 
 export type OfficeServerInfo = {

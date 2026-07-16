@@ -38,7 +38,14 @@ export async function setOfficeMode(mode: OfficeServiceMode): Promise<void> {
 // a change we never saw.
 const HEALTH_STATE_KEY = "office_health_state";
 
-export type OfficeStateStamp = { state: "up" | "down"; since: number };
+export type OfficeStateStamp = {
+  state: "up" | "down";
+  since: number;
+  // Duration of the LAST completed run of each state, ms — so the panel can
+  // show "was up for 3h" while it's down, and vice-versa.
+  lastUpMs?: number;
+  lastDownMs?: number;
+};
 
 export async function recordOfficeState(up: boolean): Promise<OfficeStateStamp> {
   const admin = createAdminClient();
@@ -52,11 +59,30 @@ export async function recordOfficeState(up: boolean): Promise<OfficeStateStamp> 
     .maybeSingle();
   const prev = data?.value as Partial<OfficeStateStamp> | undefined;
 
+  // Same state as before → still running; carry everything forward untouched.
   if (prev?.state === state && typeof prev.since === "number") {
-    return { state, since: prev.since };
+    return {
+      state,
+      since: prev.since,
+      lastUpMs: prev.lastUpMs,
+      lastDownMs: prev.lastDownMs,
+    };
+  }
+
+  // A transition (or the first record). The run that just ended becomes the
+  // "last" duration for whichever state it was.
+  let lastUpMs = prev?.lastUpMs;
+  let lastDownMs = prev?.lastDownMs;
+  if (prev?.state && typeof prev.since === "number") {
+    const ended = now - prev.since;
+    if (prev.state === "up") lastUpMs = ended;
+    else lastDownMs = ended;
   }
 
   const stamp: OfficeStateStamp = { state, since: now };
+  if (lastUpMs != null) stamp.lastUpMs = lastUpMs;
+  if (lastDownMs != null) stamp.lastDownMs = lastDownMs;
+
   await admin
     .from("app_settings")
     .upsert({ key: HEALTH_STATE_KEY, value: stamp, updated_at: new Date().toISOString() });
