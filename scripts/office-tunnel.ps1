@@ -15,11 +15,27 @@
 param(
   [string]$AppUrl        = $env:OFFICE_APP_URL,
   [string]$RegisterSecret = $env:OFFICE_REGISTER_SECRET,
-  [int]   $LocalPort     = 8080
+  [int]   $LocalPort     = 8080,
+  [string]$Cloudflared   = $env:OFFICE_CLOUDFLARED
 )
 
 if (-not $AppUrl)         { $AppUrl = "https://ngig.cloud" }
 if (-not $RegisterSecret) { throw "OFFICE_REGISTER_SECRET is not set." }
+
+# Resolve cloudflared ourselves rather than trusting PATH: Task Scheduler starts
+# us with a leaner environment than a login shell, and a missing PATH entry would
+# only show up as a tunnel that silently never came back.
+if (-not $Cloudflared) {
+  $Cloudflared = (Get-Command cloudflared -ErrorAction SilentlyContinue).Source
+}
+if (-not $Cloudflared) {
+  $Cloudflared = @(
+    "$env:ProgramFiles\cloudflared\cloudflared.exe",
+    "${env:ProgramFiles(x86)}\cloudflared\cloudflared.exe",
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Links\cloudflared.exe"
+  ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+if (-not $Cloudflared) { throw "cloudflared not found. Pass -Cloudflared <path>." }
 
 $logDir = Join-Path $env:LOCALAPPDATA "ngig-office"
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
@@ -45,8 +61,8 @@ for ($i = 0; $i -lt 60; $i++) {
 
 # Start the tunnel, sending its output to a file we can read the URL out of.
 Remove-Item $tunnelLog -ErrorAction SilentlyContinue
-Write-Log "starting cloudflared"
-$proc = Start-Process -FilePath "cloudflared" `
+Write-Log "starting cloudflared ($Cloudflared)"
+$proc = Start-Process -FilePath $Cloudflared `
   -ArgumentList @("tunnel", "--url", "http://localhost:$LocalPort", "--logfile", $tunnelLog) `
   -WindowStyle Hidden -PassThru
 
