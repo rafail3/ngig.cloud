@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.16.0](https://github.com/rafail3/ngig.cloud/compare/v2.15.0...v2.16.0) (2026-07-17)
+
+
+### Features
+
+* **dashboard:** remember the last uptime/downtime across transitions ([7ac6119](https://github.com/rafail3/ngig.cloud/commit/7ac611925755ebcaaae7bf3ee648c1ef63628157))
+* **dashboard:** Servere tab first, richer Office mode picker ([7faa0f6](https://github.com/rafail3/ngig.cloud/commit/7faa0f645e2a9bd4b9d6946dc73af87ae43489ff))
+* **dashboard:** tabbed settings and an EKG-style server monitor ([9a920ee](https://github.com/rafail3/ngig.cloud/commit/9a920eecbd23b8b3aba4f2a0286a7faa6c73ca89))
+* **dashboard:** uptime/downtime, highlighted metadata, slimmer mode rows ([81f6a10](https://github.com/rafail3/ngig.cloud/commit/81f6a10fd32d576a326d8d3f64f257aad16f9317))
+* **office:** admin-chosen mode with graceful fallback when the server is down ([500e928](https://github.com/rafail3/ngig.cloud/commit/500e928b779109b5d8f2ca3ba6aceaea9f0a4d65))
+* **office:** allow overriding the callback origin for local Docker ([8dc9e02](https://github.com/rafail3/ngig.cloud/commit/8dc9e02252ccda63cfda4e55ceb58cffe72dcdd0))
+* **office:** auto/manual address modes and live route details ([105f110](https://github.com/rafail3/ngig.cloud/commit/105f1105d359bad90f18ab64d3a8b9cdc12f9bf5))
+* **office:** edit docx, xlsx and pptx in-app via OnlyOffice ([a7d47f0](https://github.com/rafail3/ngig.cloud/commit/a7d47f0f91cfd6ebd8a0e260f800c71607778c50))
+* **office:** edit docx, xlsx and pptx in-app via OnlyOffice ([56fdfc8](https://github.com/rafail3/ngig.cloud/commit/56fdfc8eb138ec5fcb0329ea11bbd13331f0f817))
+* **office:** live server status panel in the dashboard ([d17714d](https://github.com/rafail3/ngig.cloud/commit/d17714d3d629f40766de0cae5fe4648ab66230b6))
+* **office:** make the Document Server address a runtime setting ([d28a84b](https://github.com/rafail3/ngig.cloud/commit/d28a84b9e9a12b6520a0176d9335d4916c3abab8))
+* **office:** open previews in the app's theme, with a switch ([3856ba2](https://github.com/rafail3/ngig.cloud/commit/3856ba26f81ea9f04b6a6219b50d7bc45ac2c5c0))
+* **office:** preview documents with the Document Server ([05bdded](https://github.com/rafail3/ngig.cloud/commit/05bddedd15c786fe545505efd68891e7c641594d))
+* **office:** slim preview chrome and print from our own toolbar ([5e3c4a3](https://github.com/rafail3/ngig.cloud/commit/5e3c4a3720cf3e107110833dac5fb89efad0f2d7))
+* **office:** warn when the server answers but rejects our signed commands ([c0f7736](https://github.com/rafail3/ngig.cloud/commit/c0f77364f89ae0d341fc182ed42436ca09a748c7))
+
+
+### Bug Fixes
+
+* **dashboard:** lead settings with the General tab ([1d509c3](https://github.com/rafail3/ngig.cloud/commit/1d509c30e18d3ee53f66099a33936b2f9f52b594))
+* **dashboard:** show the address in force, not the one the page loaded with ([bcf1fc8](https://github.com/rafail3/ngig.cloud/commit/bcf1fc8d49b1f2ac4302cdf9e03d547b1af7069f))
+* **dashboard:** thicker EKG line, thin fading pulse head ([d246c8b](https://github.com/rafail3/ngig.cloud/commit/d246c8b799fa16b5360779f4021d7a79529f196a))
+* **office:** ascii-safe headers, stable editor session, save controls and edit entry points ([d2b0c64](https://github.com/rafail3/ngig.cloud/commit/d2b0c64b17a34599422d4cb1429bc19478071963))
+* **office:** drop the embedded viewer so previews can be themed ([fb328af](https://github.com/rafail3/ngig.cloud/commit/fb328afe764e090d8871b2f29fda8027b9bbad16))
+* **office:** honest route label and a warning for http addresses ([efe5a2f](https://github.com/rafail3/ngig.cloud/commit/efe5a2f49c37c04641d352ce1eee0dab975df617))
+* **office:** resolve cloudflared by path, not PATH ([4a703af](https://github.com/rafail3/ngig.cloud/commit/4a703af5cefccf881c4b16451a71986970e9134a))
+* **office:** serve documents through our own route, not a presigned B2 link ([1c22d4e](https://github.com/rafail3/ngig.cloud/commit/1c22d4e697cd8fd3b48edc78b87e7dfbafcc10c3))
+
 ## [2.15.0](https://github.com/rafail3/ngig.cloud/compare/v2.14.0...v2.15.0) (2026-07-15)
 
 
