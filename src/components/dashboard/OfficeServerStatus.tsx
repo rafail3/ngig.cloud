@@ -271,18 +271,19 @@ export function OfficeServerStatus() {
   // What the last answer actually travelled through — read off its own headers,
   // so it reflects the real route rather than what we think is configured.
   const hop = latest?.hop ?? null;
+  // Only a known proxy counts as a "route". Anything else — nginx, say — is just
+  // the Document Server's own web server answering us directly, not a hop.
+  const viaCloudflare = Boolean(hop?.proxy && /cloudflare/i.test(hop.proxy));
   const route = !latest
     ? "—"
-    : !hop?.proxy
-      ? "directă"
-      : /cloudflare/i.test(hop.proxy)
-        ? [
-            hop.quickTunnel ? "Cloudflare Tunnel" : "prin Cloudflare",
-            hop.colo ? `${COLO[hop.colo] ?? hop.colo} (${hop.colo})` : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")
-        : hop.proxy;
+    : viaCloudflare
+      ? [
+          hop!.quickTunnel ? "Cloudflare Tunnel" : "prin Cloudflare",
+          hop!.colo ? `${COLO[hop!.colo] ?? hop!.colo} (${hop!.colo})` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "directă";
 
   const lastOther =
     latest?.state === "up"
@@ -378,7 +379,9 @@ export function OfficeServerStatus() {
         <MetaRow label="Container" value={info?.container ?? "—"} accent="mono" />
         <MetaRow label="Adresă" value={info?.url || "neconfigurat"} />
         <MetaRow label="Conexiune" value={route} />
-        {hop?.ray && <MetaRow label="Cloudflare Ray" value={hop.ray} accent="mono" />}
+        {viaCloudflare && hop?.ray && (
+          <MetaRow label="Cloudflare Ray" value={hop.ray} accent="mono" />
+        )}
       </div>
 
       <p className="mt-3 flex items-center gap-1.5 text-[11px] text-zinc-600">

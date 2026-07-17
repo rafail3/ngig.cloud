@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Link2, Wand2, Pencil } from "lucide-react";
+import { Link2, Wand2, Pencil, TriangleAlert } from "lucide-react";
 import { saveOfficeServerUrlAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
 import type { OfficeUrlMode } from "@/lib/office";
@@ -35,7 +35,14 @@ export function OfficeServerUrl({ url, mode }: { url: string; mode: OfficeUrlMod
   useToastState(state);
   // Local so the form re-shapes as you pick, before saving.
   const [picked, setPicked] = useState<OfficeUrlMode>(mode);
+  const [typed, setTyped] = useState(url);
   const auto = picked === "auto";
+
+  // A plain-http address is the one setting the status panel can't warn you
+  // about: our server may reach it fine and report "operational", while every
+  // browser refuses to load it into an https page (mixed content). Only
+  // localhost is exempt — that's the local dev setup.
+  const insecure = /^http:\/\//i.test(typed) && !/^http:\/\/(localhost|127\.0\.0\.1)/i.test(typed);
 
   return (
     <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-6">
@@ -84,7 +91,8 @@ export function OfficeServerUrl({ url, mode }: { url: string; mode: OfficeUrlMod
           <input
             type="url"
             name="serverUrl"
-            defaultValue={url}
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
             readOnly={auto}
             placeholder="https://ceva.trycloudflare.com"
             spellCheck={false}
@@ -103,6 +111,17 @@ export function OfficeServerUrl({ url, mode }: { url: string; mode: OfficeUrlMod
             {pending ? "Se salvează…" : "Salvează"}
           </button>
         </div>
+
+        {insecure && (
+          <p className="flex items-start gap-1.5 text-xs text-amber-400/90">
+            <TriangleAlert className="mt-px h-3.5 w-3.5 shrink-0" />
+            <span>
+              Adresă <span className="font-mono">http://</span> — merge doar în dev local.
+              Pe producție browserul o blochează (conținut mixt) chiar dacă serverul pare
+              pornit. Folosește <span className="font-mono">https://</span>.
+            </span>
+          </p>
+        )}
 
         {auto && (
           <p className="text-xs text-zinc-500">
