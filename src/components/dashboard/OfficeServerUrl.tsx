@@ -1,13 +1,18 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Link2, Wand2, Pencil, TriangleAlert } from "lucide-react";
-import { saveOfficeServerUrlAction } from "@/app/dashboard/(panel)/settings/actions";
+import {
+  getOfficeServerInfoAction,
+  saveOfficeServerUrlAction,
+} from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
 import type { OfficeUrlMode } from "@/lib/office";
 import type { SettingsState } from "@/lib/settings-state";
 
 const initial: SettingsState = {};
+// How often to re-read the address while the server owns it.
+const LIVE_MS = 10_000;
 
 const MODES: {
   value: OfficeUrlMode;
@@ -38,11 +43,31 @@ export function OfficeServerUrl({ url, mode }: { url: string; mode: OfficeUrlMod
   const [typed, setTyped] = useState(url);
   const auto = picked === "auto";
 
+  // In auto mode the address is written by the SERVER (it announces itself on
+  // boot), so it can change while this page is open — showing the value this
+  // page was rendered with would be a lie. Poll for the real one.
+  const [live, setLive] = useState(url);
+  useEffect(() => {
+    if (!auto) return;
+    const load = () =>
+      void getOfficeServerInfoAction()
+        .then((i) => setLive(i.url))
+        .catch(() => {});
+    load();
+    const id = setInterval(load, LIVE_MS);
+    return () => clearInterval(id);
+  }, [auto]);
+
+  // What the field shows: the live address when the server owns it, what you're
+  // typing when you do.
+  const shown = auto ? live : typed;
+
   // A plain-http address is the one setting the status panel can't warn you
   // about: our server may reach it fine and report "operational", while every
   // browser refuses to load it into an https page (mixed content). Only
   // localhost is exempt — that's the local dev setup.
-  const insecure = /^http:\/\//i.test(typed) && !/^http:\/\/(localhost|127\.0\.0\.1)/i.test(typed);
+  const insecure =
+    /^http:\/\//i.test(shown) && !/^http:\/\/(localhost|127\.0\.0\.1)/i.test(shown);
 
   return (
     <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-6">
@@ -68,7 +93,12 @@ export function OfficeServerUrl({ url, mode }: { url: string; mode: OfficeUrlMod
                   name="urlMode"
                   value={m.value}
                   checked={picked === m.value}
-                  onChange={() => setPicked(m.value)}
+                  onChange={() => {
+                    // Switching to manual starts from the address in force right
+                    // now, not whatever this page loaded with.
+                    if (m.value === "manual") setTyped(live);
+                    setPicked(m.value);
+                  }}
                   className="sr-only"
                 />
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 transition group-has-[:checked]:border-indigo-500/40 group-has-[:checked]:bg-indigo-500/15 group-has-[:checked]:text-indigo-300">
@@ -91,7 +121,7 @@ export function OfficeServerUrl({ url, mode }: { url: string; mode: OfficeUrlMod
           <input
             type="url"
             name="serverUrl"
-            value={typed}
+            value={shown}
             onChange={(e) => setTyped(e.target.value)}
             readOnly={auto}
             placeholder="https://ceva.trycloudflare.com"
@@ -125,8 +155,9 @@ export function OfficeServerUrl({ url, mode }: { url: string; mode: OfficeUrlMod
 
         {auto && (
           <p className="text-xs text-zinc-500">
-            Adresa de mai sus e ultima anunțată de server. Treci pe Manual ca s-o poți
-            edita.
+            {shown
+              ? "Adresa curentă, anunțată de server. Treci pe Manual ca s-o poți edita."
+              : "Serverul nu și-a anunțat încă adresa. Treci pe Manual ca s-o pui tu."}
           </p>
         )}
       </form>
