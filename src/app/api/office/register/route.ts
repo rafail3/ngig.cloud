@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
-import { setOfficeServerUrl } from "@/server/office/onlyoffice";
+import { getOfficeUrlMode, setOfficeServerUrl } from "@/server/office/onlyoffice";
 
 // Where the Document Server announces its own address.
 //
@@ -37,6 +37,13 @@ export async function POST(request: Request) {
     // HTTPS only: the app is HTTPS, and a browser refuses to load the editor's
     // script over plain HTTP anyway.
     return NextResponse.json({ error: "url must be https" }, { status: 400 });
+  }
+
+  // An admin can pin the address by hand; a host announcing itself must not be
+  // able to steal it back. Answer 200 so the caller knows it was heard, not
+  // broken — it simply isn't in charge right now.
+  if ((await getOfficeUrlMode()) === "manual") {
+    return NextResponse.json({ ok: false, ignored: "manual mode" });
   }
 
   await setOfficeServerUrl(url);

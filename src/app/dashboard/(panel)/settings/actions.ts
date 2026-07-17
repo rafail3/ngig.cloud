@@ -9,10 +9,11 @@ import {
   getDocumentServerVersion,
   officeServerInfo,
   setOfficeServerUrl,
+  setOfficeUrlMode,
   type OfficeProbe,
 } from "@/server/office/onlyoffice";
 import { toBytes } from "@/lib/bytes";
-import { isOfficeServiceMode } from "@/lib/office";
+import { isOfficeServiceMode, isOfficeUrlMode } from "@/lib/office";
 import type { SettingsState } from "@/lib/settings-state";
 
 // ── Office server status panel (admin) ───────────────────────────────────────
@@ -71,9 +72,8 @@ export async function resetSettingsAction(): Promise<void> {
   revalidatePath("/dashboard");
 }
 
-// The Document Server's address, set by hand. The host normally announces itself
-// via /api/office/register; this is the manual override (and how you point the
-// cloud at a different server entirely).
+// Where the Document Server's address comes from: whatever the host announces on
+// boot (auto), or exactly what an admin typed (manual).
 export async function saveOfficeServerUrlAction(
   _prev: SettingsState,
   formData: FormData,
@@ -84,15 +84,29 @@ export async function saveOfficeServerUrlAction(
     return { error: "Acces interzis." };
   }
 
+  const urlMode = formData.get("urlMode");
+  if (!isOfficeUrlMode(urlMode)) return { error: "Mod invalid." };
+
   const url = String(formData.get("serverUrl") ?? "").trim();
   if (url && !/^https?:\/\/[^\s/]+/i.test(url)) {
     return { error: "Adresă invalidă (ex: https://ceva.trycloudflare.com)." };
   }
+  if (urlMode === "manual" && !url) {
+    return { error: "În modul manual trebuie să pui o adresă." };
+  }
 
   try {
-    await setOfficeServerUrl(url);
+    await setOfficeUrlMode(urlMode);
+    // In auto mode the host owns the address, so leave whatever it last
+    // announced alone unless an admin actually typed something different.
+    if (urlMode === "manual" || url) await setOfficeServerUrl(url);
     revalidatePath("/dashboard/settings");
-    return { ok: url ? "Adresă salvată." : "Adresă ștearsă." };
+    return {
+      ok:
+        urlMode === "auto"
+          ? "Adresa se ia automat de la server."
+          : "Adresă fixată manual.",
+    };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la salvare." };
   }

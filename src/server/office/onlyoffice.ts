@@ -10,10 +10,12 @@ import { appOrigin } from "@/lib/dashboard";
 import { extensionOf } from "@/lib/file-type";
 import {
   isOfficeEditable,
+  isOfficeUrlMode,
   officeDocType,
   officeFileType,
   type OfficeMode,
   type OfficeTheme,
+  type OfficeUrlMode,
 } from "@/lib/office";
 
 // Integration with a self-hosted OnlyOffice Document Server, which serves both
@@ -76,6 +78,26 @@ export async function setOfficeServerUrl(url: string): Promise<void> {
   urlCache = null; // next read picks it up immediately
 }
 
+// Whether the address is taken from whatever the host announces, or pinned to
+// what an admin typed. In manual mode /api/office/register is refused, so a
+// fixed address can't be moved out from under you.
+const URL_MODE_KEY = "office_url_mode";
+
+export async function getOfficeUrlMode(): Promise<OfficeUrlMode> {
+  const { data } = await createAdminClient()
+    .from("app_settings")
+    .select("value")
+    .eq("key", URL_MODE_KEY)
+    .maybeSingle();
+  return isOfficeUrlMode(data?.value) ? data.value : "auto";
+}
+
+export async function setOfficeUrlMode(mode: OfficeUrlMode): Promise<void> {
+  await createAdminClient()
+    .from("app_settings")
+    .upsert({ key: URL_MODE_KEY, value: mode, updated_at: new Date().toISOString() });
+}
+
 export async function isOfficeEditingConfigured(): Promise<boolean> {
   return Boolean((await getOfficeServerUrl()) && SECRET);
 }
@@ -133,16 +155,41 @@ export async function isDocumentServerUp(): Promise<boolean> {
 // A single fresh probe for the admin status panel: no cache, and it measures how
 // long the server took to answer. This is what powers the live latency graph, so
 // each poll must actually hit the wire.
+/** What the answer travelled through, read off the response itself. */
+export type OfficeHop = {
+  /** The proxy that served it, from the `Server` header (e.g. "cloudflare"). */
+  proxy: string | null;
+  /** Cloudflare edge datacentre code, from the CF-Ray suffix (e.g. "FRA"). */
+  colo: string | null;
+  /** The CF-Ray id — the request's fingerprint in Cloudflare's logs. */
+  ray: string | null;
+  /** True when the address itself is a Cloudflare quick tunnel. */
+  quickTunnel: boolean;
+};
+
 export type OfficeProbe = {
   up: boolean;
   /** Round-trip time in ms, or null if it never answered. */
   latencyMs: number | null;
   timedOut: boolean;
+  hop: OfficeHop | null;
 };
+
+function readHop(res: Response, base: string): OfficeHop {
+  // CF-Ray looks like "a1c77bde2a8d9073-FRA": id, then the edge that served it.
+  const ray = res.headers.get("cf-ray");
+  const dash = ray?.lastIndexOf("-") ?? -1;
+  return {
+    proxy: res.headers.get("server"),
+    colo: ray && dash > 0 ? ray.slice(dash + 1) : null,
+    ray: ray && dash > 0 ? ray.slice(0, dash) : ray,
+    quickTunnel: /\.trycloudflare\.com$/i.test(new URL(base).hostname),
+  };
+}
 
 export async function probeDocumentServer(): Promise<OfficeProbe> {
   const base = await getOfficeServerUrl();
-  if (!base) return { up: false, latencyMs: null, timedOut: false };
+  if (!base) return { up: false, latencyMs: null, timedOut: false, hop: null };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
   const started = Date.now();
@@ -152,11 +199,12 @@ export async function probeDocumentServer(): Promise<OfficeProbe> {
       cache: "no-store",
     });
     const latencyMs = Date.now() - started;
+    const hop = readHop(res, base);
     const up = res.ok && (await res.text()).trim() === "true";
-    return { up, latencyMs, timedOut: false };
+    return { up, latencyMs, timedOut: false, hop };
   } catch (e) {
     const timedOut = e instanceof DOMException && e.name === "AbortError";
-    return { up: false, latencyMs: null, timedOut };
+    return { up: false, latencyMs: null, timedOut, hop: null };
   } finally {
     clearTimeout(timer);
   }

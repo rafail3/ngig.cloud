@@ -16,6 +16,8 @@ import {
 } from "@/app/dashboard/(panel)/settings/actions";
 
 const POLL_MS = 1000;
+// The identity (address, version) changes rarely — no need to ask every second.
+const INFO_MS = 15_000;
 const WINDOW = 60; // samples kept for the graph (~60s of history)
 const BASELINE_MS = 120; // graph never shows a scale smaller than this
 
@@ -33,6 +35,27 @@ const STATE_META: Record<State, { label: string; dot: string; text: string }> = 
   timeout: { label: "Timeout", dot: "bg-amber-500", text: "text-amber-400" },
   down: { label: "Oprit", dot: "bg-red-500", text: "text-red-400" },
   unknown: { label: "Se verifică…", dot: "bg-zinc-500", text: "text-zinc-400" },
+};
+
+// Cloudflare names its datacentres by IATA airport code. Only the ones we're
+// plausibly routed through are spelled out; anything else shows its raw code.
+const COLO: Record<string, string> = {
+  FRA: "Frankfurt",
+  AMS: "Amsterdam",
+  CDG: "Paris",
+  LHR: "Londra",
+  WAW: "Varșovia",
+  OTP: "București",
+  BUD: "Budapesta",
+  VIE: "Viena",
+  PRG: "Praga",
+  MXP: "Milano",
+  MAD: "Madrid",
+  ARN: "Stockholm",
+  DUS: "Düsseldorf",
+  MUC: "München",
+  SOF: "Sofia",
+  IST: "Istanbul",
 };
 
 // "3h 12m", "5m 40s", "45s" — for how long the server has held its current state.
@@ -194,9 +217,14 @@ export function OfficeServerStatus() {
   // Ticks once a second so "checked Xs ago" counts up even between polls.
   const [now, setNow] = useState(0);
 
-  // The server's identity, fetched once.
+  // The server's identity. Re-read now and then rather than once: the address is
+  // a live setting, so it can change under us (a new tunnel, a different host)
+  // and a stale row here would be a lie.
   useEffect(() => {
-    void getOfficeServerInfoAction().then(setInfo).catch(() => {});
+    const load = () => void getOfficeServerInfoAction().then(setInfo).catch(() => {});
+    load();
+    const id = setInterval(load, INFO_MS);
+    return () => clearInterval(id);
   }, []);
 
   // Live polling. Recreated when paused toggles, so a resume samples at once.
@@ -240,6 +268,22 @@ export function OfficeServerStatus() {
   const runMs = latest ? Math.max(0, latest.checkedAt - latest.since) : null;
   // The opposite state's last run: while down, how long it was up before; while
   // up, how long it was down before (if ever recorded).
+  // What the last answer actually travelled through — read off its own headers,
+  // so it reflects the real route rather than what we think is configured.
+  const hop = latest?.hop ?? null;
+  const route = !latest
+    ? "—"
+    : !hop?.proxy
+      ? "directă"
+      : /cloudflare/i.test(hop.proxy)
+        ? [
+            hop.quickTunnel ? "Cloudflare Tunnel" : "prin Cloudflare",
+            hop.colo ? `${COLO[hop.colo] ?? hop.colo} (${hop.colo})` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : hop.proxy;
+
   const lastOther =
     latest?.state === "up"
       ? latest.lastDownMs != null
@@ -333,6 +377,8 @@ export function OfficeServerStatus() {
         <MetaRow label="Versiune" value={info?.version ?? "necunoscută"} accent="badge" />
         <MetaRow label="Container" value={info?.container ?? "—"} accent="mono" />
         <MetaRow label="Adresă" value={info?.url || "neconfigurat"} />
+        <MetaRow label="Conexiune" value={route} />
+        {hop?.ray && <MetaRow label="Cloudflare Ray" value={hop.ray} accent="mono" />}
       </div>
 
       <p className="mt-3 flex items-center gap-1.5 text-[11px] text-zinc-600">

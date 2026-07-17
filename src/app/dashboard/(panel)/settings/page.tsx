@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { getSettings } from "@/server/admin/settings";
 import { getOfficeStatus } from "@/server/office/config";
+import { getOfficeUrlMode } from "@/server/office/onlyoffice";
 import { listNotificationTypes, ADDABLE_ACTIONS } from "@/server/notifications/catalog";
 import { SettingsForm } from "@/components/dashboard/SettingsForm";
 import { OfficeModeSettings } from "@/components/dashboard/OfficeModeSettings";
@@ -25,10 +26,10 @@ async function SettingsContent() {
 
 async function OfficeContent() {
   await connection();
-  const status = await getOfficeStatus();
+  const [status, urlMode] = await Promise.all([getOfficeStatus(), getOfficeUrlMode()]);
   return (
     <>
-      <OfficeServerUrl url={status.dsUrl} />
+      <OfficeServerUrl url={status.dsUrl} mode={urlMode} />
       <OfficeModeSettings status={status} />
     </>
   );

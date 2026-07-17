@@ -99,6 +99,19 @@ export function isOfficeServiceMode(v: unknown): v is OfficeServiceMode {
 }
 
 /**
+ * Where the Document Server's address comes from.
+ *  - `auto`   — the host announces it on boot (/api/office/register). Right when
+ *               it sits behind a tunnel that renames itself on every restart.
+ *  - `manual` — only what an admin typed. Auto-registration is refused, so a
+ *               fixed address can't be overwritten by a stray host.
+ */
+export type OfficeUrlMode = "auto" | "manual";
+
+export function isOfficeUrlMode(v: unknown): v is OfficeUrlMode {
+  return v === "auto" || v === "manual";
+}
+
+/**
  * A snapshot of the Office capability, resolved on the server and handed to the
  * client so every surface (preview, edit buttons) decides identically.
  *  - `mode`       — the admin's choice.
