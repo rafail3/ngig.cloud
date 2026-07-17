@@ -3,11 +3,11 @@
 import { useState, type ReactNode } from "react";
 import { SlidersHorizontal, Server, Bell } from "lucide-react";
 
-type TabId = "servers" | "general" | "notifications";
+type TabId = "general" | "servers" | "notifications";
 
 const TABS: { id: TabId; label: string; icon: typeof Server }[] = [
-  { id: "servers", label: "Servere", icon: Server },
   { id: "general", label: "General", icon: SlidersHorizontal },
+  { id: "servers", label: "Servere", icon: Server },
   { id: "notifications", label: "Notificări", icon: Bell },
 ];
 
@@ -23,8 +23,8 @@ export function SettingsTabs({
   servers: ReactNode;
   notifications: ReactNode;
 }) {
-  const [active, setActive] = useState<TabId>("servers");
-  const panels: Record<TabId, ReactNode> = { servers, general, notifications };
+  const [active, setActive] = useState<TabId>("general");
+  const panels: Record<TabId, ReactNode> = { general, servers, notifications };
 
   return (
     <div className="flex flex-col gap-6">
