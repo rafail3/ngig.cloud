@@ -7,6 +7,7 @@ import {
   Play,
   Server,
   RefreshCw,
+  TriangleAlert,
 } from "lucide-react";
 import {
   getOfficeHealthAction,
@@ -285,6 +286,12 @@ export function OfficeServerStatus() {
           .join(" · ")
       : "directă";
 
+  // The server answers /healthcheck without any token, so "up" alone can't tell
+  // us it's OUR server. The version comes back through a SIGNED command — if the
+  // liveness check passes but that doesn't, the shared secret doesn't match and
+  // every edit would be rejected, however green the panel looks.
+  const authFailed = Boolean(latest?.up && info && info.version === null);
+
   const lastOther =
     latest?.state === "up"
       ? latest.lastDownMs != null
@@ -352,6 +359,17 @@ export function OfficeServerStatus() {
             {formatDuration(lastOther.ms)}
           </span>
         </p>
+      )}
+
+      {authFailed && (
+        <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+          <p className="text-xs leading-relaxed text-amber-200/90">
+            <span className="font-semibold">Serverul răspunde, dar ne refuză comenzile.</span>{" "}
+            Aproape sigur secretul JWT nu e același la ambele capete — sau adresa duce la
+            alt OnlyOffice, nu al nostru. Previzualizarea și editarea nu vor funcționa.
+          </p>
+        </div>
       )}
 
       <LatencyGraph samples={samples} />
