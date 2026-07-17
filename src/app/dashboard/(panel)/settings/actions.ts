@@ -3,8 +3,63 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/admin/guard";
 import { updateSettings } from "@/server/admin/settings";
+import { setOfficeMode, recordOfficeState } from "@/server/office/config";
+import {
+  probeDocumentServer,
+  getDocumentServerVersion,
+  officeServerInfo,
+  setOfficeServerUrl,
+  setOfficeUrlMode,
+  type OfficeProbe,
+} from "@/server/office/onlyoffice";
 import { toBytes } from "@/lib/bytes";
+import { isOfficeServiceMode, isOfficeUrlMode } from "@/lib/office";
 import type { SettingsState } from "@/lib/settings-state";
+
+// ── Office server status panel (admin) ───────────────────────────────────────
+export type OfficeHealthSample = OfficeProbe & {
+  checkedAt: number;
+  // Current run: "up"/"down" and the ms epoch it started, for the live
+  // "operational for…" / "down for…" readout.
+  state: "up" | "down";
+  since: number;
+  // Duration of the last completed up / down run, ms (if any recorded yet).
+  lastUpMs: number | null;
+  lastDownMs: number | null;
+};
+
+// A single live probe, polled once a second by the status panel.
+export async function getOfficeHealthAction(): Promise<OfficeHealthSample> {
+  await requireAdmin();
+  const probe = await probeDocumentServer();
+  const stamp = await recordOfficeState(probe.up);
+  return {
+    ...probe,
+    checkedAt: Date.now(),
+    state: stamp.state,
+    since: stamp.since,
+    lastUpMs: stamp.lastUpMs ?? null,
+    lastDownMs: stamp.lastDownMs ?? null,
+  };
+}
+
+export type OfficeServerInfo = {
+  name: string;
+  url: string;
+  image: string;
+  container: string;
+  version: string | null;
+};
+
+// The server's identity + live version. Fetched once when the panel opens.
+export async function getOfficeServerInfoAction(): Promise<OfficeServerInfo> {
+  await requireAdmin();
+  const [info, version] = await Promise.all([
+    officeServerInfo(),
+    getDocumentServerVersion(),
+  ]);
+  return { ...info, version };
+}
 
 export async function resetSettingsAction(): Promise<void> {
   await requireAdmin();
@@ -15,6 +70,68 @@ export async function resetSettingsAction(): Promise<void> {
   });
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
+}
+
+// Where the Document Server's address comes from: whatever the host announces on
+// boot (auto), or exactly what an admin typed (manual).
+export async function saveOfficeServerUrlAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "Acces interzis." };
+  }
+
+  const urlMode = formData.get("urlMode");
+  if (!isOfficeUrlMode(urlMode)) return { error: "Mod invalid." };
+
+  const url = String(formData.get("serverUrl") ?? "").trim();
+  if (url && !/^https?:\/\/[^\s/]+/i.test(url)) {
+    return { error: "Adresă invalidă (ex: https://ceva.trycloudflare.com)." };
+  }
+  if (urlMode === "manual" && !url) {
+    return { error: "În modul manual trebuie să pui o adresă." };
+  }
+
+  try {
+    await setOfficeUrlMode(urlMode);
+    // In auto mode the host owns the address, so leave whatever it last
+    // announced alone unless an admin actually typed something different.
+    if (urlMode === "manual" || url) await setOfficeServerUrl(url);
+    revalidatePath("/dashboard/settings");
+    return {
+      ok:
+        urlMode === "auto"
+          ? "Adresa se ia automat de la server."
+          : "Adresă fixată manual.",
+    };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvare." };
+  }
+}
+
+export async function saveOfficeModeAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "Acces interzis." };
+  }
+
+  const mode = formData.get("officeMode");
+  if (!isOfficeServiceMode(mode)) return { error: "Mod invalid." };
+
+  try {
+    await setOfficeMode(mode);
+    revalidatePath("/dashboard/settings");
+    return { ok: "Mod salvat." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvare." };
+  }
 }
 
 export async function saveSettingsAction(

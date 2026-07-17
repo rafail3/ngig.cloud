@@ -3,6 +3,15 @@
 import * as files from "@/server/files/service";
 import type { UploadPlan } from "@/server/files/service";
 import { getSuggestedFiles } from "@/server/insights/engine";
+import {
+  buildEditorConfig,
+  forceSave,
+  type EditorConfig,
+  type OfficeMode,
+  type OfficeTheme,
+} from "@/server/office/onlyoffice";
+import { getOfficeMode, getOfficeStatus } from "@/server/office/config";
+import type { OfficeStatus } from "@/lib/office";
 import { SESSION_REVOKED } from "@/server/auth/active-user";
 
 // Thin server-action wrappers over the files service (the actual logic lives
@@ -238,6 +247,47 @@ export async function saveTextFileAction(
     return await files.saveTextFile(id, content);
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
+    return { error: e instanceof Error ? e.message : "Nu am putut salva." };
+  }
+}
+
+// Everything the browser needs to boot the Document Server for a file: its
+// address and a signed config. `mode` decides whether this is a read-only
+// preview or a real editing session. Returns an error string when the server
+// isn't configured, so the UI can fall back instead of hanging.
+export async function getOfficeEditorConfigAction(
+  id: string,
+  mode: OfficeMode = "edit",
+  theme: OfficeTheme = "dark",
+): Promise<EditorConfig | { error: string } | Revoked> {
+  try {
+    // The admin can turn the Document Server off platform-wide; honour that here
+    // too, so a stale client can't open an editor the admin disabled.
+    if ((await getOfficeMode()) === "legacy") {
+      return { error: "Editarea documentelor este dezactivată." };
+    }
+    return await buildEditorConfig(id, mode, theme);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    return { error: e instanceof Error ? e.message : "Nu am putut deschide documentul." };
+  }
+}
+
+// The resolved Office capability for the current viewer: which mode the admin
+// picked, and whether the Document Server is answering right now. Drives the
+// preview + edit affordances across the drive.
+export async function getOfficeStatusAction(): Promise<OfficeStatus> {
+  return getOfficeStatus();
+}
+
+// Flush the open editing session to storage on demand (Save button / closing).
+export async function forceSaveOfficeAction(
+  key: string,
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await forceSave(key);
+    return { ok: true };
+  } catch (e) {
     return { error: e instanceof Error ? e.message : "Nu am putut salva." };
   }
 }

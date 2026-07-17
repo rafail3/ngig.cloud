@@ -53,6 +53,7 @@ export function DriveBoard() {
       size: f.size,
       mimeType: f.mime_type,
       createdAt: f.created_at,
+      updatedAt: f.updated_at,
     })),
   ];
 

@@ -15,6 +15,7 @@ import { UploadProvider } from "@/components/drive/UploadProvider";
 import { UploadPanel } from "@/components/drive/UploadPanel";
 import { ContextMenuProvider } from "@/components/drive/ContextMenu";
 import { prefetchDrive, useDriveRealtime, useFolder } from "@/components/drive/useDriveData";
+import { OfficeStatusProvider } from "@/components/drive/OfficeStatusProvider";
 import { useClickOutside } from "@/lib/useClickOutside";
 import { Avatar } from "./Avatar";
 
@@ -88,7 +89,9 @@ export function AppShell({
   const pathname = usePathname();
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin");
 
-  // Warm the drive data caches in the background once per session.
+  // Warm the drive data caches in the background once per session. (The Office
+  // editor's api.js is warmed by OfficeStatusProvider, which is what learns the
+  // Document Server's address.)
   useEffect(() => {
     prefetchDrive();
   }, []);
@@ -99,6 +102,7 @@ export function AppShell({
   return (
     <MotionConfig reducedMotion="user">
     <ContextMenuProvider>
+    <OfficeStatusProvider>
     <UploadProvider>
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
       {/* ===== Top navbar ===== */}
@@ -276,6 +280,7 @@ export function AppShell({
       <UploadPanel />
     </div>
     </UploadProvider>
+    </OfficeStatusProvider>
     </ContextMenuProvider>
     </MotionConfig>
   );

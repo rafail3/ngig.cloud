@@ -28,8 +28,11 @@ import {
 import { formatBytes } from "@/lib/format";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { fileTypeShort, fileTypeLabel, isTextEditable } from "@/lib/file-type";
+import { isOfficeEditable, officeCanEdit, officeEditUnavailable } from "@/lib/office";
 import { useUploads, type UploadJob } from "./UploadProvider";
+import { useOfficeStatus } from "./OfficeStatusProvider";
 import { FileTypeIcon } from "./FileTypeIcon";
+import { OfficeEditor } from "./OfficeEditor";
 import { PreviewModal } from "./PreviewModal";
 import { InfoModal } from "./InfoModal";
 import { FolderPickerModal } from "./FolderPickerModal";
@@ -104,6 +107,7 @@ function isModified(f: { createdAt: string; updatedAt: string }): boolean {
 
 export function FileList({ folderId }: { folderId: string | null }) {
   const { jobs } = useUploads();
+  const officeStatus = useOfficeStatus();
   // `files` is filtered for display; `rawFiles` is the full set, used only to
   // tell when an upload's real row has arrived (so its ghost can disappear).
   const { files, rawFiles } = useFilter();
@@ -114,6 +118,8 @@ export function FileList({ folderId }: { folderId: string | null }) {
   const [info, setInfo] = useState<FileItem | null>(null);
   const [toRename, setToRename] = useState<FileItem | null>(null);
   const [toMove, setToMove] = useState<FileItem | null>(null);
+  // Office documents open in the OnlyOffice editor instead of the text one.
+  const [officeFile, setOfficeFile] = useState<FileItem | null>(null);
 
   // Rows shown above the stored files: in-flight uploads INTO THIS FOLDER, plus
   // just-finished ones whose real row hasn't arrived yet (bridges the brief gap
@@ -197,6 +203,18 @@ export function FileList({ folderId }: { folderId: string | null }) {
               pending={pendingId === f.id}
               onPreview={() => setPreview(f)}
               onEdit={() => {
+                if (isOfficeEditable(f.name)) {
+                  // Offered but the server is down (onlyoffice-only mode): say so
+                  // instead of opening an editor that can't load.
+                  if (officeEditUnavailable(officeStatus, f.name)) {
+                    toast.error(
+                      "Serviciul de editare e temporar indisponibil. Revine în scurt timp.",
+                    );
+                    return;
+                  }
+                  setOfficeFile(f);
+                  return;
+                }
                 setEditIntent(true);
                 setPreview(f);
               }}
@@ -210,6 +228,14 @@ export function FileList({ folderId }: { folderId: string | null }) {
             />
           ))}
       </ul>
+
+      {officeFile && (
+        <OfficeEditor
+          fileId={officeFile.id}
+          name={officeFile.name}
+          onClose={() => setOfficeFile(null)}
+        />
+      )}
 
       <AnimatePresence>
         {preview && (
@@ -309,6 +335,7 @@ function FileRow({
 }) {
   const openMenu = useContextMenu();
   const selection = useSelection();
+  const officeStatus = useOfficeStatus();
   const mounted = useMounted();
   const isTouch = useIsTouch();
   const { setNodeRef, attributes, listeners } = useDraggable({
@@ -340,7 +367,8 @@ function FileRow({
 
   const actions: MenuAction[] = [
     { icon: Download, label: "Descarcă", onSelect: onDownload },
-    ...(isTextEditable(file.name, file.mimeType)
+    ...(isTextEditable(file.name, file.mimeType) ||
+    officeCanEdit(officeStatus, file.name)
       ? [{ icon: SquarePen, label: "Editează", onSelect: onEdit }]
       : []),
     { icon: Pencil, label: "Redenumește", onSelect: onRename },

@@ -3,7 +3,8 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { revalidateDrive } from "@/components/drive/useDriveData";
-import { Archive, Copy, Download, FolderInput, Info, Pencil, Trash2, X } from "lucide-react";
+import { Archive, Copy, Download, FolderInput, Info, Pencil, SquarePen, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   getDownloadUrlAction,
   moveFileAction,
@@ -18,11 +19,15 @@ import {
 } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
-import { fileTypeLabel } from "@/lib/file-type";
+import { fileTypeLabel, isTextEditable } from "@/lib/file-type";
+import { isOfficeEditable, officeCanEdit, officeEditUnavailable } from "@/lib/office";
 import { useSelection, type SelItem } from "./SelectionProvider";
+import { useOfficeStatus } from "./OfficeStatusProvider";
 import { FolderPickerModal } from "./FolderPickerModal";
 import { RenameModal } from "./RenameModal";
 import { InfoModal } from "./InfoModal";
+import { OfficeEditor } from "./OfficeEditor";
+import { PreviewModal, type PreviewFile } from "./PreviewModal";
 import { ModalShell } from "./anim";
 
 function triggerDownload(url: string) {
@@ -55,9 +60,42 @@ export function SelectionBar() {
   const [infoItem, setInfoItem] = useState<SelItem | null>(null);
   const [folderStats, setFolderStats] = useState<{ size: number; count: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  // Editing opened straight from the bar: Office docs go to the OnlyOffice
+  // editor, plain text to the in-app one (via the preview's edit mode).
+  const [officeFile, setOfficeFile] = useState<SelItem | null>(null);
+  const [textFile, setTextFile] = useState<PreviewFile | null>(null);
 
+  const officeStatus = useOfficeStatus();
   const items = [...selected.values()];
   const single = count === 1 ? items[0] : null;
+  const editableSingle =
+    single?.kind === "file" &&
+    (officeCanEdit(officeStatus, single.name) ||
+      isTextEditable(single.name, single.mimeType));
+
+  function editSingle() {
+    if (single?.kind !== "file") return;
+    if (isOfficeEditable(single.name)) {
+      // Offered but the server is down (onlyoffice-only mode): say so cleanly.
+      if (officeEditUnavailable(officeStatus, single.name)) {
+        toast.error(
+          "Serviciul de editare e temporar indisponibil. Revine în scurt timp.",
+        );
+        return;
+      }
+      setOfficeFile(single);
+      return;
+    }
+    const now = new Date().toISOString();
+    setTextFile({
+      id: single.id,
+      name: single.name,
+      size: single.size ?? 0,
+      mimeType: single.mimeType ?? null,
+      createdAt: single.createdAt ?? now,
+      updatedAt: single.updatedAt ?? single.createdAt ?? now,
+    });
+  }
   const folderCount = items.filter((i) => i.kind === "folder").length;
 
   // Fetch folder stats when opening Info for a single folder. (folderStats is
@@ -169,7 +207,11 @@ export function SelectionBar() {
         ...(single.kind === "file"
           ? [
               { icon: Copy, label: "Copiază", onClick: copySingle },
-              { icon: Archive, label: "Arhivează", onClick: archiveSelection },
+              // Editing earns the slot when the file supports it; archiving is
+              // the rarer action and stays one click away in the kebab menu.
+              editableSingle
+                ? { icon: SquarePen, label: "Editează", onClick: editSingle }
+                : { icon: Archive, label: "Arhivează", onClick: archiveSelection },
             ]
           : []),
         {
@@ -208,6 +250,27 @@ export function SelectionBar() {
 
   return (
     <>
+      {officeFile && (
+        <OfficeEditor
+          fileId={officeFile.id}
+          name={officeFile.name}
+          onClose={() => setOfficeFile(null)}
+        />
+      )}
+
+      <AnimatePresence>
+        {textFile && (
+          <PreviewModal
+            key="edit"
+            file={textFile}
+            startEditing
+            onClose={() => setTextFile(null)}
+            onDownload={downloadSelection}
+            onSaved={() => revalidateDrive()}
+          />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence initial={false}>
         {count > 0 && (
           <motion.div

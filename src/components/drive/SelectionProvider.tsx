@@ -11,8 +11,9 @@ import {
   type ReactNode,
 } from "react";
 
-// File metadata (size/mimeType/createdAt) is carried for files so the selection
-// bar can show "Info" / download without re-fetching; folders omit it.
+// File metadata (size/mimeType/dates) is carried for files so the selection bar
+// can show "Info", download or open the editor without re-fetching; folders
+// omit it.
 export type SelItem = {
   kind: "file" | "folder";
   id: string;
@@ -20,6 +21,7 @@ export type SelItem = {
   size?: number;
   mimeType?: string | null;
   createdAt?: string;
+  updatedAt?: string;
 };
 
 export const selKey = (i: { kind: string; id: string }) => `${i.kind}:${i.id}`;

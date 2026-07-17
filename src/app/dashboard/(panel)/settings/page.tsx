@@ -1,8 +1,14 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getSettings } from "@/server/admin/settings";
+import { getOfficeStatus } from "@/server/office/config";
+import { getOfficeUrlMode } from "@/server/office/onlyoffice";
 import { listNotificationTypes, ADDABLE_ACTIONS } from "@/server/notifications/catalog";
 import { SettingsForm } from "@/components/dashboard/SettingsForm";
+import { OfficeModeSettings } from "@/components/dashboard/OfficeModeSettings";
+import { OfficeServerUrl } from "@/components/dashboard/OfficeServerUrl";
+import { OfficeServerStatus } from "@/components/dashboard/OfficeServerStatus";
+import { SettingsTabs } from "@/components/dashboard/SettingsTabs";
 import { NotificationSettings } from "@/components/dashboard/NotificationTypesList";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
@@ -18,41 +24,92 @@ async function SettingsContent() {
   return <SettingsForm settings={settings} />;
 }
 
+async function OfficeContent() {
+  await connection();
+  const [status, urlMode] = await Promise.all([getOfficeStatus(), getOfficeUrlMode()]);
+  return (
+    <>
+      <OfficeServerUrl url={status.dsUrl} mode={urlMode} />
+      <OfficeModeSettings status={status} />
+    </>
+  );
+}
+
 async function NotificationsContent() {
   await connection();
   const types = await listNotificationTypes();
   return <NotificationSettings types={types} addable={ADDABLE_ACTIONS} />;
 }
 
+function GeneralTab() {
+  return (
+    <section className="flex flex-col gap-4">
+      <header>
+        <h2 className="text-lg font-semibold text-zinc-100">Limite storage</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          Setări generale ale platformei. Limitele per-user le suprascriu pe cele globale.
+        </p>
+      </header>
+      <Suspense fallback={<ListSkeleton rows={3} />}>
+        <SettingsContent />
+      </Suspense>
+    </section>
+  );
+}
+
+function ServersTab() {
+  return (
+    <section className="flex flex-col gap-4">
+      <header>
+        <h2 className="text-lg font-semibold text-zinc-100">OnlyOffice Docker Server</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          Containerul Docker care generează previzualizările fidele și editarea documentelor
+          Word, Excel și PowerPoint — starea lui în timp real și cum îl folosește platforma.
+        </p>
+      </header>
+
+      <Suspense fallback={<ListSkeleton rows={3} />}>
+        <OfficeContent />
+      </Suspense>
+
+      {/* Self-fetching, live — no server data to await. */}
+      <OfficeServerStatus />
+    </section>
+  );
+}
+
+function NotificationsTab() {
+  return (
+    <section className="flex flex-col gap-4">
+      <header>
+        <h2 className="text-lg font-semibold text-zinc-100">Setări notificări</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          Activează sau dezactivează tipurile de notificări trimise pentru fiecare acțiune din
+          platformă. Tipurile noi apar aici automat pe măsură ce sunt adăugate.
+        </p>
+      </header>
+      <Suspense fallback={<ListSkeleton rows={4} />}>
+        <NotificationsContent />
+      </Suspense>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-6 sm:px-6 sm:py-8">
-      <section className="flex flex-col gap-6">
-        <header>
-          <h1 className="text-xl font-semibold text-zinc-50 sm:text-2xl">Setări</h1>
-          <p className="mt-1 text-sm text-zinc-400">
-            Setări generale ale platformei. Limitele per-user le suprascriu pe cele globale.
-          </p>
-        </header>
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+      <header>
+        <h1 className="text-xl font-semibold text-zinc-50 sm:text-2xl">Setări</h1>
+        <p className="mt-1 text-sm text-zinc-400">
+          Configurarea platformei, pe secțiuni.
+        </p>
+      </header>
 
-        <Suspense fallback={<ListSkeleton rows={3} />}>
-          <SettingsContent />
-        </Suspense>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <header>
-          <h2 className="text-lg font-semibold text-zinc-100">Setări notificări</h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            Activează sau dezactivează tipurile de notificări trimise pentru fiecare acțiune din
-            platformă. Tipurile noi apar aici automat pe măsură ce sunt adăugate.
-          </p>
-        </header>
-
-        <Suspense fallback={<ListSkeleton rows={4} />}>
-          <NotificationsContent />
-        </Suspense>
-      </section>
+      <SettingsTabs
+        general={<GeneralTab />}
+        servers={<ServersTab />}
+        notifications={<NotificationsTab />}
+      />
     </div>
   );
 }

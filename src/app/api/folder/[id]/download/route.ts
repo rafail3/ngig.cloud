@@ -1,5 +1,6 @@
 import { Readable } from "node:stream";
 import { ZipArchive } from "archiver";
+import { contentDisposition } from "@/lib/http";
 import * as files from "@/server/files/service";
 import { getObjectStream } from "@/server/storage/b2";
 
@@ -35,11 +36,11 @@ export async function GET(
   })();
 
   const body = Readable.toWeb(archive) as unknown as ReadableStream;
-  const filename = manifest.name.replace(/["\\]/g, "").slice(0, 100) || "folder";
+  const filename = manifest.name.replace(/[\\/]/g, "").slice(0, 100) || "folder";
   return new Response(body, {
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="${filename}.zip"`,
+      "Content-Disposition": contentDisposition(`${filename}.zip`, "attachment"),
     },
   });
 }

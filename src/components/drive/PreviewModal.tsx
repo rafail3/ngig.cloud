@@ -2,13 +2,37 @@
 
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { X, Download, Loader2, FileQuestion, Info, Pencil, Save } from "lucide-react";
+import { toast } from "sonner";
+import {
+  X,
+  Download,
+  Loader2,
+  FileQuestion,
+  Info,
+  Moon,
+  Pencil,
+  Printer,
+  Save,
+  Sun,
+} from "lucide-react";
 import {
   getViewUrlAction,
   getTextPreviewAction,
   getTextContentAction,
   saveTextFileAction,
 } from "@/app/drive-actions";
+import {
+  isOfficeViewable,
+  officeCanEdit,
+  officeEditUnavailable,
+  officePreviewKind,
+  type OfficeTheme,
+} from "@/lib/office";
+import { useTheme } from "@/components/theme/ThemeProvider";
+import { useOfficeStatus } from "./OfficeStatusProvider";
+import { OfficeEditor } from "./OfficeEditor";
+import { OfficePreview } from "./OfficePreview";
+import { printPdf } from "./print-blob";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
 import { fileTypeLabel } from "@/lib/file-type";
@@ -17,8 +41,6 @@ import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { PdfViewer } from "./PdfViewer";
 import { CodeViewer } from "./CodeViewer";
-import { DocxViewer } from "./DocxViewer";
-import { XlsxViewer } from "./XlsxViewer";
 import { panelSpring } from "./anim";
 
 // CodeMirror is heavy — only load it when the user actually edits.
@@ -36,26 +58,22 @@ export type PreviewFile = {
 const TEXT_EXT =
   /\.(txt|md|markdown|json|jsonc|js|jsx|ts|tsx|css|scss|html|xml|yml|yaml|csv|log|ini|env|sh|py|rb|go|rs|java|c|h|cpp|sql|toml)$/i;
 
-const DOCX_MIME =
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-const XLSX_MIME =
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-
 function kind(mime: string | null, name: string) {
   const m = mime ?? "";
   if (m.startsWith("image/")) return "image";
   if (m.startsWith("video/")) return "video";
   if (m.startsWith("audio/")) return "audio";
   if (m === "application/pdf") return "pdf";
-  if (m === DOCX_MIME || /\.docx$/i.test(name)) return "docx";
-  if (m === XLSX_MIME || m === "application/vnd.ms-excel" || /\.xlsx?$/i.test(name))
-    return "xlsx";
+  // Word, Excel and PowerPoint documents, by extension: the browser's MIME
+  // guess for these is unreliable, and the extension is what the Document
+  // Server keys off anyway.
+  if (isOfficeViewable(name)) return "office";
   if (m.startsWith("text/") || TEXT_EXT.test(name)) return "text";
   return "other";
 }
 
 // Document-style previews get a large, full-height modal.
-const BIG_WINDOW = new Set(["pdf", "docx", "xlsx"]);
+const BIG_WINDOW = new Set(["pdf", "office"]);
 
 export function PreviewModal({
   file,
@@ -85,7 +103,59 @@ export function PreviewModal({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // The Document Server paints its own chrome — a spreadsheet's column headers,
+  // row numbers and sheet bar — in its own theme, so it opens in whatever theme
+  // the app is wearing. From there it's the reader's call: a dark document on a
+  // dark page is not everyone's idea of readable.
+  const { resolved } = useTheme();
+  const [themeOverride, setThemeOverride] = useState<OfficeTheme | null>(null);
+  const officeTheme: OfficeTheme = themeOverride ?? resolved;
+
+  // How the platform is set to handle Office documents right now (admin mode +
+  // whether the Document Server is answering). Everything below reads from this.
+  const officeStatus = useOfficeStatus();
+  const officePreview = k === "office" ? officePreviewKind(officeStatus) : "legacy";
+
+  // The preview renders on the Document Server's own origin, so we can't reach
+  // into it to print. It converts the document to a PDF instead, which the
+  // browser can always print — and which also covers the legacy formats no
+  // browser-side renderer can even open. Only possible when the server is up.
+  const canPrintOffice = k === "office" && officePreview === "onlyoffice";
+  const [printing, setPrinting] = useState(false);
+
+  async function printOffice() {
+    setPrinting(true);
+    try {
+      const res = await fetch(`/api/office/print?id=${encodeURIComponent(file.id)}`);
+      if (!res.ok) {
+        toast.error((await res.text()) || "Nu am putut printa documentul.");
+        return;
+      }
+      printPdf(await res.blob());
+    } catch {
+      toast.error("Nu am putut printa documentul.");
+    } finally {
+      setPrinting(false);
+    }
+  }
+
   const canEdit = k === "text";
+  // Office documents don't edit in this modal — they hand off to the OnlyOffice
+  // editor, which replaces the preview entirely. Whether it's offered at all is
+  // the admin's mode plus the server's health.
+  const canEditOffice = officeCanEdit(officeStatus, file.name);
+  const editOfficeUnavailable = officeEditUnavailable(officeStatus, file.name);
+  const [officeOpen, setOfficeOpen] = useState(false);
+
+  function openOfficeEditor() {
+    // In "onlyoffice-only" mode with the server down, the button is still shown
+    // (editing is a feature of this cloud) but can't run — say so, don't error.
+    if (editOfficeUnavailable) {
+      toast.error("Serviciul de editare e temporar indisponibil. Revine în scurt timp.");
+      return;
+    }
+    setOfficeOpen(true);
+  }
   // When opened straight into edit mode (the "Editează" menu action), kick off
   // editing once the modal mounts.
   const autoEditRef = useRef(false);
@@ -206,6 +276,22 @@ export function PreviewModal({
     return () => clearTimeout(t);
   }, []);
 
+  // The Office editor takes over the whole screen; the preview underneath would
+  // only fight it for focus and scroll.
+  if (officeOpen) {
+    return (
+      <OfficeEditor
+        fileId={file.id}
+        name={file.name}
+        onClose={() => {
+          setOfficeOpen(false);
+          onSaved?.();
+          onClose();
+        }}
+      />
+    );
+  }
+
   return (
     <motion.div
       className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
@@ -279,15 +365,47 @@ export function PreviewModal({
                 >
                   <Download className="h-3.5 w-3.5" /> Descarcă
                 </button>
-                {canEdit && (
+                {canPrintOffice && (
                   <button
                     type="button"
-                    onClick={startEdit}
-                    aria-label="Editează"
-                    title="Editează"
+                    onClick={() =>
+                      setThemeOverride(officeTheme === "dark" ? "light" : "dark")
+                    }
+                    aria-label={
+                      officeTheme === "dark" ? "Fundal deschis" : "Fundal întunecat"
+                    }
+                    title={officeTheme === "dark" ? "Fundal deschis" : "Fundal întunecat"}
                     className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800"
                   >
-                    <Pencil className="h-4 w-4" />
+                    {officeTheme === "dark" ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
+                {canPrintOffice && (
+                  <button
+                    type="button"
+                    onClick={printOffice}
+                    disabled={printing}
+                    className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-60"
+                  >
+                    {printing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Printer className="h-3.5 w-3.5" />
+                    )}
+                    {printing ? "Se pregătește…" : "Printează"}
+                  </button>
+                )}
+                {(canEdit || canEditOffice) && (
+                  <button
+                    type="button"
+                    onClick={canEditOffice ? openOfficeEditor : startEdit}
+                    className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Editează
                   </button>
                 )}
                 <button
@@ -363,7 +481,7 @@ export function PreviewModal({
           ) : (
             <>
               {error && <p className="py-10 text-sm text-red-400">{error}</p>}
-              {!error && !url && k !== "video" && (
+              {!error && !url && k !== "video" && k !== "office" && (
                 <div className={big ? "flex w-full items-center justify-center" : ""}>
                   <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
                 </div>
@@ -384,8 +502,19 @@ export function PreviewModal({
               {url && k === "pdf" && (
                 <PdfViewer url={url} fileName={file.name} onDownload={onDownload} />
               )}
-              {url && k === "docx" && <DocxViewer url={url} onDownload={onDownload} />}
-              {url && k === "xlsx" && <XlsxViewer url={url} onDownload={onDownload} />}
+              {/* Deliberately not waiting on `url`: the Document Server fetches
+                  the document itself, so making it wait for a presigned link it
+                  won't use would only delay the open. Only the fallback needs it. */}
+              {k === "office" && (
+                <OfficePreview
+                  fileId={file.id}
+                  name={file.name}
+                  url={url}
+                  theme={officeTheme}
+                  kind={officePreview}
+                  onDownload={onDownload}
+                />
+              )}
               {url && k === "text" &&
                 (text === null ? (
                   <Loader2 className="my-10 h-6 w-6 animate-spin text-indigo-400" />
