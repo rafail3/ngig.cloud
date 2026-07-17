@@ -2,13 +2,30 @@ import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
 
-// The self-hosted OnlyOffice Document Server, when configured. Its editor is an
-// iframe that pulls its own scripts, styles, fonts and sockets from that origin,
-// so every directive below has to know about it — otherwise the editor silently
-// fails to load, and only in production (the CSP is prod-only).
-const officeOrigin = process.env.NEXT_PUBLIC_ONLYOFFICE_URL?.replace(/\/$/, "") ?? "";
-const office = officeOrigin ? ` ${officeOrigin}` : "";
-const officeWs = officeOrigin ? ` ${officeOrigin.replace(/^http/, "ws")}` : "";
+// The self-hosted OnlyOffice Document Server. Its editor is an iframe that pulls
+// its own scripts, styles, fonts and sockets from that origin, so every directive
+// below has to know about it — otherwise the editor silently fails to load, and
+// only in production (the CSP is prod-only).
+//
+// Its exact address is a RUNTIME setting (the server can sit behind a tunnel
+// whose URL changes on every reboot), but a CSP is baked at build time — so we
+// allow the host patterns it may appear under rather than one fixed URL:
+//   *.trycloudflare.com  — the free Cloudflare tunnel used while the Document
+//                          Server lives on a machine without a public IP;
+//   office.ngig.cloud    — the permanent home once it moves to a real host.
+// OFFICE_CSP_ORIGINS (space-separated) can add more without a code change.
+const officeOrigins = [
+  "https://*.trycloudflare.com",
+  "https://office.ngig.cloud",
+  process.env.NEXT_PUBLIC_ONLYOFFICE_URL?.replace(/\/$/, ""),
+  ...(process.env.OFFICE_CSP_ORIGINS?.split(/\s+/) ?? []),
+].filter((o): o is string => Boolean(o));
+
+const office = officeOrigins.length ? ` ${officeOrigins.join(" ")}` : "";
+// The editor holds a WebSocket open for co-editing, on the same hosts.
+const officeWs = officeOrigins.length
+  ? ` ${officeOrigins.map((o) => o.replace(/^http/, "ws")).join(" ")}`
+  : "";
 
 // Lock outbound connections to the only hosts we talk to. Tightening script-src
 // to a nonce (dropping 'unsafe-inline') is a future hardening step.

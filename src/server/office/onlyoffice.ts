@@ -34,8 +34,51 @@ import {
 // honoured if it carries a valid token, and the callback is only honoured if it
 // does too — otherwise anyone who learned the URL could hand us a file.
 
-const DS_URL = process.env.NEXT_PUBLIC_ONLYOFFICE_URL ?? "";
 const SECRET = process.env.ONLYOFFICE_JWT_SECRET ?? "";
+
+// ── Where the Document Server lives ─────────────────────────────────────────
+// A runtime setting, not a build-time env var. The server may sit behind a
+// tunnel whose URL changes every time the host reboots, and baking it into the
+// build would mean a redeploy each time. Stored in app_settings, editable from
+// the dashboard (and writable by the host itself — see /api/office/register).
+//
+// Falls back to the env var when no row is set, so local dev keeps working from
+// .env.local with nothing in the database.
+const URL_KEY = "office_server_url";
+const URL_TTL_MS = 5_000;
+let urlCache: { at: number; url: string } | null = null;
+
+export async function getOfficeServerUrl(): Promise<string> {
+  const now = Date.now();
+  if (urlCache && now - urlCache.at < URL_TTL_MS) return urlCache.url;
+
+  let url = "";
+  try {
+    const { data } = await createAdminClient()
+      .from("app_settings")
+      .select("value")
+      .eq("key", URL_KEY)
+      .maybeSingle();
+    if (typeof data?.value === "string") url = data.value;
+  } catch {
+    // Fall through to the env var rather than taking the editor down.
+  }
+  url = (url || process.env.NEXT_PUBLIC_ONLYOFFICE_URL || "").trim().replace(/\/$/, "");
+  urlCache = { at: now, url };
+  return url;
+}
+
+export async function setOfficeServerUrl(url: string): Promise<void> {
+  const clean = url.trim().replace(/\/$/, "");
+  await createAdminClient()
+    .from("app_settings")
+    .upsert({ key: URL_KEY, value: clean, updated_at: new Date().toISOString() });
+  urlCache = null; // next read picks it up immediately
+}
+
+export async function isOfficeEditingConfigured(): Promise<boolean> {
+  return Boolean((await getOfficeServerUrl()) && SECRET);
+}
 
 // Where the Document Server should POST the finished file. Defaults to our own
 // origin, which is right in production — but the Document Server has to REACH
@@ -53,10 +96,6 @@ function secretKey(): Uint8Array {
   return new TextEncoder().encode(SECRET);
 }
 
-export function isOfficeEditingConfigured(): boolean {
-  return Boolean(DS_URL && SECRET);
-}
-
 // ── Health ───────────────────────────────────────────────────────────────────
 // The Document Server may run on a machine that isn't always on. This asks it
 // whether it's alive, cached briefly so a room full of users polling the drive
@@ -67,7 +106,8 @@ const HEALTH_TIMEOUT_MS = 3_000;
 let healthCache: { at: number; up: boolean } | null = null;
 
 export async function isDocumentServerUp(): Promise<boolean> {
-  if (!DS_URL) return false;
+  const base = await getOfficeServerUrl();
+  if (!base) return false;
   const now = Date.now();
   if (healthCache && now - healthCache.at < HEALTH_TTL_MS) return healthCache.up;
 
@@ -76,7 +116,7 @@ export async function isDocumentServerUp(): Promise<boolean> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
     // The Document Server's own liveness endpoint; it answers the string "true".
-    const res = await fetch(`${DS_URL.replace(/\/$/, "")}/healthcheck`, {
+    const res = await fetch(`${base}/healthcheck`, {
       signal: controller.signal,
       cache: "no-store",
     });
@@ -101,12 +141,13 @@ export type OfficeProbe = {
 };
 
 export async function probeDocumentServer(): Promise<OfficeProbe> {
-  if (!DS_URL) return { up: false, latencyMs: null, timedOut: false };
+  const base = await getOfficeServerUrl();
+  if (!base) return { up: false, latencyMs: null, timedOut: false };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
   const started = Date.now();
   try {
-    const res = await fetch(`${DS_URL.replace(/\/$/, "")}/healthcheck`, {
+    const res = await fetch(`${base}/healthcheck`, {
       signal: controller.signal,
       cache: "no-store",
     });
@@ -127,14 +168,14 @@ const VERSION_TTL_MS = 60_000;
 let versionCache: { at: number; version: string | null } | null = null;
 
 export async function getDocumentServerVersion(): Promise<string | null> {
-  if (!isOfficeEditingConfigured()) return null;
+  if (!(await isOfficeEditingConfigured())) return null;
   const now = Date.now();
   if (versionCache && now - versionCache.at < VERSION_TTL_MS) return versionCache.version;
 
   let version: string | null = null;
   try {
     const token = await sign({ c: "version" }, "1m");
-    const res = await fetch(`${DS_URL.replace(/\/$/, "")}/coauthoring/CommandService.ashx`, {
+    const res = await fetch(`${await getOfficeServerUrl()}/coauthoring/CommandService.ashx`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ c: "version", token }),
@@ -151,15 +192,15 @@ export async function getDocumentServerVersion(): Promise<string | null> {
 
 // Static-ish facts about the deployed server, for the status panel. The image
 // and container name reflect what we run; the host isn't queryable for them.
-export function officeServerInfo(): {
+export async function officeServerInfo(): Promise<{
   name: string;
   url: string;
   image: string;
   container: string;
-} {
+}> {
   return {
     name: process.env.OFFICE_SERVER_NAME || "OnlyOffice Document Server",
-    url: DS_URL,
+    url: await getOfficeServerUrl(),
     image: "onlyoffice/documentserver",
     container: process.env.OFFICE_CONTAINER_NAME || "onlyoffice",
   };
@@ -188,7 +229,8 @@ export async function buildEditorConfig(
   mode: OfficeMode = "edit",
   theme: OfficeTheme = "dark",
 ): Promise<EditorConfig> {
-  if (!isOfficeEditingConfigured()) {
+  const base = await getOfficeServerUrl();
+  if (!base || !SECRET) {
     throw new Error("Serverul de documente nu e configurat.");
   }
   const { id: userId } = await requireActiveUser();
@@ -275,7 +317,7 @@ export async function buildEditorConfig(
 
   // The Document Server rejects a config whose token doesn't match its contents.
   const token = await sign(config, "12h");
-  return { dsUrl: DS_URL, key, config: { ...config, token } };
+  return { dsUrl: base, key, config: { ...config, token } };
 }
 
 // Tell the Document Server to flush the current session to us NOW. It answers
@@ -283,11 +325,11 @@ export async function buildEditorConfig(
 // what actually stores it. Used by the editor's Save button and before closing,
 // so a user never has to trust autosave's timing.
 export async function forceSave(key: string): Promise<void> {
-  if (!isOfficeEditingConfigured()) throw new Error("Editorul Office nu e configurat.");
+  if (!(await isOfficeEditingConfigured())) throw new Error("Editorul Office nu e configurat.");
 
   const payload = { c: "forcesave", key };
   const token = await sign(payload, "5m");
-  const res = await fetch(`${DS_URL.replace(/\/$/, "")}/coauthoring/CommandService.ashx`, {
+  const res = await fetch(`${await getOfficeServerUrl()}/coauthoring/CommandService.ashx`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...payload, token }),
@@ -311,7 +353,8 @@ const CONVERT_TIMEOUT_MS = 25_000;
 const CONVERT_POLL_MS = 700;
 
 export async function convertToPdf(fileId: string): Promise<{ bytes: Buffer; name: string }> {
-  if (!isOfficeEditingConfigured()) throw new Error("Serverul de documente nu e configurat.");
+  const base = await getOfficeServerUrl();
+  if (!base || !SECRET) throw new Error("Serverul de documente nu e configurat.");
   const { id: ownerId } = await requireActiveUser();
 
   // RLS-scoped: converting is reading, and a user can only read their own file.
@@ -336,7 +379,7 @@ export async function convertToPdf(fileId: string): Promise<{ bytes: Buffer; nam
 
   const deadline = Date.now() + CONVERT_TIMEOUT_MS;
   for (;;) {
-    const res = await fetch(`${DS_URL.replace(/\/$/, "")}/ConvertService.ashx`, {
+    const res = await fetch(`${base}/ConvertService.ashx`, {
       method: "POST",
       // Without this the Document Server answers in XML.
       headers: { "Content-Type": "application/json", Accept: "application/json" },

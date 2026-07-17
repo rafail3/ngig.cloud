@@ -5,6 +5,7 @@ import { getOfficeStatus } from "@/server/office/config";
 import { listNotificationTypes, ADDABLE_ACTIONS } from "@/server/notifications/catalog";
 import { SettingsForm } from "@/components/dashboard/SettingsForm";
 import { OfficeModeSettings } from "@/components/dashboard/OfficeModeSettings";
+import { OfficeServerUrl } from "@/components/dashboard/OfficeServerUrl";
 import { OfficeServerStatus } from "@/components/dashboard/OfficeServerStatus";
 import { SettingsTabs } from "@/components/dashboard/SettingsTabs";
 import { NotificationSettings } from "@/components/dashboard/NotificationTypesList";
@@ -25,7 +26,12 @@ async function SettingsContent() {
 async function OfficeContent() {
   await connection();
   const status = await getOfficeStatus();
-  return <OfficeModeSettings status={status} />;
+  return (
+    <>
+      <OfficeServerUrl url={status.dsUrl} />
+      <OfficeModeSettings status={status} />
+    </>
+  );
 }
 
 async function NotificationsContent() {

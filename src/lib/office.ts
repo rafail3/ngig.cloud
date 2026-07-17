@@ -109,6 +109,8 @@ export type OfficeStatus = {
   mode: OfficeServiceMode;
   up: boolean;
   configured: boolean;
+  /** Where the Document Server lives right now — a runtime setting, not a build-time env. */
+  dsUrl: string;
 };
 
 /** Whether the Document Server can actually serve a request right now. */

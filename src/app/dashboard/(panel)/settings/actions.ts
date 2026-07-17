@@ -8,6 +8,7 @@ import {
   probeDocumentServer,
   getDocumentServerVersion,
   officeServerInfo,
+  setOfficeServerUrl,
   type OfficeProbe,
 } from "@/server/office/onlyoffice";
 import { toBytes } from "@/lib/bytes";
@@ -52,8 +53,10 @@ export type OfficeServerInfo = {
 // The server's identity + live version. Fetched once when the panel opens.
 export async function getOfficeServerInfoAction(): Promise<OfficeServerInfo> {
   await requireAdmin();
-  const info = officeServerInfo();
-  const version = await getDocumentServerVersion();
+  const [info, version] = await Promise.all([
+    officeServerInfo(),
+    getDocumentServerVersion(),
+  ]);
   return { ...info, version };
 }
 
@@ -66,6 +69,33 @@ export async function resetSettingsAction(): Promise<void> {
   });
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
+}
+
+// The Document Server's address, set by hand. The host normally announces itself
+// via /api/office/register; this is the manual override (and how you point the
+// cloud at a different server entirely).
+export async function saveOfficeServerUrlAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "Acces interzis." };
+  }
+
+  const url = String(formData.get("serverUrl") ?? "").trim();
+  if (url && !/^https?:\/\/[^\s/]+/i.test(url)) {
+    return { error: "Adresă invalidă (ex: https://ceva.trycloudflare.com)." };
+  }
+
+  try {
+    await setOfficeServerUrl(url);
+    revalidatePath("/dashboard/settings");
+    return { ok: url ? "Adresă salvată." : "Adresă ștearsă." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvare." };
+  }
 }
 
 export async function saveOfficeModeAction(

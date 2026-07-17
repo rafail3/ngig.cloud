@@ -18,20 +18,28 @@ declare global {
   }
 }
 
-const DS_URL = process.env.NEXT_PUBLIC_ONLYOFFICE_URL ?? "";
-
-/** Whether a Document Server is wired up at all. Previews fall back without it. */
-export const officeServerConfigured = Boolean(DS_URL);
-
-// Load the Document Server's api.js once per page, not once per open. It's a
-// big script, so this is also what makes the SECOND open feel instant — and why
-// we start it in parallel with (not after) fetching the config.
+// Where the Document Server lives is a runtime setting now (it can sit behind a
+// tunnel whose URL changes), so the browser learns it from the server via
+// OfficeStatus — there is no build-time env to read here.
+//
+// Load the Document Server's api.js once per page, not once per open. It's a big
+// script, so this is also what makes the SECOND open feel instant — and why we
+// start it in parallel with (not after) fetching the config.
 let apiScript: Promise<void> | null = null;
-export function loadDocsApi(dsUrl = DS_URL): Promise<void> {
+let loadedFrom = "";
+
+export function loadDocsApi(dsUrl: string): Promise<void> {
   if (typeof window === "undefined" || !dsUrl) return Promise.resolve();
-  if (window.DocsAPI) return Promise.resolve();
+  if (window.DocsAPI && loadedFrom === dsUrl) return Promise.resolve();
+  // The server moved (new tunnel URL): the cached script is from the old origin
+  // and its API would talk to a host that's gone. Start over.
+  if (loadedFrom && loadedFrom !== dsUrl) {
+    apiScript = null;
+    delete window.DocsAPI;
+  }
   if (apiScript) return apiScript;
 
+  loadedFrom = dsUrl;
   apiScript = new Promise<void>((resolve, reject) => {
     const el = document.createElement("script");
     el.src = `${dsUrl.replace(/\/$/, "")}/web-apps/apps/api/documents/api.js`;
@@ -39,6 +47,7 @@ export function loadDocsApi(dsUrl = DS_URL): Promise<void> {
     el.onerror = () => {
       // Let a later attempt retry instead of caching the failure forever.
       apiScript = null;
+      loadedFrom = "";
       reject(new Error("Serverul de documente nu răspunde."));
     };
     document.head.appendChild(el);
@@ -85,13 +94,10 @@ export function useOnlyOffice(opts: {
     let editor: { destroyEditor: () => void } | null = null;
 
     void (async () => {
-      // Both halves of the wait, at the same time: the script is ~1 MB and the
-      // config is a round-trip — running them in series made the first open
-      // needlessly slow.
-      const [res] = await Promise.all([
-        getOfficeEditorConfigAction(fileId, mode, theme),
-        loadDocsApi().catch(() => undefined),
-      ]);
+      // The script can't be prefetched here any more — its address arrives with
+      // the config. The provider warms it as soon as the status lands, which is
+      // long before anyone clicks, so the first open still feels instant.
+      const res = await getOfficeEditorConfigAction(fileId, mode, theme);
       if (cancelled) return;
 
       if ("revoked" in res) {

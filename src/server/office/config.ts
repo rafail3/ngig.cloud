@@ -5,7 +5,11 @@ import {
   type OfficeServiceMode,
   type OfficeStatus,
 } from "@/lib/office";
-import { isDocumentServerUp, isOfficeEditingConfigured } from "./onlyoffice";
+import {
+  isDocumentServerUp,
+  isOfficeEditingConfigured,
+  getOfficeServerUrl,
+} from "./onlyoffice";
 
 // The admin's chosen Office service mode, stored as a single row in the shared
 // app_settings key/value table (same place as the storage limits).
@@ -93,9 +97,12 @@ export async function recordOfficeState(up: boolean): Promise<OfficeStateStamp> 
 // offer editing. The health check is skipped when it can't matter — no server
 // configured, or a mode that never uses it — so those paths cost nothing.
 export async function getOfficeStatus(): Promise<OfficeStatus> {
-  const configured = isOfficeEditingConfigured();
-  const mode = await getOfficeMode();
+  const [configured, mode, dsUrl] = await Promise.all([
+    isOfficeEditingConfigured(),
+    getOfficeMode(),
+    getOfficeServerUrl(),
+  ]);
   const needsHealth = configured && mode !== "legacy";
   const up = needsHealth ? await isDocumentServerUp() : false;
-  return { mode, up, configured };
+  return { mode, up, configured, dsUrl };
 }

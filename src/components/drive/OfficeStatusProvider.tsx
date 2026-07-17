@@ -10,19 +10,17 @@ import {
 } from "react";
 import { getOfficeStatusAction } from "@/app/drive-actions";
 import type { OfficeStatus } from "@/lib/office";
-import { officeServerConfigured } from "./useOnlyOffice";
+import { loadDocsApi } from "./useOnlyOffice";
+
+// Nothing is known until the server answers — the Document Server's address is a
+// runtime setting, so there is no env var to read on the client.
+const UNKNOWN: OfficeStatus = { mode: "auto", up: false, configured: false, dsUrl: "" };
 
 const Ctx = createContext<OfficeStatus | null>(null);
 
 /** The resolved Office capability. Safe outside the provider — returns a sane default. */
 export function useOfficeStatus(): OfficeStatus {
-  return (
-    useContext(Ctx) ?? {
-      mode: "auto",
-      up: false,
-      configured: officeServerConfigured,
-    }
-  );
+  return useContext(Ctx) ?? UNKNOWN;
 }
 
 // Refresh a little slower than the server caches the health check (10s), so
@@ -32,12 +30,17 @@ const REFRESH_MS = 12_000;
 export function OfficeStatusProvider({ children }: { children: ReactNode }) {
   // Until the first fetch lands, assume the server is down: better to briefly
   // hide an Edit button that should show than to offer one that errors.
-  const [status, setStatus] = useState<OfficeStatus>({
-    mode: "auto",
-    up: false,
-    configured: officeServerConfigured,
-  });
+  const [status, setStatus] = useState<OfficeStatus>(UNKNOWN);
   const alive = useRef(true);
+
+  // Warm the Document Server's api.js (~1 MB) as soon as we know where it lives,
+  // so the first "Editează" opens as fast as the second. Re-runs if the server
+  // moves to a new address.
+  useEffect(() => {
+    if (status.configured && status.dsUrl) {
+      void loadDocsApi(status.dsUrl).catch(() => {});
+    }
+  }, [status.configured, status.dsUrl]);
 
   useEffect(() => {
     alive.current = true;
