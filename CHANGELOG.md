@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.16.1](https://github.com/rafail3/ngig.cloud/compare/v2.16.0...v2.16.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **office:** self-healing tunnel supervisor + resilient cloudflared path ([1b35b38](https://github.com/rafail3/ngig.cloud/commit/1b35b38e0c2f18c8d870dff2f27299c8f5c82b2d))
+* **office:** self-healing tunnel supervisor + resilient cloudflared path ([4f48dff](https://github.com/rafail3/ngig.cloud/commit/4f48dffc71c2771dc04b565d374aabddc598708d))
+
 ## [2.16.0](https://github.com/rafail3/ngig.cloud/compare/v2.15.0...v2.16.0) (2026-07-17)
 
 
