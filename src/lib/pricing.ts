@@ -77,3 +77,37 @@ export function formatUsd(n: number): string {
     maximumFractionDigits: digits,
   })}`;
 }
+
+// --- Report shapes (client-safe) -------------------------------------------
+// Kept here (not in the server-only cost module) so the dashboard client
+// components can type their props without importing "server-only" code.
+
+export type UserCost = {
+  id: string;
+  username: string | null;
+  storageBytes: number;
+  storageCost: number; // $/month at current storage
+  egressBytes: number; // over the selected period
+  egressCost: number; // attributed with the user's own free allowance
+  totalCost: number;
+};
+
+export type PlatformCost = {
+  userCount: number;
+  storageBytes: number;
+  storageCost: number; // 10 GB free tier applied once, platform-wide
+  egressBytes: number;
+  egressFreeBytes: number; // free allowance earned by platform storage
+  egressBillableBytes: number;
+  egressCost: number;
+  transactionsCost: number;
+  totalCost: number; // storage + egress + transactions
+};
+
+export type CostReport = {
+  users: UserCost[];
+  platform: PlatformCost;
+};
+
+// A named month window, used both to label the UI and to bound the egress query.
+export type MonthOption = { key: string; label: string; from: string; to: string };

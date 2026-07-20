@@ -6,6 +6,10 @@ import {
   storageCostUsd,
   egressCostUsd,
   transactionsCostUsd,
+  type UserCost,
+  type PlatformCost,
+  type CostReport,
+  type MonthOption,
 } from "@/lib/pricing";
 
 // Admin cost calculator — turns real storage + egress data into B2 dollars.
@@ -14,35 +18,7 @@ import {
 // so its monthly cost is period-independent: it's the run-rate right now.
 // Egress IS period-scoped — summed from egress_events over [from, to).
 
-export type UserCost = {
-  id: string;
-  username: string | null;
-  storageBytes: number;
-  storageCost: number; // $/month at current storage
-  egressBytes: number; // over the selected period
-  egressCost: number; // attributed with the user's own free allowance
-  totalCost: number;
-};
-
-export type PlatformCost = {
-  userCount: number;
-  storageBytes: number;
-  storageCost: number; // 10 GB free tier applied once, platform-wide
-  egressBytes: number;
-  egressFreeBytes: number; // free allowance earned by platform storage
-  egressBillableBytes: number;
-  egressCost: number;
-  transactionsCost: number;
-  totalCost: number; // storage + egress + transactions
-};
-
-export type CostReport = {
-  users: UserCost[];
-  platform: PlatformCost;
-};
-
-// A named month window, used both to label the UI and to bound the egress query.
-export type MonthOption = { key: string; label: string; from: string; to: string };
+export type { UserCost, PlatformCost, CostReport, MonthOption };
 
 const RO_MONTHS = [
   "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
