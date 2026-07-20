@@ -48,58 +48,94 @@ function Write-Log($message) {
   Write-Output $line
 }
 
-# Wait for the Document Server to answer before publishing a tunnel to it —
-# Docker may still be starting the container right after a reboot.
-Write-Log "waiting for the document server on port $LocalPort"
-for ($i = 0; $i -lt 60; $i++) {
-  try {
-    $r = Invoke-WebRequest -Uri "http://localhost:$LocalPort/healthcheck" -TimeoutSec 3 -UseBasicParsing
-    if ($r.Content.Trim() -eq "true") { Write-Log "document server is up"; break }
-  } catch { }
-  Start-Sleep -Seconds 5
+function Wait-DocumentServer {
+  Write-Log "waiting for the document server on port $LocalPort"
+  for ($i = 0; $i -lt 60; $i++) {
+    try {
+      $r = Invoke-WebRequest -Uri "http://localhost:$LocalPort/healthcheck" -TimeoutSec 3 -UseBasicParsing
+      if ($r.Content.Trim() -eq "true") { Write-Log "document server is up"; return $true }
+    } catch { }
+    Start-Sleep -Seconds 5
+  }
+  return $false
 }
 
-# Start the tunnel, sending its output to a file we can read the URL out of.
-Remove-Item $tunnelLog -ErrorAction SilentlyContinue
-Write-Log "starting cloudflared ($Cloudflared)"
-$proc = Start-Process -FilePath $Cloudflared `
-  -ArgumentList @("tunnel", "--url", "http://localhost:$LocalPort", "--logfile", $tunnelLog) `
-  -WindowStyle Hidden -PassThru
+# Start a fresh tunnel and tell the app where it landed. Returns the cloudflared
+# process + its public URL, or $null if it never came up.
+function Start-Tunnel {
+  # Clear any tunnel from a previous session first — after the laptop wakes from
+  # sleep the old process often lingers ALIVE but disconnected, its URL dead. If
+  # we didn't kill it we'd stack tunnels and leave a stale URL registered.
+  Get-Process cloudflared -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  Remove-Item $tunnelLog -ErrorAction SilentlyContinue
 
-# cloudflared prints the assigned hostname a few seconds in.
-$tunnelUrl = $null
-for ($i = 0; $i -lt 60; $i++) {
-  Start-Sleep -Seconds 2
-  if (Test-Path $tunnelLog) {
-    $match = Select-String -Path $tunnelLog -Pattern "https://[a-z0-9-]+\.trycloudflare\.com" |
-             Select-Object -First 1
-    if ($match) {
-      $tunnelUrl = $match.Matches[0].Value
-      break
+  Write-Log "starting cloudflared ($Cloudflared)"
+  $proc = Start-Process -FilePath $Cloudflared `
+    -ArgumentList @("tunnel", "--url", "http://localhost:$LocalPort", "--logfile", $tunnelLog) `
+    -WindowStyle Hidden -PassThru
+
+  # cloudflared prints the assigned hostname a few seconds in.
+  $url = $null
+  for ($i = 0; $i -lt 60; $i++) {
+    Start-Sleep -Seconds 2
+    if (Test-Path $tunnelLog) {
+      $m = Select-String -Path $tunnelLog -Pattern "https://[a-z0-9-]+\.trycloudflare\.com" |
+           Select-Object -First 1
+      if ($m) { $url = $m.Matches[0].Value; break }
     }
   }
+  if (-not $url) {
+    Write-Log "ERROR: cloudflared never printed a URL; see $tunnelLog"
+    if ($proc -and -not $proc.HasExited) { $proc.Kill() }
+    return $null
+  }
+  Write-Log "tunnel is at $url"
+
+  try {
+    $body = @{ url = $url } | ConvertTo-Json -Compress
+    $res = Invoke-RestMethod -Uri "$AppUrl/api/office/register" -Method Post `
+      -Headers @{ Authorization = "Bearer $RegisterSecret" } `
+      -ContentType "application/json" -Body $body -TimeoutSec 15
+    Write-Log "registered with $AppUrl -> $($res.url)"
+  } catch {
+    Write-Log "ERROR: could not register the URL: $_"
+  }
+  return [pscustomobject]@{ Process = $proc; Url = $url }
 }
 
-if (-not $tunnelUrl) {
-  Write-Log "ERROR: cloudflared never printed a URL; see $tunnelLog"
-  if ($proc -and -not $proc.HasExited) { $proc.Kill() }
-  exit 1
-}
-Write-Log "tunnel is at $tunnelUrl"
-
-# Tell the app where the server lives now.
-try {
-  $body = @{ url = $tunnelUrl } | ConvertTo-Json -Compress
-  $res = Invoke-RestMethod -Uri "$AppUrl/api/office/register" -Method Post `
-    -Headers @{ Authorization = "Bearer $RegisterSecret" } `
-    -ContentType "application/json" -Body $body -TimeoutSec 15
-  Write-Log "registered with $AppUrl -> $($res.url)"
-} catch {
-  Write-Log "ERROR: could not register the URL: $_"
+# Is the tunnel actually SERVING (not just a live process)? A quick tunnel often
+# survives a sleep as a process while its connection is dead, so we check the
+# public URL, not just $proc.HasExited.
+function Test-Tunnel($url) {
+  try {
+    $r = Invoke-WebRequest -Uri "$url/healthcheck" -TimeoutSec 8 -UseBasicParsing
+    return $r.Content.Trim() -eq "true"
+  } catch { return $false }
 }
 
-# Stay alive: the tunnel dies with this process, and the URL is only valid while
-# cloudflared runs.
-Write-Log "tunnel running (pid $($proc.Id)); waiting"
-$proc.WaitForExit()
-Write-Log "cloudflared exited"
+# ── Supervise ────────────────────────────────────────────────────────────────
+# Run once at logon and stay alive, self-healing: if the tunnel stops serving —
+# a sleep/wake, a network blip, cloudflared dying — rebuild it and re-register.
+# That's what makes the whole thing survive a closed lid without anyone touching
+# it.
+Wait-DocumentServer | Out-Null
+$tunnel = Start-Tunnel
+$fails = 0
+
+while ($true) {
+  Start-Sleep -Seconds 30
+
+  if (-not $tunnel -or $tunnel.Process.HasExited -or -not (Test-Tunnel $tunnel.Url)) {
+    $fails++
+    Write-Log "tunnel not serving (strike $fails)"
+    # Two strikes to ride out a brief blip, then rebuild.
+    if ($fails -ge 2) {
+      Write-Log "rebuilding the tunnel"
+      Wait-DocumentServer | Out-Null
+      $tunnel = Start-Tunnel
+      $fails = 0
+    }
+  } else {
+    $fails = 0
+  }
+}
