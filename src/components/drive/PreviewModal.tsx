@@ -284,7 +284,11 @@ export function PreviewModal({
         fileId={file.id}
         name={file.name}
         onClose={() => {
-          setOfficeOpen(false);
+          // Close the whole modal — don't flash the preview back. Re-showing it
+          // would spin up a fresh read-only Document Server session just to tear
+          // it down, and on a slow (tunnelled) prod link that teardown races the
+          // close and leaves the modal stuck. The user asked to edit and is done;
+          // return them to the drive.
           onSaved?.();
           onClose();
         }}

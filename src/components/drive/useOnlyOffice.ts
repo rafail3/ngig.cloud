@@ -136,7 +136,14 @@ export function useOnlyOffice(opts: {
 
     return () => {
       cancelled = true;
-      editor?.destroyEditor();
+      // Tearing down a session that never finished loading (a slow tunnel, an
+      // unmount mid-init) can throw — and a throw here would abort React's
+      // unmount and leave the modal stuck on screen. Never let it.
+      try {
+        editor?.destroyEditor();
+      } catch {
+        // Best effort; the iframe goes away with the host node regardless.
+      }
     };
   }, [fileId, mode, hostId, theme]);
 
