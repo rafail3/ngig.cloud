@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { purgeExpiredTrash } from "@/server/files/service";
 import { purgeOldNotifications } from "@/server/notifications/service";
 import { purgeOldTickets } from "@/server/tickets/service";
+import { refreshB2Pricing } from "@/server/billing/pricing-source";
 
 // Daily cron (see vercel.json) that runs every retention-window cleanup:
 // permanently remove trashed files past their window, delete notifications
@@ -19,5 +20,9 @@ export async function GET(request: Request) {
   const purged = await purgeExpiredTrash();
   const notifications = await purgeOldNotifications();
   const tickets = await purgeOldTickets();
-  return NextResponse.json({ purged, notifications, tickets });
+  // Refresh B2's published rates so the cost calculator stays current. Rides
+  // this daily cron (Hobby's 2-cron limit); failure is non-fatal — the cost
+  // math falls back to the last known / hardcoded rates.
+  const pricing = await refreshB2Pricing();
+  return NextResponse.json({ purged, notifications, tickets, pricing });
 }

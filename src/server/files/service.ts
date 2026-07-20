@@ -7,6 +7,7 @@ import { getSettings } from "@/server/admin/settings";
 import { platformUsage } from "@/server/admin/stats";
 import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
 import { logEvent } from "@/server/insights/engine";
+import { logEgress } from "@/server/billing/egress";
 import * as repo from "./repository";
 import { extensionOf } from "@/lib/file-type";
 import { formatBytes } from "@/lib/format";
@@ -487,6 +488,10 @@ export async function folderManifest(
     key: f.storage_key,
     path: `${pathOf.get(f.folder_id ?? "") ?? target.name}/${f.name}`,
   }));
+  // The whole folder streams out of B2 as one zip — count its total bytes as
+  // egress (best-effort, off the hot path).
+  const totalBytes = files.reduce((sum, f) => sum + (f.size ?? 0), 0);
+  after(() => logEgress(totalBytes, "folder"));
   return { name: target.name, files: entries };
 }
 
@@ -517,6 +522,7 @@ export async function getViewUrl(
   assertOwnedKey(userId, file.storage_key);
   const url = await presignView(file.storage_key);
   after(() => logEvent("preview", { ext: extensionOf(file.name) }));
+  after(() => logEgress(file.size, "preview"));
   return { url, name: file.name, mime: file.mime_type };
 }
 
@@ -740,6 +746,7 @@ export async function getDownloadUrl(id: string) {
     .eq("id", userId);
 
   after(() => logEvent("download", { ext: extensionOf(file.name) }));
+  after(() => logEgress(file.size, "download"));
   return presignDownload(file.storage_key, file.name);
 }
 
