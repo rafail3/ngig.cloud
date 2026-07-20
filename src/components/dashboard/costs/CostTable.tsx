@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight } from "lucide-react";
 import { formatBytes } from "@/lib/format";
 import { formatUsd, type UserCost } from "@/lib/pricing";
+import { COST_CARD } from "./styles";
 
 type SortKey = "user" | "storage" | "egress" | "total";
 type SortDir = "asc" | "desc";
@@ -17,7 +19,8 @@ const NUMERIC: Record<Exclude<SortKey, "user">, (u: UserCost) => number> = {
 
 // Per-user cost breakdown. Sortable columns; the Total column carries an inline
 // proportion bar so the heaviest users read at a glance.
-export function CostTable({ users }: { users: UserCost[] }) {
+export function CostTable({ users, month }: { users: UserCost[]; month: string }) {
+  const router = useRouter();
   const reduced = useReducedMotion();
   const [sort, setSort] = useState<SortKey>("total");
   const [dir, setDir] = useState<SortDir>("desc");
@@ -43,22 +46,25 @@ export function CostTable({ users }: { users: UserCost[] }) {
 
   if (users.length === 0) {
     return (
-      <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-8 text-center text-sm text-zinc-500">
+      <section className={`${COST_CARD} p-8 text-center text-sm text-zinc-500`}>
         Niciun utilizator.
       </section>
     );
   }
 
+  const open = (id: string) => router.push(`/costs/${id}?m=${month}`);
+
   return (
-    <section className="overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
+    <section className={`overflow-hidden ${COST_CARD}`}>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] text-sm">
+        <table className="w-full min-w-[600px] text-sm">
           <thead>
             <tr className="border-b border-zinc-800/80 text-left text-xs text-zinc-500">
               <Th label="Utilizator" col="user" sort={sort} dir={dir} onClick={toggle} />
               <Th label="Stocare" col="storage" sort={sort} dir={dir} onClick={toggle} align="right" />
               <Th label="Egress" col="egress" sort={sort} dir={dir} onClick={toggle} align="right" />
               <Th label="Total / lună" col="total" sort={sort} dir={dir} onClick={toggle} align="right" />
+              <th className="w-8" />
             </tr>
           </thead>
           <tbody>
@@ -67,7 +73,17 @@ export function CostTable({ users }: { users: UserCost[] }) {
               return (
                 <tr
                   key={u.id}
-                  className="border-b border-zinc-900 transition-colors last:border-0 hover:bg-zinc-800/30"
+                  onClick={() => open(u.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      open(u.id);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Detalii cost ${u.username ?? "utilizator"}`}
+                  className="group cursor-pointer border-b border-zinc-900 outline-none transition-colors last:border-0 hover:bg-zinc-500/10 focus-visible:bg-zinc-500/10"
                 >
                   <td className="px-4 py-3 font-medium text-zinc-200">
                     {u.username ?? <span className="text-zinc-500">—</span>}
@@ -89,7 +105,7 @@ export function CostTable({ users }: { users: UserCost[] }) {
                       <span className="font-semibold tabular-nums text-zinc-50">
                         {formatUsd(u.totalCost)}
                       </span>
-                      <div className="h-1 w-24 overflow-hidden rounded-full bg-zinc-800">
+                      <div className="h-1 w-24 overflow-hidden rounded-full bg-zinc-500/20">
                         <motion.div
                           className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-500"
                           initial={reduced ? false : { width: 0 }}
@@ -98,6 +114,9 @@ export function CostTable({ users }: { users: UserCost[] }) {
                         />
                       </div>
                     </div>
+                  </td>
+                  <td className="pr-3 text-right">
+                    <ChevronRight className="ml-auto h-4 w-4 text-zinc-600 transition-colors group-hover:text-zinc-400" />
                   </td>
                 </tr>
               );

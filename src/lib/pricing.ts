@@ -29,19 +29,45 @@ export const B2_FREE_STORAGE_BYTES = 10 * 1e9; // 10 GB
 const TB = 1e12;
 const GB = 1e9;
 
+// --- Rate set (overridable) ------------------------------------------------
+// The cost functions take a rate set so the daily B2-price refresh can feed in
+// live numbers; when none is passed they fall back to the hardcoded defaults
+// above (which are also the safety net if the refresh ever fails).
+
+export type B2Rates = {
+  storageUsdPerTbMonth: number;
+  egressUsdPerGb: number;
+  freeEgressMultiplier: number;
+  freeStorageBytes: number;
+};
+
+export const DEFAULT_B2_RATES: B2Rates = {
+  storageUsdPerTbMonth: B2_STORAGE_USD_PER_TB_MONTH,
+  egressUsdPerGb: B2_EGRESS_USD_PER_GB,
+  freeEgressMultiplier: B2_FREE_EGRESS_MULTIPLIER,
+  freeStorageBytes: B2_FREE_STORAGE_BYTES,
+};
+
 // --- Pure cost functions ---------------------------------------------------
 
 // Monthly storage cost for a given number of stored bytes. `applyFreeTier` is
-// only meaningful at the platform level (the 10 GB free slice is granted once
-// for the whole account, never per user).
-export function storageCostUsd(bytes: number, applyFreeTier = false): number {
-  const billable = applyFreeTier ? Math.max(0, bytes - B2_FREE_STORAGE_BYTES) : bytes;
-  return (billable / TB) * B2_STORAGE_USD_PER_TB_MONTH;
+// only meaningful at the platform level (the free slice is granted once for the
+// whole account, never per user).
+export function storageCostUsd(
+  bytes: number,
+  applyFreeTier = false,
+  rates: B2Rates = DEFAULT_B2_RATES,
+): number {
+  const billable = applyFreeTier ? Math.max(0, bytes - rates.freeStorageBytes) : bytes;
+  return (billable / TB) * rates.storageUsdPerTbMonth;
 }
 
 // Free egress that a given amount of stored data earns for the month.
-export function freeEgressBytes(storageBytes: number): number {
-  return storageBytes * B2_FREE_EGRESS_MULTIPLIER;
+export function freeEgressBytes(
+  storageBytes: number,
+  rates: B2Rates = DEFAULT_B2_RATES,
+): number {
+  return storageBytes * rates.freeEgressMultiplier;
 }
 
 // Egress cost for `egressBytes` moved, given the storage that funds the free
@@ -50,10 +76,11 @@ export function freeEgressBytes(storageBytes: number): number {
 export function egressCostUsd(
   egressBytes: number,
   storageBytes: number,
+  rates: B2Rates = DEFAULT_B2_RATES,
 ): { cost: number; freeBytes: number; billableBytes: number } {
-  const freeBytes = freeEgressBytes(storageBytes);
+  const freeBytes = freeEgressBytes(storageBytes, rates);
   const billableBytes = Math.max(0, egressBytes - freeBytes);
-  return { cost: (billableBytes / GB) * B2_EGRESS_USD_PER_GB, freeBytes, billableBytes };
+  return { cost: (billableBytes / GB) * rates.egressUsdPerGb, freeBytes, billableBytes };
 }
 
 // Class A/B/C transactions are free on B2 pay-as-you-go; only the rare Class D
@@ -107,6 +134,11 @@ export type PlatformCost = {
 export type CostReport = {
   users: UserCost[];
   platform: PlatformCost;
+  rates: B2Rates;
+  // When the rates were last refreshed from B2's public pricing page, and where
+  // the active numbers came from ("b2" = live fetch, "default" = hardcoded).
+  ratesUpdatedAt: string | null;
+  ratesSource: "b2" | "default";
 };
 
 // A named month window, used both to label the UI and to bound the egress query.

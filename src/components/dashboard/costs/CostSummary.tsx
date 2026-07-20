@@ -5,6 +5,7 @@ import { HardDrive, ArrowDownToLine, Repeat, Wallet, Users } from "lucide-react"
 import { formatBytes } from "@/lib/format";
 import { formatUsd, type PlatformCost } from "@/lib/pricing";
 import { AnimatedValue } from "./AnimatedValue";
+import { COST_CARD } from "./styles";
 
 // Platform cost summary — one prominent "total / month" hero card plus three
 // breakdown tiles (storage, egress, transactions). Numbers count up on load.
@@ -24,7 +25,7 @@ export function CostSummary({ platform }: { platform: PlatformCost }) {
       {/* Hero: total monthly cost */}
       <motion.div
         {...rise(0)}
-        className="relative overflow-hidden rounded-2xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/12 via-zinc-900/40 to-zinc-900/40 p-5 sm:p-6 lg:row-span-1"
+        className="relative overflow-hidden rounded-2xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/10 to-white shadow-sm dark:from-indigo-500/12 dark:via-zinc-900/40 dark:to-zinc-900/40 dark:shadow-none p-5 sm:p-6 lg:row-span-1"
       >
         <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-indigo-500/15 blur-3xl" />
         <div className="flex items-center gap-2 text-indigo-300">
@@ -96,10 +97,7 @@ function Tile({
   accent: string;
 } & React.ComponentProps<typeof motion.div>) {
   return (
-    <motion.div
-      {...motionProps}
-      className="flex flex-col rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5"
-    >
+    <motion.div {...motionProps} className={`flex flex-col ${COST_CARD} p-4 sm:p-5`}>
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-zinc-500">{label}</span>
         <span className={accent}>{icon}</span>

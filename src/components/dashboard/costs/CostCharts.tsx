@@ -13,14 +13,7 @@ import {
   Pie,
 } from "recharts";
 import { formatUsd, type UserCost, type PlatformCost } from "@/lib/pricing";
-
-const tooltipStyle = {
-  background: "#18181b",
-  border: "1px solid #3f3f46",
-  borderRadius: 12,
-  color: "#fafafa",
-  fontSize: 12,
-};
+import { COST_CARD, chartTooltipStyle } from "./styles";
 
 // Render only after mount so recharts plays its entrance animation (a
 // server-rendered chart would hydrate already drawn).
@@ -41,7 +34,7 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
+    <section className={`${COST_CARD} p-4 sm:p-5`}>
       <h2 className="mb-3 text-sm font-semibold text-zinc-200">{title}</h2>
       {children}
     </section>
@@ -81,8 +74,8 @@ export function TopUsersChart({ users }: { users: UserCost[] }) {
                   axisLine={false}
                 />
                 <Tooltip
-                  cursor={{ fill: "#ffffff08" }}
-                  contentStyle={tooltipStyle}
+                  cursor={{ fill: "var(--color-zinc-700)", fillOpacity: 0.18, radius: 8 }}
+                  contentStyle={chartTooltipStyle}
                   formatter={(v) => [formatUsd(Number(v)), "Cost / lună"]}
                 />
                 <Bar dataKey="cost" radius={[4, 4, 4, 4]} isAnimationActive animationDuration={900}>
@@ -135,7 +128,7 @@ export function CompositionChart({ platform }: { platform: PlatformCost }) {
                       <Cell key={s.name} fill={COMPOSITION_COLORS[i % COMPOSITION_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v) => formatUsd(Number(v))} />
+                  <Tooltip contentStyle={chartTooltipStyle} formatter={(v) => formatUsd(Number(v))} />
                 </PieChart>
               </ResponsiveContainer>
             )}

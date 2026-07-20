@@ -11,9 +11,17 @@ export const metadata = { title: "Dashboard — Costuri" };
 
 // Fetches the report for the selected window and paints the whole view. Isolated
 // so the header + period picker stay live while this streams behind <Suspense>.
-async function CostData({ from, to }: { from: string; to: string }) {
+async function CostData({ from, to, month }: { from: string; to: string; month: string }) {
   await connection();
   const report = await getCostReport(from, to);
+  const ratesLine =
+    report.ratesSource === "b2" && report.ratesUpdatedAt
+      ? `Tarife actualizate din pagina Backblaze B2 la ${new Intl.DateTimeFormat("ro-RO", {
+          dateStyle: "medium",
+          timeZone: "Europe/Bucharest",
+        }).format(new Date(report.ratesUpdatedAt))} ($${report.rates.storageUsdPerTbMonth}/TB, $${report.rates.egressUsdPerGb}/GB).`
+      : `Tarife implicite Backblaze B2 ($${report.rates.storageUsdPerTbMonth}/TB, $${report.rates.egressUsdPerGb}/GB) — se actualizează zilnic din pagina lor.`;
+
   return (
     <>
       <CostSummary platform={report.platform} />
@@ -25,16 +33,16 @@ async function CostData({ from, to }: { from: string; to: string }) {
 
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-zinc-200">Cost per utilizator</h2>
-        <CostTable users={report.users} />
+        <CostTable users={report.users} month={month} />
       </div>
 
       <p className="flex items-start gap-2 text-xs leading-relaxed text-zinc-500">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <span>
-          Costuri la tarifele publice Backblaze B2, fără adaos. Stocarea e un
-          snapshot curent (cost lunar la volumul de acum); egress-ul e însumat pe
-          luna selectată. Egress gratuit până la 3× stocarea, apoi $0.01/GB;
-          tranzacțiile Class A/B/C sunt gratuite.
+          {ratesLine} Fără adaos. Stocarea e un snapshot curent (cost lunar la
+          volumul de acum); egress-ul e însumat pe luna selectată. Egress gratuit
+          până la 3× stocarea, apoi ${report.rates.egressUsdPerGb}/GB; tranzacțiile
+          Class A/B/C sunt gratuite.
         </span>
       </p>
     </>
@@ -83,7 +91,7 @@ export default async function CostsPage({
       </header>
 
       <Suspense key={period.key} fallback={<CostSkeleton />}>
-        <CostData from={period.from} to={period.to} />
+        <CostData from={period.from} to={period.to} month={period.key} />
       </Suspense>
     </div>
   );
