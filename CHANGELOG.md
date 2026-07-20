@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.16.3](https://github.com/rafail3/ngig.cloud/compare/v2.16.2...v2.16.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* **office:** calmer, faster recovery after the host wakes from sleep ([c06773c](https://github.com/rafail3/ngig.cloud/commit/c06773cf01da44ec4307b67c5b68802ca222472a))
+* **office:** calmer, faster recovery after the host wakes from sleep ([d2c4b1b](https://github.com/rafail3/ngig.cloud/commit/d2c4b1bb8c723e70f6c0ad8a79d4b3343c405e91))
+
 ## [2.16.2](https://github.com/rafail3/ngig.cloud/compare/v2.16.1...v2.16.2) (2026-07-20)
 
 
