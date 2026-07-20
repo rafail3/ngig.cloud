@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.16.2](https://github.com/rafail3/ngig.cloud/compare/v2.16.1...v2.16.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* **office:** closing the editor from a preview no longer stalls the modal ([d296a77](https://github.com/rafail3/ngig.cloud/commit/d296a774b66338409b85a63e439ec7e23bc3e4a8))
+* **office:** closing the editor from preview no longer gets stuck ([0dc08aa](https://github.com/rafail3/ngig.cloud/commit/0dc08aaf6bf75bfbb2cf08631a5bd6b370f7dfde))
+
 ## [2.16.1](https://github.com/rafail3/ngig.cloud/compare/v2.16.0...v2.16.1) (2026-07-20)
 
 
