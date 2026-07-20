@@ -98,7 +98,7 @@ export function TopUsersChart({ users }: { users: UserCost[] }) {
                   tickLine={false}
                   axisLine={false}
                 />
-                <Tooltip cursor={false} content={renderTip} />
+                <Tooltip cursor={false} content={renderTip} isAnimationActive={false} />
                 <Bar
                   dataKey="cost"
                   radius={[4, 4, 4, 4]}
@@ -155,7 +155,7 @@ export function CompositionChart({ platform }: { platform: PlatformCost }) {
                       <Cell key={s.name} fill={COMPOSITION_COLORS[i % COMPOSITION_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip content={renderTip} />
+                  <Tooltip content={renderTip} isAnimationActive={false} />
                 </PieChart>
               </ResponsiveContainer>
             )}

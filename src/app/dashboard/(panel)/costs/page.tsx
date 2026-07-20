@@ -4,6 +4,7 @@ import { Info } from "lucide-react";
 import { getCostReport, resolveMonth, recentMonths } from "@/server/admin/costs";
 import { MonthSelector } from "@/components/dashboard/costs/MonthSelector";
 import { CostSummary } from "@/components/dashboard/costs/CostSummary";
+import { FreeTierMeter } from "@/components/dashboard/costs/FreeTierMeter";
 import { TopUsersChart, CompositionChart } from "@/components/dashboard/costs/CostCharts";
 import { CostTable } from "@/components/dashboard/costs/CostTable";
 
@@ -25,6 +26,13 @@ async function CostData({ from, to, month }: { from: string; to: string; month: 
   return (
     <>
       <CostSummary platform={report.platform} />
+
+      <FreeTierMeter
+        storageBytes={report.platform.storageBytes}
+        freeStorageBytes={report.rates.freeStorageBytes}
+        egressBytes={report.platform.egressBytes}
+        egressFreeBytes={report.platform.egressFreeBytes}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <TopUsersChart users={report.users} />
