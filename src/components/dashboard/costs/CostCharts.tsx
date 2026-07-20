@@ -13,7 +13,7 @@ import {
   Pie,
 } from "recharts";
 import { formatUsd, type UserCost, type PlatformCost } from "@/lib/pricing";
-import { COST_CARD, chartTooltipStyle } from "./styles";
+import { COST_CARD } from "./styles";
 
 // Render only after mount so recharts plays its entrance animation (a
 // server-rendered chart would hydrate already drawn).
@@ -23,6 +23,31 @@ function useMounted(): boolean {
   useEffect(() => setMounted(true), []);
   return mounted;
 }
+
+// Custom, high-contrast tooltip (the default recharts box read muddy/low-
+// contrast on the colored bars). Solid surface, bold title, accent value.
+type TipDatum = { value?: number | string; name?: string; color?: string };
+type TipProps = { active?: boolean; label?: string | number; payload?: TipDatum[] };
+
+function MoneyTooltip({ active, payload, label }: TipProps) {
+  if (!active || !payload || payload.length === 0) return null;
+  const p = payload[0];
+  const title = (label ?? p.name ?? "") as string;
+  return (
+    <div className="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 shadow-xl shadow-black/40">
+      <p className="text-[13px] font-semibold text-zinc-50">{title}</p>
+      <p className="mt-1 flex items-center gap-2 text-xs text-zinc-400">
+        <span className="h-2 w-2 rounded-full" style={{ background: p.color ?? "#6366f1" }} />
+        <span>Cost / lună</span>
+        <span className="ml-3 font-semibold tabular-nums text-zinc-100">
+          {formatUsd(Number(p.value))}
+        </span>
+      </p>
+    </div>
+  );
+}
+
+const renderTip = (props: unknown) => <MoneyTooltip {...(props as TipProps)} />;
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
@@ -73,11 +98,7 @@ export function TopUsersChart({ users }: { users: UserCost[] }) {
                   tickLine={false}
                   axisLine={false}
                 />
-                <Tooltip
-                  cursor={false}
-                  contentStyle={chartTooltipStyle}
-                  formatter={(v) => [formatUsd(Number(v)), "Cost / lună"]}
-                />
+                <Tooltip cursor={false} content={renderTip} />
                 <Bar
                   dataKey="cost"
                   radius={[4, 4, 4, 4]}
@@ -134,7 +155,7 @@ export function CompositionChart({ platform }: { platform: PlatformCost }) {
                       <Cell key={s.name} fill={COMPOSITION_COLORS[i % COMPOSITION_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={chartTooltipStyle} formatter={(v) => formatUsd(Number(v))} />
+                  <Tooltip content={renderTip} />
                 </PieChart>
               </ResponsiveContainer>
             )}
