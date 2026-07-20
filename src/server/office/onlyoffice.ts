@@ -211,14 +211,23 @@ export async function probeDocumentServer(): Promise<OfficeProbe> {
 }
 
 // The version the container is ACTUALLY running, asked of the server itself (not
-// the tag we think we deployed). Rarely changes, so it's cached for a minute.
+// the tag we think we deployed). A success rarely changes, so it's cached for a
+// minute — but a FAILURE is cached only briefly, because the usual reason for
+// one is the server still warming up right after the host woke from sleep:
+// /healthcheck answers before the signed command endpoint is ready. Caching that
+// "no version" for a full minute would flash a false "rejects our commands"
+// warning long after the server is actually fine. Retry it soon instead.
 const VERSION_TTL_MS = 60_000;
+const VERSION_FAIL_TTL_MS = 6_000;
 let versionCache: { at: number; version: string | null } | null = null;
 
 export async function getDocumentServerVersion(): Promise<string | null> {
   if (!(await isOfficeEditingConfigured())) return null;
   const now = Date.now();
-  if (versionCache && now - versionCache.at < VERSION_TTL_MS) return versionCache.version;
+  if (versionCache) {
+    const ttl = versionCache.version ? VERSION_TTL_MS : VERSION_FAIL_TTL_MS;
+    if (now - versionCache.at < ttl) return versionCache.version;
+  }
 
   let version: string | null = null;
   try {

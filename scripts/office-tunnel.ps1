@@ -123,12 +123,13 @@ $tunnel = Start-Tunnel
 $fails = 0
 
 while ($true) {
-  Start-Sleep -Seconds 30
+  Start-Sleep -Seconds 12
 
   if (-not $tunnel -or $tunnel.Process.HasExited -or -not (Test-Tunnel $tunnel.Url)) {
     $fails++
     Write-Log "tunnel not serving (strike $fails)"
-    # Two strikes to ride out a brief blip, then rebuild.
+    # Two strikes (~24s) to ride out a brief blip without rebuilding on a
+    # transient, but quick enough that a wake-from-sleep recovers fast.
     if ($fails -ge 2) {
       Write-Log "rebuilding the tunnel"
       Wait-DocumentServer | Out-Null
