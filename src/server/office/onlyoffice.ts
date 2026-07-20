@@ -6,6 +6,7 @@ import { requireActiveUser } from "@/server/auth/active-user";
 import * as repo from "@/server/files/repository";
 import { presignView, putObject } from "@/server/storage/b2";
 import { logEvent } from "@/server/insights/engine";
+import { logEgress } from "@/server/billing/egress";
 import { appOrigin } from "@/lib/dashboard";
 import { extensionOf } from "@/lib/file-type";
 import {
@@ -483,6 +484,10 @@ export async function openFileForEditor(token: string): Promise<{
 
   const res = await fetch(await presignView(file.storage_key as string, 600));
   if (!res.ok || !res.body) throw new Error("Nu am putut citi fișierul.");
+
+  // The Document Server pulls the file out of B2 through us — real egress. No
+  // session here, so attribute it to the file owner via the service-role path.
+  after(() => logEgress((file.size as number) ?? 0, "office", ownerId));
 
   return {
     stream: res.body,
