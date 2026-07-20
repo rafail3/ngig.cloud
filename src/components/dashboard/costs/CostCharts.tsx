@@ -74,11 +74,17 @@ export function TopUsersChart({ users }: { users: UserCost[] }) {
                   axisLine={false}
                 />
                 <Tooltip
-                  cursor={{ fill: "var(--color-zinc-700)", fillOpacity: 0.18, radius: 8 }}
+                  cursor={false}
                   contentStyle={chartTooltipStyle}
                   formatter={(v) => [formatUsd(Number(v)), "Cost / lună"]}
                 />
-                <Bar dataKey="cost" radius={[4, 4, 4, 4]} isAnimationActive animationDuration={900}>
+                <Bar
+                  dataKey="cost"
+                  radius={[4, 4, 4, 4]}
+                  isAnimationActive
+                  animationDuration={900}
+                  activeBar={{ stroke: "var(--color-indigo-300)", strokeWidth: 2 }}
+                >
                   {data.map((_, i) => (
                     <Cell key={i} fill="url(#costBar)" />
                   ))}
