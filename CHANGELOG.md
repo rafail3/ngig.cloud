@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.17.0](https://github.com/rafail3/ngig.cloud/compare/v2.16.3...v2.17.0) (2026-07-20)
+
+
+### Features
+
+* **costs:** admin cost calculator with real B2 storage + egress accounting ([68c486b](https://github.com/rafail3/ngig.cloud/commit/68c486be55d95fa41a37ff8a772b06884a5c4326))
+* **costs:** B2 cost model + egress accounting backend ([9de0bf9](https://github.com/rafail3/ngig.cloud/commit/9de0bf906033aba8ef9e15d31b061413b4c04166))
+* **costs:** free-tier meter + steady tooltip ([1de473e](https://github.com/rafail3/ngig.cloud/commit/1de473e738d7899a917e071d9ac71d97e3411d7f))
+* **costs:** light-mode polish, per-user detail, daily B2 price refresh ([aad74ba](https://github.com/rafail3/ngig.cloud/commit/aad74ba0a2c178aa7f970e00022688a1dae50b3e))
+* **costs:** premium admin cost calculator dashboard ([d20cce4](https://github.com/rafail3/ngig.cloud/commit/d20cce433671e95f31eda28c10b2da16363386de))
+
+
+### Bug Fixes
+
+* **costs:** cleaner hover on the top-users chart ([087263d](https://github.com/rafail3/ngig.cloud/commit/087263d11c6b54bdf25bfcec87d4db2593165488))
+* **costs:** high-contrast custom chart tooltip ([469a9dc](https://github.com/rafail3/ngig.cloud/commit/469a9dca78a1c0674e07cc1ad9b235d3a3c63e31))
+
 ## [2.16.3](https://github.com/rafail3/ngig.cloud/compare/v2.16.2...v2.16.3) (2026-07-20)
 
 
