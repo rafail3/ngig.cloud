@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.20.0](https://github.com/rafail3/ngig.cloud/compare/v2.19.0...v2.20.0) (2026-07-21)
+
+
+### Features
+
+* **drive:** collapsible suggested files with compact tiles ([957d08f](https://github.com/rafail3/ngig.cloud/commit/957d08fc6033ff6e0dbbda4364ee69c3f972701b))
+* **drive:** collapsible suggested files, closed by default, compact tiles ([914107d](https://github.com/rafail3/ngig.cloud/commit/914107def6e5c7f7d589e4115a4096da08495698))
+* **drive:** nicer suggested-files card + horizontal file cards ([c40a6c6](https://github.com/rafail3/ngig.cloud/commit/c40a6c694af6430140e822521027e03b6a1a9cd6))
+
 ## [2.19.0](https://github.com/rafail3/ngig.cloud/compare/v2.18.0...v2.19.0) (2026-07-21)
 
 
