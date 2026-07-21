@@ -11,6 +11,8 @@ import { OfficeServerStatus } from "@/components/dashboard/OfficeServerStatus";
 import { OfficeSettingsCollapsible } from "@/components/dashboard/OfficeSettingsCollapsible";
 import { SettingsTabs } from "@/components/dashboard/SettingsTabs";
 import { NotificationSettings } from "@/components/dashboard/NotificationTypesList";
+import { UpdateNotifySettings } from "@/components/dashboard/UpdateNotifySettings";
+import { getUpdateNotifySettings } from "@/server/updates/service";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Setări" };
@@ -38,8 +40,16 @@ async function OfficeContent() {
 
 async function NotificationsContent() {
   await connection();
-  const types = await listNotificationTypes();
-  return <NotificationSettings types={types} addable={ADDABLE_ACTIONS} />;
+  const [types, updateNotify] = await Promise.all([
+    listNotificationTypes(),
+    getUpdateNotifySettings(),
+  ]);
+  return (
+    <div className="flex flex-col gap-5">
+      <UpdateNotifySettings settings={updateNotify} />
+      <NotificationSettings types={types} addable={ADDABLE_ACTIONS} />
+    </div>
+  );
 }
 
 function GeneralTab() {

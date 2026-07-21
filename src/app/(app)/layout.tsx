@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/shell/AppShell";
 import { AppShellSkeleton } from "@/components/shell/AppShellSkeleton";
 import { touchLastSeen } from "@/server/admin/audit";
+import { maybeAnnounceUpdate } from "@/server/updates/service";
 
 // Too dynamic to be the instant entry point: it reads auth + the sidebar cookie
 // on every request. We exempt the layout itself from instant validation; what
@@ -43,6 +45,9 @@ async function Shell({ children }: { children: React.ReactNode }) {
 
     username = profile?.username ?? "";
     role = profile?.role ?? "";
+
+    // Fire the "new version" broadcast once per deploy (off the response path).
+    after(() => maybeAnnounceUpdate());
   }
 
   return (

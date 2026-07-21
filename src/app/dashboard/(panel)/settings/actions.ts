@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/admin/guard";
 import { updateSettings, setSetting, type SettingKey } from "@/server/admin/settings";
+import { setUpdateNotifySettings, type UpdateRole } from "@/server/updates/service";
 import { setOfficeMode, recordOfficeState } from "@/server/office/config";
 import {
   probeDocumentServer,
@@ -181,6 +182,29 @@ export async function saveSettingAction(
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard");
     return { ok: "Setare salvată." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvare." };
+  }
+}
+
+// The "new version" update notification: toggle + audience.
+export async function saveUpdateNotifySettingsAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "Acces interzis." };
+  }
+  const enabled = formData.get("enabled") === "true";
+  const audience: UpdateRole[] = [];
+  if (formData.get("aud_admin") === "true") audience.push("admin");
+  if (formData.get("aud_user") === "true") audience.push("user");
+  try {
+    await setUpdateNotifySettings({ enabled, audience });
+    revalidatePath("/dashboard/settings");
+    return { ok: "Setări actualizate." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la salvare." };
   }

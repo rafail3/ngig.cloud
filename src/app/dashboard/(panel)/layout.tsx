@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/shell/DashboardShell";
 import { DashboardShellSkeleton } from "@/components/shell/DashboardShellSkeleton";
@@ -6,6 +7,7 @@ import { Forbidden } from "@/components/shell/Forbidden";
 import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
 import { RefreshOnLand } from "@/components/realtime/RefreshOnLand";
 import { countUnreadTickets } from "@/server/tickets/service";
+import { maybeAnnounceUpdate } from "@/server/updates/service";
 
 // Every dashboard data source — so any admin page/action updates live.
 const DASHBOARD_TABLES = [
@@ -60,6 +62,9 @@ async function Shell({
     // rows. Opening a ticket writes its read mark, which realtime picks up and
     // re-renders this layout, so the badge drops on its own.
     const ticketsWaiting = await countUnreadTickets(userId);
+
+    // Fire the "new version" broadcast once per deploy (off the response path).
+    after(() => maybeAnnounceUpdate());
 
     return (
       <DashboardShell
