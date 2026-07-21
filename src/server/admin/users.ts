@@ -193,6 +193,35 @@ export async function setUserLimits(
   await notifyUserEvent(id, "limits_changed", { detalii: clauses.join(" și ") }, "/");
 }
 
+// Change a user's role (user ↔ admin). Demoting an admin is guarded so the
+// platform is never left without one. The affected user is notified in-app; the
+// new role takes effect on their next request (the dashboard gate + middleware
+// re-read the role), so no session revoke is needed.
+export async function setUserRole(id: string, role: "user" | "admin"): Promise<void> {
+  const admin = createAdminClient();
+  const { data: prev } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", id)
+    .maybeSingle();
+  if (!prev) throw new Error("Utilizator inexistent.");
+  if (prev.role === role) return; // no-op
+
+  if (prev.role === "admin" && role === "user") {
+    await assertNotLastAdmin(id);
+  }
+
+  const { error } = await admin.from("profiles").update({ role }).eq("id", id);
+  if (error) throw error;
+
+  await notifyUserEvent(
+    id,
+    "role_changed",
+    { rol: role === "admin" ? "administrator" : "utilizator" },
+    "/",
+  );
+}
+
 // Cron-only: find time-limited blocks that have lapsed (blocked_until in the
 // past, still flagged), clear the stale flags, and notify both the admins (as a
 // platform-status event) and the affected user. Permanent blocks sit ~100 years

@@ -7,6 +7,7 @@ import {
   unblockUser,
   signOutUser,
   setUserLimits,
+  setUserRole,
   deleteUserAccount,
   type BlockDuration,
 } from "@/server/admin/users";
@@ -103,6 +104,32 @@ export async function signOutUserAction(
     return { ok: "Sesiuni invalidate." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la sign out." };
+  }
+}
+
+export async function setUserRoleAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  let adminId: string;
+  try {
+    adminId = await requireAdmin();
+  } catch {
+    return { error: "Acces interzis." };
+  }
+
+  const id = String(formData.get("id") ?? "");
+  const role = String(formData.get("role") ?? "");
+  if (!id) return { error: "User invalid." };
+  if (id === adminId) return { error: "Nu-ți poți schimba propriul rol de aici." };
+  if (role !== "user" && role !== "admin") return { error: "Rol invalid." };
+
+  try {
+    await setUserRole(id, role);
+    refresh(id);
+    return { ok: role === "admin" ? "User promovat la administrator." : "User setat ca utilizator." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la schimbarea rolului." };
   }
 }
 
