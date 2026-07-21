@@ -113,7 +113,7 @@ export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
             <label htmlFor="role" className={labelCls}>Rol</label>
             <select id="role" name="role" defaultValue="user" className={fieldCls}>
               <option value="user" className="bg-zinc-900">User</option>
-              <option value="admin" className="bg-zinc-900">Admin</option>
+              <option value="admin" className="bg-zinc-900">Manager</option>
             </select>
           </div>
 

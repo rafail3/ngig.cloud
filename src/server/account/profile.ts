@@ -30,6 +30,7 @@ export type MyProfile = {
   username: string;
   email: string;
   role: string;
+  isSuperAdmin: boolean;
   created_at: string;
   lastSignIn: string | null;
 };
@@ -48,7 +49,7 @@ export async function getMyProfile(): Promise<MyProfile> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, role, created_at")
+    .select("username, role, is_super_admin, created_at")
     .eq("id", id)
     .single();
 
@@ -61,6 +62,7 @@ export async function getMyProfile(): Promise<MyProfile> {
     email: u?.user?.email ?? email,
     username: profile?.username ?? "",
     role: profile?.role ?? "user",
+    isSuperAdmin: profile?.is_super_admin ?? false,
     created_at: profile?.created_at ?? "",
     lastSignIn: u?.user?.last_sign_in_at ?? null,
   };

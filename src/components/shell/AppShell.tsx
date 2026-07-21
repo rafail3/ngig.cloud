@@ -20,7 +20,7 @@ import { useClickOutside } from "@/lib/useClickOutside";
 import { Avatar } from "./Avatar";
 import { AppVersion } from "./AppVersion";
 
-type ShellUser = { username: string; role: string; email: string };
+type ShellUser = { username: string; role: string; email: string; isSuperAdmin: boolean };
 
 // Nav items. `soon` renders a disabled "coming soon" entry; `adminOnly` hides
 // it from non-admins.
@@ -175,7 +175,7 @@ export function AppShell({
                       {user.username}
                       {user.role === "admin" && (
                         <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300">
-                          admin
+                          {user.isSuperAdmin ? "Super admin" : "Manager"}
                         </span>
                       )}
                     </p>

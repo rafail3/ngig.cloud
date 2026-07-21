@@ -50,7 +50,7 @@ async function Shell({
   if (userId) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username, role")
+      .select("username, role, is_super_admin")
       .eq("id", userId)
       .single();
 
@@ -68,7 +68,11 @@ async function Shell({
 
     return (
       <DashboardShell
-        user={{ username: profile.username ?? "", email }}
+        user={{
+          username: profile.username ?? "",
+          email,
+          isSuperAdmin: profile.is_super_admin ?? false,
+        }}
         badges={{ tickets: ticketsWaiting }}
       >
         <RealtimeRefresh tables={DASHBOARD_TABLES} />
@@ -81,7 +85,7 @@ async function Shell({
   }
 
   return (
-    <DashboardShell user={{ username: "", email: "" }}>
+    <DashboardShell user={{ username: "", email: "", isSuperAdmin: false }}>
       {children}
       {modal}
     </DashboardShell>

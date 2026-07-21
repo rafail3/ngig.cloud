@@ -24,8 +24,9 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useClickOutside } from "@/lib/useClickOutside";
 import { Avatar } from "./Avatar";
 import { AppVersion } from "./AppVersion";
+import { RoleBadge } from "@/components/dashboard/RoleBadge";
 
-type ShellUser = { username: string; email: string };
+type ShellUser = { username: string; email: string; isSuperAdmin: boolean };
 
 // Nav item key → unread count. Today only Suport uses it (tickets waiting on an
 // admin reply); the shell stays generic so any section can grow a badge.
@@ -104,8 +105,8 @@ export function DashboardShell({
               className="block h-8 w-auto shrink-0 dark:hidden sm:h-10"
             />
           </Link>
-          <span className="hidden rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300 sm:inline">
-            admin
+          <span className="hidden sm:inline">
+            <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
           </span>
         </div>
 
@@ -138,9 +139,7 @@ export function DashboardShell({
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-zinc-100">
                       {user.username}
-                      <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300">
-                        admin
-                      </span>
+                      <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
                     </p>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">{user.email}</p>
                   </div>
@@ -150,7 +149,9 @@ export function DashboardShell({
                     <span className="flex items-center gap-2.5 text-zinc-400">
                       <ShieldCheck className="h-4 w-4" /> Rol
                     </span>
-                    <span className="font-medium text-zinc-200">admin</span>
+                    <span className="font-medium text-zinc-200">
+                      {user.isSuperAdmin ? "Super admin" : "Manager"}
+                    </span>
                   </div>
                 </div>
                 <div className="border-t border-zinc-800 p-1.5">

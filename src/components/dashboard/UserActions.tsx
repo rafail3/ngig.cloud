@@ -158,7 +158,7 @@ export function UserActions({
         ) : user.is_super_admin ? (
           <p className="flex items-center gap-2 text-sm text-amber-300/90">
             <Crown className="h-4 w-4 shrink-0" />
-            Master admin — rolul e protejat și nu poate fi schimbat.
+            Super admin — rolul e protejat și nu poate fi schimbat.
           </p>
         ) : (
           <div className="flex flex-col gap-3">
@@ -166,7 +166,7 @@ export function UserActions({
               Rol curent:{" "}
               <span className="inline-flex items-center gap-1.5 font-medium text-zinc-200">
                 {isAdmin ? <Crown className="h-3.5 w-3.5 text-indigo-300" /> : <User className="h-3.5 w-3.5 text-zinc-400" />}
-                {isAdmin ? "Administrator" : "Utilizator"}
+                {isAdmin ? "Manager" : "Utilizator"}
               </span>
             </p>
             <form action={roleAction}>
@@ -186,7 +186,7 @@ export function UserActions({
                   ? "Se salvează…"
                   : isAdmin
                     ? "Retrogradează la utilizator"
-                    : "Promovează la administrator"}
+                    : "Promovează la manager"}
               </button>
             </form>
           </div>

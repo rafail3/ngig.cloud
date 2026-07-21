@@ -7,6 +7,7 @@ import { ProfileTabs } from "@/components/account/ProfileTabs";
 import { ActivityPanel } from "@/components/account/ActivityPanel";
 import { ActiveSessions } from "@/components/account/ActiveSessions";
 import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
+import { RoleBadge } from "@/components/dashboard/RoleBadge";
 import { formatDateTime as fmt } from "@/lib/format-date";
 
 export const metadata = { title: "Profilul meu" };
@@ -34,11 +35,7 @@ async function ProfileContent() {
             <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">
               {me.username}
             </h1>
-            {me.role === "admin" && (
-              <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300">
-                admin
-              </span>
-            )}
+            <RoleBadge role={me.role === "admin" ? "admin" : "user"} superAdmin={me.isSuperAdmin} />
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500 sm:text-sm">
             <span className="flex min-w-0 items-center gap-1.5">

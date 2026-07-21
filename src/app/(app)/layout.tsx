@@ -28,12 +28,13 @@ async function Shell({ children }: { children: React.ReactNode }) {
   // and the live request fills it in).
   let username = "";
   let role = "";
+  let isSuperAdmin = false;
 
   if (userId) {
     const profile = (
       await supabase
         .from("profiles")
-        .select("username, role, last_seen_at")
+        .select("username, role, last_seen_at, is_super_admin")
         .eq("id", userId)
         .single()
     ).data;
@@ -45,13 +46,14 @@ async function Shell({ children }: { children: React.ReactNode }) {
 
     username = profile?.username ?? "";
     role = profile?.role ?? "";
+    isSuperAdmin = profile?.is_super_admin ?? false;
 
     // Fire the "new version" broadcast once per deploy (off the response path).
     after(() => maybeAnnounceUpdate());
   }
 
   return (
-    <AppShell user={{ username, role, email }}>
+    <AppShell user={{ username, role, email, isSuperAdmin }}>
       {children}
     </AppShell>
   );

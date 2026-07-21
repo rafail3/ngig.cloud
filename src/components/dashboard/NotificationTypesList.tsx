@@ -24,7 +24,7 @@ const AUDIENCE: Record<
     cls: "border-sky-800/60 bg-sky-950/40 text-sky-300",
   },
   admin: {
-    label: "Admin",
+    label: "Manager",
     icon: <Shield className="h-3 w-3" />,
     cls: "border-violet-800/60 bg-violet-950/40 text-violet-300",
   },
@@ -32,7 +32,7 @@ const AUDIENCE: Record<
 
 const SECTIONS: { key: NotificationAudience; label: string }[] = [
   { key: "user", label: "Pentru utilizatori" },
-  { key: "admin", label: "Pentru administratori" },
+  { key: "admin", label: "Pentru manageri" },
 ];
 
 function AudienceBadge({ audience }: { audience: NotificationAudience }) {
@@ -497,7 +497,7 @@ function norm(s: string): string {
 const AUD_FILTERS: { value: "all" | NotificationAudience; label: string; icon?: ReactNode }[] = [
   { value: "all", label: "Toate" },
   { value: "user", label: "Utilizatori", icon: <User className="h-3.5 w-3.5" /> },
-  { value: "admin", label: "Admini", icon: <Shield className="h-3.5 w-3.5" /> },
+  { value: "admin", label: "Manageri", icon: <Shield className="h-3.5 w-3.5" /> },
 ];
 
 function ExistingTab({ types }: { types: NotificationTypeStatus[] }) {
