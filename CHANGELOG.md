@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.24.0](https://github.com/rafail3/ngig.cloud/compare/v2.23.0...v2.24.0) (2026-07-21)
+
+
+### Features
+
+* **shell:** show the deployed app version in the user menu ([52ea076](https://github.com/rafail3/ngig.cloud/commit/52ea076c5206a32530feccece8969960d309eff2))
+* **shell:** show the deployed app version in the user menu ([c0ca960](https://github.com/rafail3/ngig.cloud/commit/c0ca960599a87c93aedca9301235f81ba86c65b9))
+
+
+### Bug Fixes
+
+* **shell:** make the app version label more visible ([7088b18](https://github.com/rafail3/ngig.cloud/commit/7088b1867052105e87fc6b2d5beb09036dc026a5))
+
 ## [2.23.0](https://github.com/rafail3/ngig.cloud/compare/v2.22.0...v2.23.0) (2026-07-21)
 
 
