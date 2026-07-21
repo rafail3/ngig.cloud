@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.18.0](https://github.com/rafail3/ngig.cloud/compare/v2.17.0...v2.18.0) (2026-07-21)
+
+
+### Features
+
+* **invites:** shorter alphanumeric invite codes ([ff9f8ff](https://github.com/rafail3/ngig.cloud/commit/ff9f8fff52bffa8b8995591c7e1d588e7708447a))
+* **invites:** shorter alphanumeric invite codes ([6f7f28f](https://github.com/rafail3/ngig.cloud/commit/6f7f28fb64b3ed2f94e1c7253ec82760e416e8ec))
+
 ## [2.17.0](https://github.com/rafail3/ngig.cloud/compare/v2.16.3...v2.17.0) (2026-07-20)
 
 
