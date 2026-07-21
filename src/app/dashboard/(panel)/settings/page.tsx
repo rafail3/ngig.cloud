@@ -8,6 +8,7 @@ import { SettingsForm } from "@/components/dashboard/SettingsForm";
 import { OfficeModeSettings } from "@/components/dashboard/OfficeModeSettings";
 import { OfficeServerUrl } from "@/components/dashboard/OfficeServerUrl";
 import { OfficeServerStatus } from "@/components/dashboard/OfficeServerStatus";
+import { OfficeSettingsCollapsible } from "@/components/dashboard/OfficeSettingsCollapsible";
 import { SettingsTabs } from "@/components/dashboard/SettingsTabs";
 import { NotificationSettings } from "@/components/dashboard/NotificationTypesList";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
@@ -28,10 +29,10 @@ async function OfficeContent() {
   await connection();
   const [status, urlMode] = await Promise.all([getOfficeStatus(), getOfficeUrlMode()]);
   return (
-    <>
+    <OfficeSettingsCollapsible up={status.up} dsUrl={status.dsUrl} configured={status.configured}>
       <OfficeServerUrl url={status.dsUrl} mode={urlMode} />
       <OfficeModeSettings status={status} />
-    </>
+    </OfficeSettingsCollapsible>
   );
 }
 
