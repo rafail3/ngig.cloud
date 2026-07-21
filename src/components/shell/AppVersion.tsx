@@ -5,6 +5,6 @@ export function AppVersion({ className = "" }: { className?: string }) {
   const v = process.env.NEXT_PUBLIC_APP_VERSION;
   if (!v) return null;
   return (
-    <span className={`text-[11px] tabular-nums text-zinc-600 ${className}`}>v{v}</span>
+    <span className={`text-xs font-medium tabular-nums text-zinc-400 ${className}`}>v{v}</span>
   );
 }
