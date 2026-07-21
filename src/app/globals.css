@@ -282,6 +282,20 @@ html.light .code-preview .shiki {
 }
 
 /* ===========================================================================
+   Drive item lists — suppress native text selection + the iOS long-press
+   callout/magnifier so pressing a file/folder (to select or open a menu) feels
+   app-native instead of triggering the browser's text-selection. Applied to the
+   list containers; user-select inherits, and the descendant rule covers the
+   iOS callout on every child. Inputs/modals live outside these lists.
+   =========================================================================== */
+.drive-list,
+.drive-list * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ===========================================================================
    .xlsx preview — an Excel-like grid: A/B/C column headers, 1/2/3 row numbers
    (both sticky), grid lines, merged cells. Painted with zinc tokens so it works
    in both themes. Cell values come from SheetJS (data + structure, not Excel's

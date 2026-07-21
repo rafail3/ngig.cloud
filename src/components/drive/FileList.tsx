@@ -191,7 +191,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
       {/* Fully static list — rows replace in place with no enter/exit animation.
           Opening a folder shows its files directly: no entrance slide, and no
           "ghost" of the previous folder's rows animating out over the new ones. */}
-      <ul className="divide-y divide-zinc-800/40 overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900/20">
+      <ul className="drive-list divide-y divide-zinc-800/40 overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900/20">
           {uploading.map((job) => (
             <UploadingRow key={job.id} job={job} />
           ))}
