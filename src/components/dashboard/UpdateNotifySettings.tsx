@@ -30,8 +30,8 @@ function Switch({ on, onFlip }: { on: boolean; onFlip: () => void }) {
   );
 }
 
-// Compact editable row (settings style) for the "new version" broadcast: a calm
-// line showing the current on/off + audience, expanding to edit.
+// Compact, professional editable row for the "new version" broadcast: a calm
+// line with the current on/off + audience, expanding to a clean edit panel.
 export function UpdateNotifySettings({ settings }: { settings: Settings }) {
   const [state, action, pending] = useActionState(saveUpdateNotifySettingsAction, initial);
   useToastState(state);
@@ -45,6 +45,13 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
     if (state.ok) setOpen(false);
   }, [state.ok]);
 
+  function cancel() {
+    setEnabled(settings.enabled);
+    setAdmin(settings.audience.includes("admin"));
+    setUser(settings.audience.includes("user"));
+    setOpen(false);
+  }
+
   const audienceLabel = [admin && "Admini", user && "Utilizatori"].filter(Boolean).join(", ");
   const summary = !enabled ? "Oprit" : `Pornit · ${audienceLabel || "nimeni"}`;
 
@@ -53,7 +60,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
       active
         ? "border-indigo-500/50 bg-indigo-500/10 text-zinc-100"
         : "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-    } disabled:cursor-not-allowed disabled:opacity-50`;
+    }`;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:px-5">
@@ -65,7 +72,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
           <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-100">Notificare de versiune nouă</p>
             <p className="mt-0.5 truncate text-xs text-zinc-500">
-              La fiecare update, userii aleși primesc o notificare cu implementările noi.
+              Anunță userii la fiecare update, cu implementările noi.
             </p>
           </div>
         </div>
@@ -75,7 +82,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
           </span>
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
+            onClick={() => (open ? cancel() : setOpen(true))}
             aria-expanded={open}
             className={`rounded-lg border px-3 py-1.5 text-sm transition ${
               open
@@ -102,29 +109,38 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="overflow-hidden"
           >
-            <form action={action} className="flex flex-col gap-4 pt-4 sm:pl-12">
-              <input type="hidden" name="enabled" value={String(enabled)} />
-              <input type="hidden" name="aud_admin" value={String(admin)} />
-              <input type="hidden" name="aud_user" value={String(user)} />
-
-              <label className="flex items-center gap-3">
-                <Switch on={enabled} onFlip={() => setEnabled((v) => !v)} />
-                <span className="text-sm text-zinc-300">{enabled ? "Activă" : "Oprită"}</span>
-              </label>
-
-              <div>
-                <p className="mb-1.5 text-xs font-medium text-zinc-400">Cine primește</p>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" disabled={!enabled} onClick={() => setAdmin((v) => !v)} className={chip(admin)}>
-                    <Shield className="h-4 w-4" /> Admini
-                  </button>
-                  <button type="button" disabled={!enabled} onClick={() => setUser((v) => !v)} className={chip(user)}>
-                    <User className="h-4 w-4" /> Utilizatori
-                  </button>
+            <div className="flex flex-col gap-4 pt-4 sm:pl-12">
+              {/* On/off */}
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-3">
+                <div>
+                  <p className="text-sm font-medium text-zinc-200">Activă</p>
+                  <p className="text-xs text-zinc-500">Trimite notificarea la fiecare versiune nouă.</p>
                 </div>
+                <Switch on={enabled} onFlip={() => setEnabled((v) => !v)} />
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Audience — only relevant when on */}
+              {enabled && (
+                <div>
+                  <p className="mb-1.5 text-xs font-medium text-zinc-400">Audiență</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => setAdmin((v) => !v)} className={chip(admin)}>
+                      <Shield className="h-4 w-4" /> Admini
+                    </button>
+                    <button type="button" onClick={() => setUser((v) => !v)} className={chip(user)}>
+                      <User className="h-4 w-4" /> Utilizatori
+                    </button>
+                  </div>
+                  {!admin && !user && (
+                    <p className="mt-1.5 text-xs text-amber-400/80">Alege cel puțin un grup.</p>
+                  )}
+                </div>
+              )}
+
+              <form action={action}>
+                <input type="hidden" name="enabled" value={String(enabled)} />
+                <input type="hidden" name="aud_admin" value={String(admin)} />
+                <input type="hidden" name="aud_user" value={String(user)} />
                 <button
                   type="submit"
                   disabled={pending}
@@ -132,15 +148,8 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
                 >
                   {pending ? "Se salvează…" : "Salvează"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
-                >
-                  Anulează
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

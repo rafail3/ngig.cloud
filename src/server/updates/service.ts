@@ -20,6 +20,10 @@ function deployedVersion(): string | null {
   return process.env.NEXT_PUBLIC_APP_VERSION || null;
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 export async function getUpdateNotifySettings(): Promise<UpdateNotifySettings> {
   const admin = createAdminClient();
   const { data } = await admin
@@ -61,7 +65,7 @@ async function fetchChangelogHighlights(version: string): Promise<string | null>
     ).finally(() => clearTimeout(timer));
     if (!res.ok) return null;
     const json = (await res.json()) as { body?: string };
-    const bullets = (json.body ?? "")
+    const cleaned = (json.body ?? "")
       .split("\n")
       .map((l) => l.trim())
       .filter((l) => l.startsWith("* ") || l.startsWith("- "))
@@ -73,9 +77,12 @@ async function fetchChangelogHighlights(version: string): Promise<string | null>
           .replace(/`/g, "")
           .trim(),
       )
-      .filter(Boolean)
-      .slice(0, 5);
-    return bullets.length ? bullets.map((b) => `• ${b}`).join("\n") : null;
+      .filter(Boolean);
+    // Release notes often repeat a line — keep unique, capped. The body is
+    // rendered as HTML in the bell, so escape (notes are semi-trusted) and use
+    // <br> for real line breaks.
+    const bullets = [...new Set(cleaned)].slice(0, 4).map(escapeHtml);
+    return bullets.length ? bullets.map((b) => `• ${b}`).join("<br>") : null;
   } catch {
     return null;
   }
@@ -119,8 +126,8 @@ export async function maybeAnnounceUpdate(): Promise<void> {
     handledVersion = version;
     if (!claimed) return; // another request already announced this version
     const highlights = await fetchChangelogHighlights(version);
-    const body = `Aplicația a fost actualizată la versiunea v${version}.${
-      highlights ? `\n\n${highlights}` : ""
+    const body = `Aplicația a fost actualizată la versiunea <strong>v${version}</strong>.${
+      highlights ? `<br><br>${highlights}` : ""
     }`;
     await broadcastUpdate(audience, "Implementări noi", body);
   } catch {
