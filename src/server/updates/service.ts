@@ -112,7 +112,10 @@ export async function maybeAnnounceUpdate(): Promise<void> {
     const { enabled, audience } = await getUpdateNotifySettings();
     if (!enabled) return; // not cached — pick it up if it gets re-enabled
     const admin = createAdminClient();
-    const { data: claimed } = await admin.rpc("claim_update_version", { v: version });
+    const { data: claimed, error } = await admin.rpc("claim_update_version", { v: version });
+    // Don't memo on RPC failure (e.g. the migration isn't applied yet) so a
+    // later request can retry without needing a restart.
+    if (error) return;
     handledVersion = version;
     if (!claimed) return; // another request already announced this version
     const highlights = await fetchChangelogHighlights(version);
