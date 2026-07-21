@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.25.0](https://github.com/rafail3/ngig.cloud/compare/v2.24.0...v2.25.0) (2026-07-21)
+
+
+### Features
+
+* **dashboard:** group global settings into Storage + Accounts ([77d0e5d](https://github.com/rafail3/ngig.cloud/commit/77d0e5d474b232431660e9957f500b79f6f52498))
+* **dashboard:** high-end editable rows for global settings ([17330f4](https://github.com/rafail3/ngig.cloud/commit/17330f430d5ce6a28e8f5dd408ff9905b5882ec9))
+* **dashboard:** max-accounts platform cap ([64cf110](https://github.com/rafail3/ngig.cloud/commit/64cf11035ce72ff28e553069c5a682744b40f817))
+* **dashboard:** max-accounts platform cap ([838e390](https://github.com/rafail3/ngig.cloud/commit/838e390352e9396a4498b0751b577df6049d854b))
+* **dashboard:** view/edit storage limits in the user detail ([99d3435](https://github.com/rafail3/ngig.cloud/commit/99d34350467e9c6659888ba5fb69e346945cb807))
+
+
+### Bug Fixes
+
+* **dashboard:** make settings category titles read as headings ([5aafc6b](https://github.com/rafail3/ngig.cloud/commit/5aafc6bea4d3b25a695c46dbb3b1c18387dc38b1))
+
 ## [2.24.0](https://github.com/rafail3/ngig.cloud/compare/v2.23.0...v2.24.0) (2026-07-21)
 
 
