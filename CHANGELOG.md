@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.26.0](https://github.com/rafail3/ngig.cloud/compare/v2.25.0...v2.26.0) (2026-07-21)
+
+
+### Features
+
+* **dashboard:** audience switches + highlighted summary; rename update title ([7c32a1a](https://github.com/rafail3/ngig.cloud/commit/7c32a1af4007b22d36f57805166a16241f2b6448))
+* **dashboard:** compact editable-row style for the update-notify card ([8635801](https://github.com/rafail3/ngig.cloud/commit/86358017356f8689b61b764e0cde84921aa1f824))
+* **notifications:** "new version" broadcast on each deploy ([6d555cb](https://github.com/rafail3/ngig.cloud/commit/6d555cb675675e659d9d96ea04c2bf9603654b19))
+* **notifications:** "new version" broadcast on each deploy ([7c0210a](https://github.com/rafail3/ngig.cloud/commit/7c0210a5697b5f7db50b96c3991e76b53db89120))
+
+
+### Bug Fixes
+
+* **dashboard:** cap update-notify switch rows width on desktop ([0967ad2](https://github.com/rafail3/ngig.cloud/commit/0967ad2fa2b9708032bb684e2f01765afc6bdc2d))
+* **dashboard:** compact whole-row toggles, no stretched boxes ([b32bec8](https://github.com/rafail3/ngig.cloud/commit/b32bec801e3eff0a66325d142882e2350452aa32))
+* **updates:** dedupe changelog bullets + cleaner update-notify card ([a530a38](https://github.com/rafail3/ngig.cloud/commit/a530a386386107c4763c2230c940eb6f2ec90520))
+* **updates:** don't memo the version check when the claim RPC errors ([db42adb](https://github.com/rafail3/ngig.cloud/commit/db42adb2a9ae3278eaf76e1d5b17f5faf7e31e01))
+
 ## [2.25.0](https://github.com/rafail3/ngig.cloud/compare/v2.24.0...v2.25.0) (2026-07-21)
 
 
