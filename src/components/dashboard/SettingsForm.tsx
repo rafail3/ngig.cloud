@@ -146,7 +146,9 @@ function SettingRow({
   );
 }
 
-// A titled group of setting rows.
+// A titled group of setting rows. The title is a section heading ABOVE the card
+// (bold, plain inline icon) so it reads as a category — clearly distinct from
+// the setting rows inside, which carry icon chips + an Editează button.
 function Group({
   icon: Icon,
   title,
@@ -157,21 +159,21 @@ function Group({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
-      <div className="flex items-center gap-2.5 border-b border-zinc-800/70 p-4 sm:px-5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
-          <Icon className="h-4 w-4" />
-        </span>
-        <h3 className="text-sm font-semibold text-zinc-100">{title}</h3>
+    <section className="flex flex-col gap-3">
+      <h3 className="flex items-center gap-2 px-1 text-base font-semibold text-zinc-100">
+        <Icon className="h-4 w-4 text-zinc-400" />
+        {title}
+      </h3>
+      <div className="overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40 divide-y divide-zinc-800/70">
+        {children}
       </div>
-      <div className="divide-y divide-zinc-800/70">{children}</div>
-    </div>
+    </section>
   );
 }
 
 export function SettingsForm({ settings }: { settings: GlobalSettings }) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <Group icon={HardDrive} title="Limite storage">
         <SettingRow
           field="globalMaxFileSize"
