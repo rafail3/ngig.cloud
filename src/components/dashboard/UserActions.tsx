@@ -1,7 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useEffect } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { LogOut, ShieldAlert, ShieldCheck, HardDrive, UserCog, Crown, User } from "lucide-react";
+import { formatBytes } from "@/lib/format";
 import {
   blockUserAction,
   unblockUserAction,
@@ -57,6 +59,15 @@ export function UserActions({
   useToastState(signOutState);
   useToastState(roleState);
   const isAdmin = user.role === "admin";
+
+  // Storage-limits row: collapsed view of the current limits, expands to edit.
+  const [limitsOpen, setLimitsOpen] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (limitsState.ok) setLimitsOpen(false);
+  }, [limitsState.ok]);
+  const fileLimit = user.max_file_size != null ? formatBytes(user.max_file_size) : "Nelimitat";
+  const totalLimit = user.max_total_size != null ? formatBytes(user.max_total_size) : "Nelimitat";
   const file = splitUnit(user.max_file_size);
   const total = splitUnit(user.max_total_size);
 
@@ -207,17 +218,55 @@ export function UserActions({
 
       {/* ===== Storage limits ===== */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
-            <HardDrive className="h-4 w-4" />
-          </span>
-          <h3 className="text-sm font-semibold">Limite spațiu</h3>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-zinc-100">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+              <HardDrive className="h-4 w-4" />
+            </span>
+            <h3 className="text-sm font-semibold">Limite spațiu</h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLimitsOpen((v) => !v)}
+            aria-expanded={limitsOpen}
+            className={`rounded-lg border px-3 py-1.5 text-sm transition ${
+              limitsOpen
+                ? "border-indigo-500/50 bg-indigo-500/10 text-zinc-100"
+                : "border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50"
+            }`}
+          >
+            {limitsOpen ? "Anulează" : "Editează"}
+          </button>
         </div>
-        <p className="mb-3 text-sm text-zinc-400">
-          Lasă gol = nelimitat. Valori în GB.
-        </p>
-        <form action={limitsAction} className="flex flex-col gap-3">
-          <input type="hidden" name="id" value={user.id} />
+
+        <dl className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <dt className="text-xs text-zinc-500">Max / fișier</dt>
+            <dd className={`text-sm ${user.max_file_size != null ? "font-medium text-zinc-200" : "text-zinc-500"}`}>
+              {fileLimit}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-500">Max total</dt>
+            <dd className={`text-sm ${user.max_total_size != null ? "font-medium text-zinc-200" : "text-zinc-500"}`}>
+              {totalLimit}
+            </dd>
+          </div>
+        </dl>
+
+        <AnimatePresence initial={false}>
+          {limitsOpen && (
+            <motion.div
+              key="limits-form"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="overflow-hidden"
+            >
+              <form action={limitsAction} className="flex flex-col gap-3 pt-4">
+                <input type="hidden" name="id" value={user.id} />
+                <p className="text-xs text-zinc-500">Lasă gol = nelimitat.</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor="maxFile" className={labelCls}>Max / fișier</label>
@@ -256,23 +305,33 @@ export function UserActions({
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="submit"
-              disabled={limitsPending}
-              className="rounded-xl bg-indigo-500 hover:bg-indigo-400 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:opacity-60"
-            >
-              {limitsPending ? "Se salvează…" : "Salvează limite"}
-            </button>
-            <button
-              type="submit"
-              formAction={resetUserLimitsAction}
-              className="rounded-xl border border-zinc-800 px-5 py-2.5 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
-            >
-              Reset
-            </button>
-          </div>
-        </form>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="submit"
+                    disabled={limitsPending}
+                    className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
+                  >
+                    {limitsPending ? "Se salvează…" : "Salvează"}
+                  </button>
+                  <button
+                    type="submit"
+                    formAction={resetUserLimitsAction}
+                    className="rounded-lg border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLimitsOpen(false)}
+                    className="rounded-lg border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+                  >
+                    Anulează
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* ===== Danger zone ===== */}
