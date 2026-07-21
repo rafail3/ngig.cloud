@@ -72,7 +72,9 @@ export function OfficeSettingsCollapsible({
             transition={{ duration: 0.28, ease: "easeOut" }}
             className="overflow-hidden"
           >
-            <div className="flex flex-col gap-4">{children}</div>
+            <div className="divide-y divide-zinc-800/70 overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
+              {children}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
