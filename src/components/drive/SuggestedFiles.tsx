@@ -96,7 +96,7 @@ export function SuggestedFiles() {
             transition={{ duration: 0.26, ease: "easeOut" }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-1 gap-2.5 pt-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="drive-list grid grid-cols-1 gap-2.5 pt-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.map((f) => (
                 <button
                   key={f.id}

@@ -243,7 +243,7 @@ function SearchResults() {
           </p>
         </motion.div>
       ) : (
-        <div className="space-y-5">
+        <div className="drive-list space-y-5">
           <p className="text-sm text-zinc-500">
             {total === 1 ? "1 rezultat" : `${total} rezultate`} pe tot cloud-ul
             {loading && <Loader2 className="ml-2 inline h-3.5 w-3.5 animate-spin" />}

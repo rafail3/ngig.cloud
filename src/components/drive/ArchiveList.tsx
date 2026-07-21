@@ -115,7 +115,7 @@ export function ArchiveList({ files }: { files: ArchiveFile[] }) {
         variants={listContainer}
         initial="hidden"
         animate="show"
-        className="divide-y divide-zinc-800/40 overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900/20"
+        className="drive-list divide-y divide-zinc-800/40 overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900/20"
       >
         <AnimatePresence initial={false}>
           {files.map((file) => {
