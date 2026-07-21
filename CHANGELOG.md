@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.19.0](https://github.com/rafail3/ngig.cloud/compare/v2.18.0...v2.19.0) (2026-07-21)
+
+
+### Features
+
+* **dashboard:** collapse OnlyOffice server settings into a compact panel ([c1c0cf4](https://github.com/rafail3/ngig.cloud/commit/c1c0cf4d4581e4693fda61b0d1256c530c2456f5))
+* **dashboard:** collapse OnlyOffice server settings into a compact panel ([6cdf145](https://github.com/rafail3/ngig.cloud/commit/6cdf145f3124643bb3409db389ae102024f3730e))
+* **dashboard:** compact pro redesign of Office server settings ([1377050](https://github.com/rafail3/ngig.cloud/commit/1377050ba137ccc4b9c934f6eb812a07a96421af))
+
 ## [2.18.0](https://github.com/rafail3/ngig.cloud/compare/v2.17.0...v2.18.0) (2026-07-21)
 
 
