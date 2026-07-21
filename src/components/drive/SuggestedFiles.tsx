@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles } from "lucide-react";
 import { useSuggested } from "./useDriveData";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { useFilter } from "./FilterProvider";
@@ -15,9 +15,9 @@ import { fileTypeShort } from "@/lib/file-type";
 const OPEN_KEY = "ngig:suggested-open";
 
 // "Fișiere sugerate" on the home root: the most recently active files across the
-// whole cloud. Collapsible (closed by default), compact tiles, click to preview.
-// Hidden while searching/filtering (the global results take over). Data is
-// SWR-keyed under "drive", so it live-updates with the rest of the drive.
+// whole cloud. A collapsible card (closed by default) revealing horizontal file
+// cards, click to preview. Hidden while searching/filtering. Data is SWR-keyed
+// under "drive", so it live-updates with the rest of the drive.
 export function SuggestedFiles() {
   const { data } = useSuggested();
   const { active } = useFilter();
@@ -56,24 +56,34 @@ export function SuggestedFiles() {
   }
 
   return (
-    <section className="mb-6 border-b border-zinc-900 pb-6">
+    <section className="mb-6">
       <button
         type="button"
         onClick={toggle}
         aria-expanded={open}
-        className="group flex w-full items-center gap-2 text-left"
+        className={`group flex w-full items-center gap-3 rounded-2xl border bg-zinc-900/40 px-4 py-3 text-left transition-colors ${
+          open ? "border-indigo-500/40" : "border-zinc-800/70 hover:border-zinc-700"
+        }`}
       >
-        <span className="text-sm font-medium text-zinc-400 transition-colors group-hover:text-zinc-200">
-          Fișiere sugerate
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+          <Sparkles className="h-[18px] w-[18px]" />
         </span>
-        <span className="rounded-full bg-zinc-800/70 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-zinc-400">
-          {data.length}
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-zinc-100">Fișiere sugerate</span>
+          <span className="hidden text-xs text-zinc-500 sm:block">
+            Cele mai active fișiere din cloud
+          </span>
         </span>
-        <ChevronDown
-          className={`ml-auto h-4 w-4 text-zinc-500 transition-transform group-hover:text-zinc-300 ${
-            open ? "rotate-180" : ""
-          }`}
-        />
+        <span className="ml-auto flex shrink-0 items-center gap-2.5">
+          <span className="rounded-full bg-zinc-800/70 px-2 py-0.5 text-xs font-medium tabular-nums text-zinc-300">
+            {data.length}
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 text-zinc-500 transition-transform group-hover:text-zinc-300 ${
+              open ? "rotate-180 text-indigo-400" : ""
+            }`}
+          />
+        </span>
       </button>
 
       <AnimatePresence initial={false}>
@@ -86,23 +96,23 @@ export function SuggestedFiles() {
             transition={{ duration: 0.26, ease: "easeOut" }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-3 gap-2 pt-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+            <div className="grid grid-cols-1 gap-2.5 pt-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.map((f) => (
                 <button
                   key={f.id}
                   type="button"
                   onClick={() => setPreview(f)}
-                  // Prevent the browser's double-click text selection on the tile.
+                  // Prevent the browser's double-click text selection on the card.
                   onMouseDown={(e) => e.preventDefault()}
                   title={f.name}
-                  className="flex min-w-0 select-none flex-col gap-1.5 rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-2.5 text-left outline-none transition hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900/70 focus-visible:ring-2 focus-visible:ring-indigo-400/50"
+                  className="group/card flex min-w-0 select-none items-center gap-3 rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-3 text-left outline-none transition hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900/70 focus-visible:ring-2 focus-visible:ring-indigo-400/50"
                 >
-                  <FileTypeIcon name={f.name} mime={f.mimeType} size="sm" />
-                  <span className="min-w-0 truncate text-xs font-medium text-zinc-200">
-                    {f.name}
-                  </span>
-                  <span className="-mt-1 truncate text-[10px] text-zinc-500">
-                    {fileTypeShort(f.name, f.mimeType)} · {formatBytes(f.size)}
+                  <FileTypeIcon name={f.name} mime={f.mimeType} size="md" />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate text-sm font-medium text-zinc-200">{f.name}</span>
+                    <span className="truncate text-xs text-zinc-500">
+                      {fileTypeShort(f.name, f.mimeType)} · {formatBytes(f.size)}
+                    </span>
                   </span>
                 </button>
               ))}
