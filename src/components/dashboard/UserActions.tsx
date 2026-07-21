@@ -1,13 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { LogOut, ShieldAlert, ShieldCheck, HardDrive } from "lucide-react";
+import { LogOut, ShieldAlert, ShieldCheck, HardDrive, UserCog, Crown, User } from "lucide-react";
 import {
   blockUserAction,
   unblockUserAction,
   signOutUserAction,
   setUserLimitsAction,
   resetUserLimitsAction,
+  setUserRoleAction,
 } from "@/app/dashboard/(panel)/users/actions";
 import { DeleteUser } from "@/components/dashboard/DeleteUser";
 import { isBlocked, isPermanentBlock, type UserActionState } from "@/lib/user-presence";
@@ -37,6 +38,8 @@ export function UserActions({
   user: {
     id: string;
     username: string;
+    role: "user" | "admin";
+    is_super_admin: boolean;
     blocked_until: string | null;
     blocked_reason: string | null;
     max_file_size: number | null;
@@ -48,9 +51,12 @@ export function UserActions({
   const [blockState, blockAction, blockPending] = useActionState(blockUserAction, initial);
   const [limitsState, limitsAction, limitsPending] = useActionState(setUserLimitsAction, initial);
   const [signOutState, signOutAction, signOutPending] = useActionState(signOutUserAction, initial);
+  const [roleState, roleAction, rolePending] = useActionState(setUserRoleAction, initial);
   useToastState(blockState);
   useToastState(limitsState);
   useToastState(signOutState);
+  useToastState(roleState);
+  const isAdmin = user.role === "admin";
   const file = splitUnit(user.max_file_size);
   const total = splitUnit(user.max_total_size);
 
@@ -58,8 +64,10 @@ export function UserActions({
     <div className="flex flex-col gap-4">
       {/* ===== Block / Unblock ===== */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-3 flex items-center gap-2 text-zinc-100">
-          <ShieldAlert className="h-5 w-5 text-red-400" />
+        <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-red-400">
+            <ShieldAlert className="h-4 w-4" />
+          </span>
           <h3 className="text-sm font-semibold">Acces cont</h3>
         </div>
 
@@ -123,10 +131,63 @@ export function UserActions({
         )}
       </section>
 
+      {/* ===== Role ===== */}
+      <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
+        <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+            <UserCog className="h-4 w-4" />
+          </span>
+          <h3 className="text-sm font-semibold">Rol</h3>
+        </div>
+
+        {isSelf ? (
+          <p className="text-sm text-zinc-500">
+            Acesta e contul tău — nu-ți poți schimba propriul rol de aici.
+          </p>
+        ) : user.is_super_admin ? (
+          <p className="flex items-center gap-2 text-sm text-amber-300/90">
+            <Crown className="h-4 w-4 shrink-0" />
+            Master admin — rolul e protejat și nu poate fi schimbat.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-zinc-400">
+              Rol curent:{" "}
+              <span className="inline-flex items-center gap-1.5 font-medium text-zinc-200">
+                {isAdmin ? <Crown className="h-3.5 w-3.5 text-indigo-300" /> : <User className="h-3.5 w-3.5 text-zinc-400" />}
+                {isAdmin ? "Administrator" : "Utilizator"}
+              </span>
+            </p>
+            <form action={roleAction}>
+              <input type="hidden" name="id" value={user.id} />
+              <input type="hidden" name="role" value={isAdmin ? "user" : "admin"} />
+              <button
+                type="submit"
+                disabled={rolePending}
+                className={`inline-flex items-center gap-2 self-start rounded-xl border px-4 py-2.5 text-sm transition disabled:opacity-60 ${
+                  isAdmin
+                    ? "border-zinc-800 text-zinc-300 hover:border-amber-900/60 hover:text-amber-200"
+                    : "border-indigo-900/60 text-indigo-200 hover:bg-indigo-950/40"
+                }`}
+              >
+                {isAdmin ? <User className="h-4 w-4" /> : <Crown className="h-4 w-4" />}
+                {rolePending
+                  ? "Se salvează…"
+                  : isAdmin
+                    ? "Retrogradează la utilizator"
+                    : "Promovează la administrator"}
+              </button>
+            </form>
+          </div>
+        )}
+      </section>
+
       {/* ===== Force sign out ===== */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-3 flex items-center gap-2 text-zinc-100">
-          <LogOut className="h-5 w-5 text-amber-400" />
+        <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
+            <LogOut className="h-4 w-4" />
+          </span>
           <h3 className="text-sm font-semibold">Sesiuni</h3>
         </div>
         <p className="mb-3 text-sm text-zinc-400">
@@ -146,8 +207,10 @@ export function UserActions({
 
       {/* ===== Storage limits ===== */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-3 flex items-center gap-2 text-zinc-100">
-          <HardDrive className="h-5 w-5 text-indigo-400" />
+        <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+            <HardDrive className="h-4 w-4" />
+          </span>
           <h3 className="text-sm font-semibold">Limite spațiu</h3>
         </div>
         <p className="mb-3 text-sm text-zinc-400">

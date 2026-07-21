@@ -46,6 +46,8 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultTitle: "📤 Ai fost deconectat", defaultBody: "Un administrator a deconectat toate sesiunile contului tău. Va trebui să te autentifici din nou.", vars: [] },
   { key: "limits_changed", label: "Limite de spațiu modificate", description: "Anunță utilizatorul că un administrator i-a modificat limitele de spațiu.", audience: "user",
     defaultTitle: "💾 Limite de spațiu actualizate", defaultBody: "Limitele contului tău au fost actualizate: {detalii}.", vars: ["detalii"] },
+  { key: "role_changed", label: "Rol schimbat", description: "Anunță utilizatorul când un administrator îi schimbă rolul (utilizator / administrator).", audience: "user",
+    defaultTitle: "🛡️ Rol actualizat", defaultBody: "Rolul tău a fost schimbat în {rol}.", vars: ["rol"] },
   { key: "trash_purged", label: "Fișiere șterse din coș", description: "Anunță utilizatorul că fișiere din coșul lui au fost șterse definitiv după perioada de retenție, prin curățarea automată.", audience: "user",
     defaultTitle: "🗑️ Fișiere șterse din coș", defaultBody: "{numar} fișier(e) au fost șterse definitiv din coșul tău după {zile} de zile.", vars: ["numar", "zile"] },
   { key: "block_expired", label: "Blocare expirată (utilizator)", description: "Anunță utilizatorul că blocarea temporară a expirat și contul e din nou activ.", audience: "user",

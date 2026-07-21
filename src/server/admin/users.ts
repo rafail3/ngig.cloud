@@ -10,6 +10,7 @@ export type AdminUser = {
   email: string | null;
   email_confirmed: boolean;
   role: "user" | "admin";
+  is_super_admin: boolean;
   account_created: string;
   last_sign_in_at: string | null;
   blocked_until: string | null;
@@ -191,6 +192,37 @@ export async function setUserLimits(
   if (clauses.length === 0) return;
 
   await notifyUserEvent(id, "limits_changed", { detalii: clauses.join(" și ") }, "/");
+}
+
+// Change a user's role (user ↔ admin). Demoting an admin is guarded so the
+// platform is never left without one. The affected user is notified in-app; the
+// new role takes effect on their next request (the dashboard gate + middleware
+// re-read the role), so no session revoke is needed.
+export async function setUserRole(id: string, role: "user" | "admin"): Promise<void> {
+  const admin = createAdminClient();
+  const { data: prev } = await admin
+    .from("profiles")
+    .select("role, is_super_admin")
+    .eq("id", id)
+    .maybeSingle();
+  if (!prev) throw new Error("Utilizator inexistent.");
+  // The master admin (owner) can't be demoted/altered by anyone.
+  if (prev.is_super_admin) throw new Error("Rolul master admin-ului nu poate fi schimbat.");
+  if (prev.role === role) return; // no-op
+
+  if (prev.role === "admin" && role === "user") {
+    await assertNotLastAdmin(id);
+  }
+
+  const { error } = await admin.from("profiles").update({ role }).eq("id", id);
+  if (error) throw error;
+
+  await notifyUserEvent(
+    id,
+    "role_changed",
+    { rol: role === "admin" ? "administrator" : "utilizator" },
+    "/",
+  );
 }
 
 // Cron-only: find time-limited blocks that have lapsed (blocked_until in the
