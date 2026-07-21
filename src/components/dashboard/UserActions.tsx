@@ -39,6 +39,7 @@ export function UserActions({
     id: string;
     username: string;
     role: "user" | "admin";
+    is_super_admin: boolean;
     blocked_until: string | null;
     blocked_reason: string | null;
     max_file_size: number | null;
@@ -138,6 +139,11 @@ export function UserActions({
         {isSelf ? (
           <p className="text-sm text-zinc-500">
             Acesta e contul tău — nu-ți poți schimba propriul rol de aici.
+          </p>
+        ) : user.is_super_admin ? (
+          <p className="flex items-center gap-2 text-sm text-amber-300/90">
+            <Crown className="h-4 w-4 shrink-0" />
+            Master admin — rolul e protejat și nu poate fi schimbat.
           </p>
         ) : (
           <div className="flex flex-col gap-3">

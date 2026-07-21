@@ -3,6 +3,8 @@ import { formatBytes } from "@/lib/format";
 import { formatDateTime as fmt } from "@/lib/format-date";
 import { isOnline, isBlocked } from "@/lib/user-presence";
 import { UserActions } from "@/components/dashboard/UserActions";
+import { RoleBadge } from "@/components/dashboard/RoleBadge";
+import { Avatar } from "@/components/shell/Avatar";
 import type { AdminUser } from "@/server/admin/users";
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
@@ -23,18 +25,28 @@ export function UserDetailBody({ user, isSelf }: { user: AdminUser; isSelf: bool
 
   return (
     <>
-      <header className="flex flex-wrap items-center gap-3">
-        <span
-          className={`inline-block h-2.5 w-2.5 rounded-full ${online ? "bg-emerald-400" : "bg-zinc-600"}`}
-          title={online ? "Online" : "Offline"}
-        />
-        <h1 className="text-xl font-semibold text-zinc-50 sm:text-2xl">{user.username}</h1>
-        {user.role === "admin" && (
-          <span className="rounded bg-indigo-500/20 px-2 py-0.5 text-xs uppercase text-indigo-300">admin</span>
-        )}
-        {blocked && (
-          <span className="rounded bg-red-500/15 px-2 py-0.5 text-xs uppercase text-red-300">blocat</span>
-        )}
+      <header className="flex items-center gap-4">
+        <span className="relative shrink-0">
+          <Avatar username={user.username ?? "?"} className="h-14 w-14 text-xl" />
+          <span
+            title={online ? "Online" : "Offline"}
+            className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-zinc-950 ${
+              online ? "bg-emerald-400" : "bg-zinc-600"
+            }`}
+          />
+        </span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-semibold text-zinc-50 sm:text-2xl">{user.username}</h1>
+            <RoleBadge role={user.role} superAdmin={user.is_super_admin} />
+            {blocked && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-300">
+                Blocat
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 truncate text-sm text-zinc-400">{user.email ?? "—"}</p>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -57,7 +69,16 @@ export function UserDetailBody({ user, isSelf }: { user: AdminUser; isSelf: bool
                 </span>
               }
             />
-            <Row label="Rol" value={<span className="capitalize">{user.role}</span>} />
+            <Row
+              label="Rol"
+              value={
+                user.role === "admin" || user.is_super_admin ? (
+                  <RoleBadge role={user.role} superAdmin={user.is_super_admin} />
+                ) : (
+                  "Utilizator"
+                )
+              }
+            />
             <Row label="Status" value={online ? "Online" : "Offline"} />
             <Row label="Cont creat" value={fmt(user.account_created)} />
             <Row label="Ultima conectare" value={fmt(user.last_sign_in_at)} />
@@ -89,6 +110,7 @@ export function UserDetailBody({ user, isSelf }: { user: AdminUser; isSelf: bool
             id: user.id,
             username: user.username ?? "",
             role: user.role,
+            is_super_admin: user.is_super_admin,
             blocked_until: user.blocked_until,
             blocked_reason: user.blocked_reason,
             max_file_size: user.max_file_size,

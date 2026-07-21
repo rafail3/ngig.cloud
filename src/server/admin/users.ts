@@ -10,6 +10,7 @@ export type AdminUser = {
   email: string | null;
   email_confirmed: boolean;
   role: "user" | "admin";
+  is_super_admin: boolean;
   account_created: string;
   last_sign_in_at: string | null;
   blocked_until: string | null;
@@ -201,10 +202,12 @@ export async function setUserRole(id: string, role: "user" | "admin"): Promise<v
   const admin = createAdminClient();
   const { data: prev } = await admin
     .from("profiles")
-    .select("role")
+    .select("role, is_super_admin")
     .eq("id", id)
     .maybeSingle();
   if (!prev) throw new Error("Utilizator inexistent.");
+  // The master admin (owner) can't be demoted/altered by anyone.
+  if (prev.is_super_admin) throw new Error("Rolul master admin-ului nu poate fi schimbat.");
   if (prev.role === role) return; // no-op
 
   if (prev.role === "admin" && role === "user") {
