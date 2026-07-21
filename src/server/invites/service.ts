@@ -20,14 +20,13 @@ export type InviteRow = {
   used_by_email: string | null;
 };
 
-// High-entropy token: mixed case + digits + symbols. Copy/paste only (the
-// admin copies it; it's never typed by hand), so readability isn't a concern.
-// Excludes quotes/backslash/space to stay safe in form fields.
-const CHARSET =
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}~?";
-const CODE_LEN = 26;
+// Invite token: lowercase letters + digits only — clean, easy to copy/type/
+// dictate (no symbols or case to get wrong). 36^12 ≈ 4.7e18 combinations, so
+// entropy stays far beyond any guessing/collision concern.
+const CHARSET = "abcdefghijklmnopqrstuvwxyz0123456789";
+const CODE_LEN = 12;
 
-// e.g. j?Ww03bg~0cotb}yX?vKiTGQN}
+// e.g. k3f9zq0a7m2t
 export function generateCode(): string {
   let s = "";
   for (let i = 0; i < CODE_LEN; i++) s += CHARSET[randomInt(CHARSET.length)];
