@@ -129,7 +129,7 @@ export async function maybeAnnounceUpdate(): Promise<void> {
     const body = `Aplicația a fost actualizată la versiunea <strong>v${version}</strong>.${
       highlights ? `<br><br>${highlights}` : ""
     }`;
-    await broadcastUpdate(audience, "Implementări noi", body);
+    await broadcastUpdate(audience, "Versiune actualizată", body);
   } catch {
     // non-critical — a missed broadcast is recoverable on the next deploy
   }

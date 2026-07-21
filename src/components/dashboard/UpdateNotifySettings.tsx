@@ -53,14 +53,14 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
   }
 
   const audienceLabel = [admin && "Admini", user && "Utilizatori"].filter(Boolean).join(", ");
-  const summary = !enabled ? "Oprit" : `Pornit · ${audienceLabel || "nimeni"}`;
-
-  const chip = (active: boolean) =>
-    `flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
-      active
-        ? "border-indigo-500/50 bg-indigo-500/10 text-zinc-100"
-        : "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-    }`;
+  const summary = () =>
+    !enabled ? (
+      <span className="text-zinc-500">Oprit</span>
+    ) : (
+      <span className="text-zinc-400">
+        Pornit · <span className="font-semibold text-indigo-300">{audienceLabel || "nimeni"}</span>
+      </span>
+    );
 
   return (
     <section className="overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:px-5">
@@ -77,9 +77,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <span className={`hidden text-sm sm:inline ${enabled ? "font-medium text-zinc-200" : "text-zinc-500"}`}>
-            {summary}
-          </span>
+          <span className="hidden text-sm sm:inline">{summary()}</span>
           <button
             type="button"
             onClick={() => (open ? cancel() : setOpen(true))}
@@ -95,9 +93,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
         </div>
       </div>
 
-      <p className={`mt-1 pl-12 text-sm sm:hidden ${enabled ? "font-medium text-zinc-200" : "text-zinc-500"}`}>
-        {summary}
-      </p>
+      <p className="mt-1 pl-12 text-sm sm:hidden">{summary()}</p>
 
       <AnimatePresence initial={false}>
         {open && (
@@ -122,14 +118,20 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
               {/* Audience — only relevant when on */}
               {enabled && (
                 <div>
-                  <p className="mb-1.5 text-xs font-medium text-zinc-400">Audiență</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => setAdmin((v) => !v)} className={chip(admin)}>
-                      <Shield className="h-4 w-4" /> Admini
-                    </button>
-                    <button type="button" onClick={() => setUser((v) => !v)} className={chip(user)}>
-                      <User className="h-4 w-4" /> Utilizatori
-                    </button>
+                  <p className="mb-2 text-xs font-medium text-zinc-400">Audiență</p>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-2.5">
+                      <span className="flex items-center gap-2 text-sm text-zinc-200">
+                        <Shield className="h-4 w-4 text-zinc-400" /> Admini
+                      </span>
+                      <Switch on={admin} onFlip={() => setAdmin((v) => !v)} />
+                    </div>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-2.5">
+                      <span className="flex items-center gap-2 text-sm text-zinc-200">
+                        <User className="h-4 w-4 text-zinc-400" /> Utilizatori
+                      </span>
+                      <Switch on={user} onFlip={() => setUser((v) => !v)} />
+                    </div>
                   </div>
                   {!admin && !user && (
                     <p className="mt-1.5 text-xs text-amber-400/80">Alege cel puțin un grup.</p>
