@@ -18,6 +18,7 @@ import { prefetchDrive, useDriveRealtime, useFolder } from "@/components/drive/u
 import { OfficeStatusProvider } from "@/components/drive/OfficeStatusProvider";
 import { useClickOutside } from "@/lib/useClickOutside";
 import { Avatar } from "./Avatar";
+import { AppVersion } from "./AppVersion";
 
 type ShellUser = { username: string; role: string; email: string };
 
@@ -205,6 +206,9 @@ export function AppShell({
                       <LogOut className="h-4 w-4" /> Deconectează-te
                     </button>
                   </form>
+                </div>
+                <div className="border-t border-zinc-800 px-4 py-2 text-center">
+                  <AppVersion />
                 </div>
               </div>
             )}

@@ -23,6 +23,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useClickOutside } from "@/lib/useClickOutside";
 import { Avatar } from "./Avatar";
+import { AppVersion } from "./AppVersion";
 
 type ShellUser = { username: string; email: string };
 
@@ -161,6 +162,9 @@ export function DashboardShell({
                       <LogOut className="h-4 w-4" /> Deconectează-te
                     </button>
                   </form>
+                </div>
+                <div className="border-t border-zinc-800 px-4 py-2 text-center">
+                  <AppVersion />
                 </div>
               </div>
             )}
