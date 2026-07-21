@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.23.0](https://github.com/rafail3/ngig.cloud/compare/v2.22.0...v2.23.0) (2026-07-21)
+
+
+### Features
+
+* **dashboard:** change a user's role from the user detail ([83878fd](https://github.com/rafail3/ngig.cloud/commit/83878fdec64fb709667cda17c7cf46d434a3f64e))
+* **dashboard:** high-end user detail redesign ([30fea13](https://github.com/rafail3/ngig.cloud/commit/30fea13b50d1a04c4e0766935016e91953fd7069))
+* **dashboard:** master-admin badge + high-end users redesign ([aeeb2bb](https://github.com/rafail3/ngig.cloud/commit/aeeb2bb2b26feeccd2a6b10c526bfe5aae151894))
+* **dashboard:** master-admin badge + high-end users redesign ([2adbdcf](https://github.com/rafail3/ngig.cloud/commit/2adbdcfcf31ea760b6467e67f84c07e78bfd63e7))
+
 ## [2.22.0](https://github.com/rafail3/ngig.cloud/compare/v2.21.0...v2.22.0) (2026-07-21)
 
 
