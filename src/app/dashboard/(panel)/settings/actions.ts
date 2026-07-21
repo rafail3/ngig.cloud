@@ -67,6 +67,7 @@ export async function resetSettingsAction(): Promise<void> {
     globalMaxFileSize: null,
     defaultUserQuota: null,
     globalMaxTotal: null,
+    maxAccounts: null,
   });
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
@@ -158,8 +159,19 @@ export async function saveSettingsAction(
     return { error: "Valori invalide (ex: 50 sau 10.5)." };
   }
 
+  // Max accounts is a plain positive integer (or empty = unlimited).
+  const rawMax = String(formData.get("maxAccounts") ?? "").trim();
+  let maxAccounts: number | null = null;
+  if (rawMax !== "") {
+    const n = Number(rawMax);
+    if (!Number.isInteger(n) || n < 0) {
+      return { error: "Numărul maxim de conturi trebuie să fie un întreg pozitiv." };
+    }
+    maxAccounts = n;
+  }
+
   try {
-    await updateSettings({ globalMaxFileSize, defaultUserQuota, globalMaxTotal });
+    await updateSettings({ globalMaxFileSize, defaultUserQuota, globalMaxTotal, maxAccounts });
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard");
     return { ok: "Setări salvate." };

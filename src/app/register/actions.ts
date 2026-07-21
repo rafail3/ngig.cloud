@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { getSettings } from "@/server/admin/settings";
 import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
 import {
   sendAccountCreatedUser,
@@ -82,6 +83,26 @@ export async function registerWithInvite(
   }
   if (invite.email && invite.email.toLowerCase() !== email) {
     return { error: "Codul de invitație nu e valid pentru acest email.", values };
+  }
+
+  // 1b. Platform account cap: refuse when the platform is full (counts all
+  // accounts, admins included). Notify the admins that a signup was blocked.
+  const { maxAccounts } = await getSettings();
+  if (maxAccounts != null) {
+    const { count } = await admin
+      .from("profiles")
+      .select("id", { count: "exact", head: true });
+    if ((count ?? 0) >= maxAccounts) {
+      await notifyAdminsEvent(
+        "signup_blocked",
+        { limita: String(maxAccounts) },
+        `${dashboardOrigin()}/settings`,
+      );
+      return {
+        error: "Platforma a atins numărul maxim de conturi. Contactează administratorul.",
+        values,
+      };
+    }
   }
 
   // 2. Username must be free.

@@ -82,6 +82,22 @@ export function SettingsForm({ settings }: { settings: GlobalSettings }) {
           />
         </div>
 
+        <div className="border-t border-zinc-800/70 pt-4">
+          <label htmlFor="maxAccounts" className={labelCls}>Nr. maxim de conturi</label>
+          <input
+            id="maxAccounts"
+            name="maxAccounts"
+            type="text"
+            inputMode="numeric"
+            defaultValue={settings.maxAccounts ?? ""}
+            placeholder="nelimitat"
+            className={`${fieldCls} sm:max-w-xs`}
+          />
+          <p className="mt-1 text-xs text-zinc-500">
+            Câte conturi pot exista pe platformă (toate, inclusiv admini). Gol = nelimitat.
+          </p>
+        </div>
+
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"
