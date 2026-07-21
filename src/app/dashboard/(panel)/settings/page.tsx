@@ -46,9 +46,9 @@ function GeneralTab() {
   return (
     <section className="flex flex-col gap-4">
       <header>
-        <h2 className="text-lg font-semibold text-zinc-100">Limite storage</h2>
+        <h2 className="text-lg font-semibold text-zinc-100">Setări generale</h2>
         <p className="mt-1 text-sm text-zinc-400">
-          Setări generale ale platformei. Limitele per-user le suprascriu pe cele globale.
+          Limitele de storage și de conturi ale platformei. Limitele per-user le suprascriu pe cele globale.
         </p>
       </header>
       <Suspense fallback={<ListSkeleton rows={3} />}>

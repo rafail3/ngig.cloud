@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/admin/guard";
-import { updateSettings } from "@/server/admin/settings";
+import { updateSettings, setSetting, type SettingKey } from "@/server/admin/settings";
 import { setOfficeMode, recordOfficeState } from "@/server/office/config";
 import {
   probeDocumentServer,
@@ -67,6 +67,7 @@ export async function resetSettingsAction(): Promise<void> {
     globalMaxFileSize: null,
     defaultUserQuota: null,
     globalMaxTotal: null,
+    maxAccounts: null,
   });
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
@@ -134,6 +135,57 @@ export async function saveOfficeModeAction(
   }
 }
 
+const SETTING_KEYS: SettingKey[] = [
+  "globalMaxFileSize",
+  "defaultUserQuota",
+  "globalMaxTotal",
+  "maxAccounts",
+];
+
+// Save a single global setting (one editable row in the dashboard). Byte fields
+// carry a unit; maxAccounts is a plain positive integer. Empty = unlimited.
+export async function saveSettingAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "Acces interzis." };
+  }
+
+  const field = String(formData.get("field") ?? "") as SettingKey;
+  if (!SETTING_KEYS.includes(field)) return { error: "Setare invalidă." };
+
+  const raw = String(formData.get("value") ?? "").trim();
+  let value: number | null;
+  if (field === "maxAccounts") {
+    if (raw === "") value = null;
+    else {
+      const n = Number(raw);
+      if (!Number.isInteger(n) || n < 0) {
+        return { error: "Numărul maxim de conturi trebuie să fie un întreg pozitiv." };
+      }
+      value = n;
+    }
+  } else {
+    try {
+      value = toBytes(raw, String(formData.get("unit") ?? "GB"));
+    } catch {
+      return { error: "Valoare invalidă (ex: 50 sau 10.5)." };
+    }
+  }
+
+  try {
+    await setSetting(field, value);
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard");
+    return { ok: "Setare salvată." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvare." };
+  }
+}
+
 export async function saveSettingsAction(
   _prev: SettingsState,
   formData: FormData,
@@ -158,8 +210,19 @@ export async function saveSettingsAction(
     return { error: "Valori invalide (ex: 50 sau 10.5)." };
   }
 
+  // Max accounts is a plain positive integer (or empty = unlimited).
+  const rawMax = String(formData.get("maxAccounts") ?? "").trim();
+  let maxAccounts: number | null = null;
+  if (rawMax !== "") {
+    const n = Number(rawMax);
+    if (!Number.isInteger(n) || n < 0) {
+      return { error: "Numărul maxim de conturi trebuie să fie un întreg pozitiv." };
+    }
+    maxAccounts = n;
+  }
+
   try {
-    await updateSettings({ globalMaxFileSize, defaultUserQuota, globalMaxTotal });
+    await updateSettings({ globalMaxFileSize, defaultUserQuota, globalMaxTotal, maxAccounts });
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard");
     return { ok: "Setări salvate." };

@@ -6,12 +6,14 @@ export type GlobalSettings = {
   globalMaxFileSize: number | null; // hard cap per file, platform-wide
   defaultUserQuota: number | null; // default per-user total when no override
   globalMaxTotal: number | null; // total bytes across the whole platform
+  maxAccounts: number | null; // max number of accounts allowed (null = unlimited)
 };
 
 const KEYS = {
   globalMaxFileSize: "global_max_file_size",
   defaultUserQuota: "default_user_quota",
   globalMaxTotal: "global_max_total",
+  maxAccounts: "max_accounts",
 } as const;
 
 export async function getSettings(): Promise<GlobalSettings> {
@@ -26,7 +28,24 @@ export async function getSettings(): Promise<GlobalSettings> {
     globalMaxFileSize: num(KEYS.globalMaxFileSize),
     defaultUserQuota: num(KEYS.defaultUserQuota),
     globalMaxTotal: num(KEYS.globalMaxTotal),
+    maxAccounts: num(KEYS.maxAccounts),
   };
+}
+
+export type SettingKey = keyof GlobalSettings;
+
+// Update a single setting (upsert, or delete = "unlimited"). Lets the dashboard
+// save one field at a time without touching the others.
+export async function setSetting(key: SettingKey, value: number | null): Promise<void> {
+  const admin = createAdminClient();
+  const k = KEYS[key];
+  if (value == null) {
+    await admin.from("app_settings").delete().eq("key", k);
+  } else {
+    await admin
+      .from("app_settings")
+      .upsert({ key: k, value, updated_at: new Date().toISOString() });
+  }
 }
 
 export async function updateSettings(s: GlobalSettings): Promise<void> {
@@ -35,6 +54,7 @@ export async function updateSettings(s: GlobalSettings): Promise<void> {
     [KEYS.globalMaxFileSize, s.globalMaxFileSize],
     [KEYS.defaultUserQuota, s.defaultUserQuota],
     [KEYS.globalMaxTotal, s.globalMaxTotal],
+    [KEYS.maxAccounts, s.maxAccounts],
   ];
   for (const [key, value] of entries) {
     if (value == null) {
