@@ -64,8 +64,10 @@ export function UserActions({
     <div className="flex flex-col gap-4">
       {/* ===== Block / Unblock ===== */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-3 flex items-center gap-2 text-zinc-100">
-          <ShieldAlert className="h-5 w-5 text-red-400" />
+        <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-red-400">
+            <ShieldAlert className="h-4 w-4" />
+          </span>
           <h3 className="text-sm font-semibold">Acces cont</h3>
         </div>
 
@@ -131,8 +133,10 @@ export function UserActions({
 
       {/* ===== Role ===== */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-3 flex items-center gap-2 text-zinc-100">
-          <UserCog className="h-5 w-5 text-indigo-400" />
+        <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+            <UserCog className="h-4 w-4" />
+          </span>
           <h3 className="text-sm font-semibold">Rol</h3>
         </div>
 
@@ -180,8 +184,10 @@ export function UserActions({
 
       {/* ===== Force sign out ===== */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-3 flex items-center gap-2 text-zinc-100">
-          <LogOut className="h-5 w-5 text-amber-400" />
+        <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
+            <LogOut className="h-4 w-4" />
+          </span>
           <h3 className="text-sm font-semibold">Sesiuni</h3>
         </div>
         <p className="mb-3 text-sm text-zinc-400">
@@ -201,8 +207,10 @@ export function UserActions({
 
       {/* ===== Storage limits ===== */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-3 flex items-center gap-2 text-zinc-100">
-          <HardDrive className="h-5 w-5 text-indigo-400" />
+        <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+            <HardDrive className="h-4 w-4" />
+          </span>
           <h3 className="text-sm font-semibold">Limite spațiu</h3>
         </div>
         <p className="mb-3 text-sm text-zinc-400">
