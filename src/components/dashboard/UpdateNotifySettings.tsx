@@ -107,7 +107,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
           >
             <div className="flex flex-col gap-4 pt-4 sm:pl-12">
               {/* On/off */}
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-3">
+              <div className="flex max-w-md items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-3">
                 <div>
                   <p className="text-sm font-medium text-zinc-200">Activă</p>
                   <p className="text-xs text-zinc-500">Trimite notificarea la fiecare versiune nouă.</p>
@@ -119,7 +119,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
               {enabled && (
                 <div>
                   <p className="mb-2 text-xs font-medium text-zinc-400">Audiență</p>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex max-w-md flex-col gap-2">
                     <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-2.5">
                       <span className="flex items-center gap-2 text-sm text-zinc-200">
                         <Shield className="h-4 w-4 text-zinc-400" /> Admini
