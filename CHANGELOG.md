@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.22.0](https://github.com/rafail3/ngig.cloud/compare/v2.21.0...v2.22.0) (2026-07-21)
+
+
+### Features
+
+* **dashboard:** audience filter next to the notifications search ([b8f93fd](https://github.com/rafail3/ngig.cloud/commit/b8f93fd1e539850f99d23c3bb169edfb034a1ed0))
+* **dashboard:** search box for the notification types list ([68ab6df](https://github.com/rafail3/ngig.cloud/commit/68ab6dfa6df58ed0ece61ef27ced57747b3ddf3a))
+* **dashboard:** search box for the notification types list ([1dbf933](https://github.com/rafail3/ngig.cloud/commit/1dbf933eae802fd65d4b5db04c44fd30493b1fb9))
+
 ## [2.21.0](https://github.com/rafail3/ngig.cloud/compare/v2.20.0...v2.21.0) (2026-07-21)
 
 
