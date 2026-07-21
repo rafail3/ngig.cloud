@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.21.0](https://github.com/rafail3/ngig.cloud/compare/v2.20.0...v2.21.0) (2026-07-21)
+
+
+### Features
+
+* **drive:** no text-selection / iOS callout on long-press ([98894b8](https://github.com/rafail3/ngig.cloud/commit/98894b85955f36adda216ac7f94b731954d386ec))
+* **drive:** no text-selection / iOS callout on long-press ([208243c](https://github.com/rafail3/ngig.cloud/commit/208243c6bf86456c4b425a8c1e22a90aa36e9030))
+
 ## [2.20.0](https://github.com/rafail3/ngig.cloud/compare/v2.19.0...v2.20.0) (2026-07-21)
 
 
