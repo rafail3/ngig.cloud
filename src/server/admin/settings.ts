@@ -32,6 +32,22 @@ export async function getSettings(): Promise<GlobalSettings> {
   };
 }
 
+export type SettingKey = keyof GlobalSettings;
+
+// Update a single setting (upsert, or delete = "unlimited"). Lets the dashboard
+// save one field at a time without touching the others.
+export async function setSetting(key: SettingKey, value: number | null): Promise<void> {
+  const admin = createAdminClient();
+  const k = KEYS[key];
+  if (value == null) {
+    await admin.from("app_settings").delete().eq("key", k);
+  } else {
+    await admin
+      .from("app_settings")
+      .upsert({ key: k, value, updated_at: new Date().toISOString() });
+  }
+}
+
 export async function updateSettings(s: GlobalSettings): Promise<void> {
   const admin = createAdminClient();
   const entries: [string, number | null][] = [
