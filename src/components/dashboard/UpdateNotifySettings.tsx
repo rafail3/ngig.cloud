@@ -10,28 +10,42 @@ import type { UpdateNotifySettings as Settings } from "@/server/updates/service"
 
 const initial: SettingsState = {};
 
-function Switch({ on, onFlip }: { on: boolean; onFlip: () => void }) {
+// A compact, whole-row toggle: the switch sits right next to its label (w-fit),
+// so it never stretches across the screen. The visual switch is a span (the
+// row itself is the button).
+function ToggleRow({
+  on,
+  onFlip,
+  children,
+}: {
+  on: boolean;
+  onFlip: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={on}
       onClick={onFlip}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
-        on ? "bg-indigo-600" : "bg-zinc-700"
-      }`}
+      className="flex w-fit items-center gap-3 text-left"
     >
       <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-          on ? "translate-x-5" : "translate-x-0.5"
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+          on ? "bg-indigo-600" : "bg-zinc-700"
         }`}
-      />
+      >
+        <span
+          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+            on ? "translate-x-5" : "translate-x-0.5"
+          }`}
+        />
+      </span>
+      {children}
     </button>
   );
 }
 
-// Compact, professional editable row for the "new version" broadcast: a calm
-// line with the current on/off + audience, expanding to a clean edit panel.
 export function UpdateNotifySettings({ settings }: { settings: Settings }) {
   const [state, action, pending] = useActionState(saveUpdateNotifySettingsAction, initial);
   useToastState(state);
@@ -105,36 +119,33 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="overflow-hidden"
           >
-            <div className="flex flex-col gap-4 pt-4 sm:pl-12">
-              {/* On/off */}
-              <div className="flex max-w-md items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-3">
-                <div>
-                  <p className="text-sm font-medium text-zinc-200">Activă</p>
-                  <p className="text-xs text-zinc-500">Trimite notificarea la fiecare versiune nouă.</p>
-                </div>
-                <Switch on={enabled} onFlip={() => setEnabled((v) => !v)} />
-              </div>
+            <div className="flex flex-col gap-5 pt-4 sm:pl-12">
+              <ToggleRow on={enabled} onFlip={() => setEnabled((v) => !v)}>
+                <span>
+                  <span className="block text-sm font-medium text-zinc-200">Activă</span>
+                  <span className="block text-xs text-zinc-500">
+                    Trimite notificarea la fiecare versiune nouă.
+                  </span>
+                </span>
+              </ToggleRow>
 
-              {/* Audience — only relevant when on */}
               {enabled && (
                 <div>
-                  <p className="mb-2 text-xs font-medium text-zinc-400">Audiență</p>
-                  <div className="flex max-w-md flex-col gap-2">
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-2.5">
+                  <p className="mb-2.5 text-xs font-medium text-zinc-400">Audiență</p>
+                  <div className="flex flex-col gap-3">
+                    <ToggleRow on={admin} onFlip={() => setAdmin((v) => !v)}>
                       <span className="flex items-center gap-2 text-sm text-zinc-200">
                         <Shield className="h-4 w-4 text-zinc-400" /> Admini
                       </span>
-                      <Switch on={admin} onFlip={() => setAdmin((v) => !v)} />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-2.5">
+                    </ToggleRow>
+                    <ToggleRow on={user} onFlip={() => setUser((v) => !v)}>
                       <span className="flex items-center gap-2 text-sm text-zinc-200">
                         <User className="h-4 w-4 text-zinc-400" /> Utilizatori
                       </span>
-                      <Switch on={user} onFlip={() => setUser((v) => !v)} />
-                    </div>
+                    </ToggleRow>
                   </div>
                   {!admin && !user && (
-                    <p className="mt-1.5 text-xs text-amber-400/80">Alege cel puțin un grup.</p>
+                    <p className="mt-2 text-xs text-amber-400/80">Alege cel puțin un grup.</p>
                   )}
                 </div>
               )}
