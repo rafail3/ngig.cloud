@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
-import { User, Shield, Plus, BellOff, Pencil, X, RotateCcw } from "lucide-react";
+import { User, Shield, Plus, BellOff, Pencil, X, RotateCcw, Search } from "lucide-react";
 import {
   setNotificationEnabledAction,
   setNotificationTemplateAction,
@@ -486,23 +486,105 @@ function TabButton({
   );
 }
 
+// Diacritic-insensitive lowercase, so "sters" matches "șters" etc.
+function norm(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+const AUD_FILTERS: { value: "all" | NotificationAudience; label: string; icon?: ReactNode }[] = [
+  { value: "all", label: "Toate" },
+  { value: "user", label: "Utilizatori", icon: <User className="h-3.5 w-3.5" /> },
+  { value: "admin", label: "Admini", icon: <Shield className="h-3.5 w-3.5" /> },
+];
+
 function ExistingTab({ types }: { types: NotificationTypeStatus[] }) {
+  const [q, setQ] = useState("");
+  const [aud, setAud] = useState<"all" | NotificationAudience>("all");
+  const query = norm(q.trim());
+  const filtered = types.filter((t) => {
+    if (aud !== "all" && t.audience !== aud) return false;
+    if (query && !norm(`${t.label} ${t.description}`).includes(query)) return false;
+    return true;
+  });
+
   return (
-    <div className="flex flex-col gap-6">
-      {SECTIONS.map(({ key, label }) => {
-        const group = types.filter((t) => t.audience === key);
-        if (group.length === 0) return null;
-        return (
-          <section key={key} className="flex flex-col gap-2">
-            <h2 className="text-xs font-semibold text-zinc-400">{label}</h2>
-            <div className="overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
-              {group.map((t) => (
-                <Row key={t.key} t={t} />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <input
+            type="text"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Caută o notificare…"
+            aria-label="Caută notificări"
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-950/50 py-2 pl-9 pr-9 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-indigo-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-indigo-500/15"
+          />
+          {q && (
+            <button
+              type="button"
+              onClick={() => setQ("")}
+              aria-label="Șterge căutarea"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-zinc-500 transition hover:text-zinc-300"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <div
+          role="radiogroup"
+          aria-label="Filtrează după audiență"
+          className="flex shrink-0 gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
+        >
+          {AUD_FILTERS.map((f) => {
+            const on = aud === f.value;
+            return (
+              <button
+                key={f.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => setAud(f.value)}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition sm:flex-none ${
+                  on
+                    ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                {f.icon}
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-10 text-center text-sm text-zinc-500">
+          {q ? `Nicio notificare pentru „${q}”.` : "Nicio notificare pentru acest filtru."}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {SECTIONS.map(({ key, label }) => {
+            const group = filtered.filter((t) => t.audience === key);
+            if (group.length === 0) return null;
+            return (
+              <section key={key} className="flex flex-col gap-2">
+                <h2 className="text-xs font-semibold text-zinc-400">{label}</h2>
+                <div className="overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
+                  {group.map((t) => (
+                    <Row key={t.key} t={t} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
