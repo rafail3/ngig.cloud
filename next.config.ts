@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
+import { createRequire } from "node:module";
 
 const isProd = process.env.NODE_ENV === "production";
+
+// App version, read from package.json at build time. release-please bumps this
+// on every release, so exposing it as a NEXT_PUBLIC_ env makes the deployed
+// version show up in the UI and refresh on each prod deploy.
+const pkg = createRequire(import.meta.url)("./package.json") as { version: string };
 
 // The self-hosted OnlyOffice Document Server. Its editor is an iframe that pulls
 // its own scripts, styles, fonts and sockets from that origin, so every directive
@@ -61,6 +67,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+  },
+
   // Partial Prerendering: every page ships an instant static shell and streams
   // its uncached (per-user / B2 / Supabase) data behind <Suspense>. Makes
   // client navigation between pages feel instant. See reference-nav-performance.
