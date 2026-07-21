@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { FileText, User, Database, Users, type LucideIcon } from "lucide-react";
+import { HardDrive, FileText, User, Database, Users, type LucideIcon } from "lucide-react";
 import { saveSettingAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
 import { splitUnit } from "@/lib/bytes";
@@ -146,10 +146,33 @@ function SettingRow({
   );
 }
 
-export function SettingsForm({ settings }: { settings: GlobalSettings }) {
+// A titled group of setting rows.
+function Group({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
-      <div className="divide-y divide-zinc-800/70">
+      <div className="flex items-center gap-2.5 border-b border-zinc-800/70 p-4 sm:px-5">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+          <Icon className="h-4 w-4" />
+        </span>
+        <h3 className="text-sm font-semibold text-zinc-100">{title}</h3>
+      </div>
+      <div className="divide-y divide-zinc-800/70">{children}</div>
+    </div>
+  );
+}
+
+export function SettingsForm({ settings }: { settings: GlobalSettings }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <Group icon={HardDrive} title="Limite storage">
         <SettingRow
           field="globalMaxFileSize"
           kind="bytes"
@@ -174,6 +197,9 @@ export function SettingsForm({ settings }: { settings: GlobalSettings }) {
           description="Suma fișierelor tuturor userilor."
           current={settings.globalMaxTotal}
         />
+      </Group>
+
+      <Group icon={Users} title="Conturi">
         <SettingRow
           field="maxAccounts"
           kind="count"
@@ -182,7 +208,7 @@ export function SettingsForm({ settings }: { settings: GlobalSettings }) {
           description="Câte conturi pot exista (toate, inclusiv admini)."
           current={settings.maxAccounts}
         />
-      </div>
+      </Group>
     </div>
   );
 }
