@@ -13,6 +13,7 @@ import {
   setUserRoleAction,
 } from "@/app/dashboard/(panel)/users/actions";
 import { DeleteUser } from "@/components/dashboard/DeleteUser";
+import { ManagerPermissions } from "@/components/dashboard/ManagerPermissions";
 import { Select } from "@/components/support/Select";
 import { isBlocked, isPermanentBlock, type UserActionState } from "@/lib/user-presence";
 import { useToastState } from "@/lib/useToastState";
@@ -38,6 +39,7 @@ export function UserActions({
   user,
   isSelf,
   viewerIsSuper,
+  managerSections = null,
 }: {
   user: {
     id: string;
@@ -51,6 +53,9 @@ export function UserActions({
   };
   isSelf: boolean;
   viewerIsSuper: boolean;
+  // Manager's allowed dashboard sections (null = full access); only meaningful
+  // when the viewer is the super admin and the target is a manager.
+  managerSections?: string[] | null;
 }) {
   const blocked = isBlocked(user.blocked_until);
   const [blockState, blockAction, blockPending] = useActionState(blockUserAction, initial);
@@ -217,6 +222,11 @@ export function UserActions({
           </div>
         )}
       </section>
+      )}
+
+      {/* ===== Manager permissions (super admin, on managers only) ===== */}
+      {viewerIsSuper && isAdmin && !user.is_super_admin && (
+        <ManagerPermissions userId={user.id} sections={managerSections} />
       )}
 
       {/* ===== Force sign out ===== */}
