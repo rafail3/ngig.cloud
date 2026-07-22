@@ -3,6 +3,7 @@ import { purgeExpiredTrash } from "@/server/files/service";
 import { purgeOldNotifications } from "@/server/notifications/service";
 import { purgeOldTickets } from "@/server/tickets/service";
 import { refreshB2Pricing } from "@/server/billing/pricing-source";
+import { cleanupOrphanB2Objects, reportB2Cleanup } from "@/server/maintenance/b2-cleanup";
 
 // Daily cron (see vercel.json) that runs every retention-window cleanup:
 // permanently remove trashed files past their window, delete notifications
@@ -24,5 +25,10 @@ export async function GET(request: Request) {
   // this daily cron (Hobby's 2-cron limit); failure is non-fatal — the cost
   // math falls back to the last known / hardcoded rates.
   const pricing = await refreshB2Pricing();
-  return NextResponse.json({ purged, notifications, tickets, pricing });
+  // Orphan sweep LAST — after the trash purge above, so it sees the bucket in
+  // its settled state. Multi-layer guarded (see server/maintenance/b2-cleanup);
+  // admins get a bell report only when it actually found something.
+  const b2 = await cleanupOrphanB2Objects();
+  await reportB2Cleanup(b2);
+  return NextResponse.json({ purged, notifications, tickets, pricing, b2 });
 }

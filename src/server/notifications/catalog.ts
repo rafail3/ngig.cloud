@@ -79,6 +79,8 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultTitle: "📊 Un utilizator a atins limita", defaultBody: "{utilizator} a atins limita de spațiu ({limita}).", vars: ["utilizator", "limita"] },
   { key: "platform_full", label: "Platformă aproape plină", description: "Anunță administratorii când un upload e respins fiindcă spațiul total al platformei este la limită.", audience: "admin",
     defaultTitle: "⚠️ Platforma e aproape plină", defaultBody: "Un upload a fost respins — spațiul total al platformei este aproape plin.", vars: [] },
+  { key: "b2_cleanup", label: "Raport curățare storage", description: "Sumar trimis administratorilor când curățarea automată de noapte găsește și elimină reziduuri din B2 (obiecte orfane, upload-uri neterminate).", audience: "admin",
+    defaultTitle: "🧹 Curățare storage", defaultBody: "{detalii}", vars: ["detalii"] },
   { key: "trash_purge_report", label: "Raport curățare coș", description: "Sumar zilnic trimis administratorilor după curățarea automată a coșurilor.", audience: "admin",
     defaultTitle: "🧹 Curățare coș", defaultBody: "{total} fișiere șterse definitiv din coșurile a {utilizatori} utilizatori.", vars: ["total", "utilizatori"] },
   { key: "block_expired_admin", label: "Blocare expirată (admin)", description: "Anunță administratorii când blocarea temporară a unui utilizator expiră.", audience: "admin",
