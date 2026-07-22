@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.32.0](https://github.com/rafail3/ngig.cloud/compare/v2.31.0...v2.32.0) (2026-07-22)
+
+
+### Features
+
+* **account:** bell notification when the self cap rejects an upload ([702a7e8](https://github.com/rafail3/ngig.cloud/commit/702a7e85b774e19f0c289f69378a3f305334541a))
+* **account:** self-set upload cap + storage alert (server) ([dc7e0d0](https://github.com/rafail3/ngig.cloud/commit/dc7e0d05e234cae4f7a53c6941bd44b4fd53c3d1))
+* **profile:** explicit reset for the self cap + inputs open empty ([e3310cc](https://github.com/rafail3/ngig.cloud/commit/e3310cc21bc42af3465b674fc4b2a8da9bb24d1c))
+* **profile:** self-set upload cap + storage threshold alerts ([5d6335a](https://github.com/rafail3/ngig.cloud/commit/5d6335a14a968b4effc32d3ae22660c9fc8ed93d))
+* **profile:** storage settings card — own cap + alert threshold ([5192662](https://github.com/rafail3/ngig.cloud/commit/5192662fefd59746dd25e8378efad0fe8de52420))
+
+
+### Bug Fixes
+
+* **profile:** manual action dispatch + current-value chips ([7bb122a](https://github.com/rafail3/ngig.cloud/commit/7bb122a8004ec726cf6253f84a3558c86f2beaee))
+* **profile:** reject a self cap below current usage ([c8b6d04](https://github.com/rafail3/ngig.cloud/commit/c8b6d04a4690841773f4682ece74bfdae4aee726))
+
 ## [2.31.0](https://github.com/rafail3/ngig.cloud/compare/v2.30.0...v2.31.0) (2026-07-22)
 
 
