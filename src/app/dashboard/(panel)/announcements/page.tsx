@@ -4,6 +4,7 @@ import { listAnnouncements } from "@/server/announcements/service";
 import { viewerIsSuperAdmin } from "@/server/admin/guard";
 import { AnnouncementComposer } from "@/components/dashboard/AnnouncementComposer";
 import { AnnouncementHistory } from "@/components/dashboard/AnnouncementHistory";
+import { SectionGate } from "@/components/dashboard/SectionGate";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Anunțuri" };
@@ -24,14 +25,20 @@ export default function AnnouncementsPage() {
         </p>
       </header>
 
-      <AnnouncementComposer />
+      {/* The composer is gated too, so the whole page body sits behind one
+          gate — the header still paints instantly. */}
+      <Suspense fallback={<ListSkeleton />}>
+        <SectionGate section="announcements">
+          <AnnouncementComposer />
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-zinc-400">Istoric</h2>
-        <Suspense fallback={<ListSkeleton />}>
-          <HistoryContent />
-        </Suspense>
-      </section>
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium text-zinc-400">Istoric</h2>
+            <Suspense fallback={<ListSkeleton />}>
+              <HistoryContent />
+            </Suspense>
+          </section>
+        </SectionGate>
+      </Suspense>
     </div>
   );
 }

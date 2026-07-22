@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getUser } from "@/server/admin/users";
+import { getUser, getManagerSections } from "@/server/admin/users";
 import { UserDetailBody } from "@/components/dashboard/UserDetailBody";
 import { UserDetailModal } from "@/components/dashboard/UserDetailModal";
 import { UserDetailSkeleton } from "@/components/dashboard/UserDetailSkeleton";
+import { SectionGate } from "@/components/dashboard/SectionGate";
 
 // `id` (dynamic param), the user lookup and the self-check are per-request, so
 // they resolve inside <Suspense> — the modal frame opens instantly and the body
@@ -32,7 +33,20 @@ async function InterceptedUserDetailContent({
     viewerIsSuper = viewer?.is_super_admin ?? false;
   }
 
-  return <UserDetailBody user={user} isSelf={isSelf} viewerIsSuper={viewerIsSuper} />;
+  // Only the super admin's manager-permissions card needs the current config.
+  const managerSections =
+    viewerIsSuper && user.role === "admin" && !user.is_super_admin
+      ? await getManagerSections(id)
+      : null;
+
+  return (
+    <UserDetailBody
+      user={user}
+      isSelf={isSelf}
+      viewerIsSuper={viewerIsSuper}
+      managerSections={managerSections}
+    />
+  );
 }
 
 // Intercepts /users/[id] when navigated from within the dashboard → renders the
@@ -45,7 +59,9 @@ export default function InterceptedUserDetail({
   return (
     <UserDetailModal>
       <Suspense fallback={<UserDetailSkeleton />}>
-        <InterceptedUserDetailContent params={params} />
+        <SectionGate section="users">
+          <InterceptedUserDetailContent params={params} />
+        </SectionGate>
       </Suspense>
     </UserDetailModal>
   );

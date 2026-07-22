@@ -10,6 +10,7 @@ import { AdminReply } from "@/components/dashboard/AdminReply";
 import { TicketStatusControls } from "@/components/dashboard/TicketStatusControls";
 import { viewerIsSuperAdmin } from "@/server/admin/guard";
 import { TicketPrioritySelect } from "@/components/dashboard/TicketPrioritySelect";
+import { SectionGate } from "@/components/dashboard/SectionGate";
 
 export const metadata = { title: "Dashboard — Ticket" };
 
@@ -85,7 +86,9 @@ export default async function AdminTicketPage({
       </Link>
 
       <Suspense fallback={<ChatSkeleton />}>
-        <TicketContent id={id} />
+        <SectionGate section="tickets">
+          <TicketContent id={id} />
+        </SectionGate>
       </Suspense>
     </div>
   );

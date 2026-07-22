@@ -4,6 +4,7 @@ import { listInvites } from "@/server/invites/service";
 import { viewerIsSuperAdmin } from "@/server/admin/guard";
 import { InviteGenerator } from "@/components/dashboard/InviteGenerator";
 import { InvitesTable } from "@/components/dashboard/InvitesTable";
+import { SectionGate } from "@/components/dashboard/SectionGate";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Invite codes" };
@@ -48,7 +49,9 @@ export default function InvitesPage({
       </header>
 
       <Suspense fallback={<ListSkeleton />}>
-        <InvitesContent searchParams={searchParams} />
+        <SectionGate section="invites">
+          <InvitesContent searchParams={searchParams} />
+        </SectionGate>
       </Suspense>
     </div>
   );
