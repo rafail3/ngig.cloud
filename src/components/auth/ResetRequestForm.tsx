@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { MailCheck } from "lucide-react";
 import { requestResetAction } from "@/app/reset/actions";
 import type { ResetRequestState } from "@/lib/email-state";
-import { Turnstile } from "./Turnstile";
+import { Turnstile, useQueuedSubmit } from "./Turnstile";
 import { Spinner } from "./Spinner";
 
 const initial: ResetRequestState = {};
@@ -16,7 +16,8 @@ const inputCls =
 export function ResetRequestForm() {
   const [state, formAction, pending] = useActionState(requestResetAction, initial);
   const [botReady, setBotReady] = useState(false);
-  const busy = pending || !botReady;
+  const { formRef, onSubmit, queued } = useQueuedSubmit(botReady);
+  const busy = pending || queued;
   useEffect(() => {
     if (state.error) toast.error(state.error);
   }, [state]);
@@ -34,7 +35,7 @@ export function ResetRequestForm() {
   }
 
   return (
-    <form noValidate action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
+    <form noValidate ref={formRef} onSubmit={onSubmit} action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
       <div>
         <label htmlFor="email" className={labelCls}>Email</label>
         <input
@@ -55,7 +56,7 @@ export function ResetRequestForm() {
         disabled={busy}
         className="relative mt-1 rounded-xl bg-indigo-500 hover:bg-indigo-400 px-4 py-2.5 text-base font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
       >
-        {pending ? "Se trimite…" : !botReady ? "Verificare de securitate…" : "Trimite link de resetare"}
+        {pending || queued ? "Se trimite…" : "Trimite link de resetare"}
         {busy && <Spinner className="absolute right-4 top-1/2 -translate-y-1/2" />}
       </button>
     </form>
