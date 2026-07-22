@@ -136,7 +136,9 @@ async function enforceQuota(
 
   if (quota != null && used + size > quota) {
     if (selfQuota) {
-      // The user's own budget — their business alone, no admin flag.
+      // The user's own budget — their business alone, no admin flag. The bell
+      // gets a note too, mirroring the admin-quota rejection.
+      await notifyUserEvent(userId, "self_quota", { limita: formatBytes(quota) }, "/profil");
       throw new Error(
         `Ai atins plafonul de stocare pe care ți l-ai setat singur (${formatBytes(quota)}). Îl poți schimba din profil.`,
       );

@@ -56,6 +56,8 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultTitle: "💡 Sugestie pentru tine", defaultBody: "{tip}", vars: ["tip"] },
   { key: "storage_alert", label: "Alertă prag de spațiu", description: "Anunță utilizatorul când stocarea lui depășește pragul pe care și l-a setat singur în profil (procent din cotă sau valoare fixă).", audience: "user",
     defaultTitle: "📢 Prag de spațiu atins", defaultBody: "Folosești {folosit} — ai depășit pragul tău de {prag}. Poți elibera spațiu sau ajusta pragul din profil.", vars: ["folosit", "prag"] },
+  { key: "self_quota", label: "Plafon propriu atins", description: "Anunță utilizatorul că un upload a fost respins fiindcă ar fi depășit plafonul de stocare pe care și l-a setat singur în profil.", audience: "user",
+    defaultTitle: "📦 Ți-ai atins plafonul propriu", defaultBody: "Un upload a fost respins — ai atins plafonul de stocare setat de tine ({limita}). Îl poți ajusta din profil.", vars: ["limita"] },
   { key: "ticket_created", label: "Ticket deschis (confirmare)", description: "Confirmă utilizatorului că ticketul lui de suport a fost înregistrat, imediat după ce îl deschide.", audience: "user",
     defaultTitle: "📨 Ai deschis un ticket", defaultBody: "Am înregistrat ticketul „{subiect}” ({categorie}). Îți răspundem cât putem de repede.", vars: ["subiect", "categorie"] },
   { key: "ticket_reply", label: "Răspuns la ticket", description: "Anunță utilizatorul când un administrator răspunde la unul dintre ticketele lui de suport.", audience: "user",
