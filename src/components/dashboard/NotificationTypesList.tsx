@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { User, Shield, Plus, BellOff, Pencil, X, RotateCcw, Search } from "lucide-react";
+import { Select } from "@/components/support/Select";
 import {
   setNotificationEnabledAction,
   setNotificationTemplateAction,
@@ -24,7 +25,7 @@ const AUDIENCE: Record<
     cls: "border-sky-800/60 bg-sky-950/40 text-sky-300",
   },
   admin: {
-    label: "Admin",
+    label: "Manager",
     icon: <Shield className="h-3 w-3" />,
     cls: "border-violet-800/60 bg-violet-950/40 text-violet-300",
   },
@@ -32,7 +33,7 @@ const AUDIENCE: Record<
 
 const SECTIONS: { key: NotificationAudience; label: string }[] = [
   { key: "user", label: "Pentru utilizatori" },
-  { key: "admin", label: "Pentru administratori" },
+  { key: "admin", label: "Pentru manageri" },
 ];
 
 function AudienceBadge({ audience }: { audience: NotificationAudience }) {
@@ -497,7 +498,7 @@ function norm(s: string): string {
 const AUD_FILTERS: { value: "all" | NotificationAudience; label: string; icon?: ReactNode }[] = [
   { value: "all", label: "Toate" },
   { value: "user", label: "Utilizatori", icon: <User className="h-3.5 w-3.5" /> },
-  { value: "admin", label: "Admini", icon: <Shield className="h-3.5 w-3.5" /> },
+  { value: "admin", label: "Manageri", icon: <Shield className="h-3.5 w-3.5" /> },
 ];
 
 function ExistingTab({ types }: { types: NotificationTypeStatus[] }) {
@@ -610,23 +611,15 @@ function AddTab({ addable }: { addable: NotificationTypeMeta[] }) {
 
   return (
     <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-5">
-      <label htmlFor="add-action" className="mb-1.5 block text-xs font-medium text-zinc-400">
-        Acțiune
-      </label>
+      <span className="mb-1.5 block text-xs font-medium text-zinc-400">Acțiune</span>
       <div className="flex flex-col gap-3 sm:flex-row">
-        <select
-          id="add-action"
+        <Select
           value={selected}
-          onChange={(e) => setSelected(e.target.value)}
-          className="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-indigo-500/60 focus:outline-none"
-        >
-          <option value="">Alege o acțiune…</option>
-          {addable.map((a) => (
-            <option key={a.key} value={a.key}>
-              {a.label}
-            </option>
-          ))}
-        </select>
+          options={addable.map((a) => ({ key: a.key, label: a.label }))}
+          onChange={setSelected}
+          ariaLabel="Alege o acțiune"
+          className="flex-1"
+        />
         <button
           type="button"
           disabled={!selected}

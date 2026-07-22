@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/server/admin/guard";
+import { requireAdmin, requireSuperAdmin } from "@/server/admin/guard";
 import { updateSettings, setSetting, type SettingKey } from "@/server/admin/settings";
 import { setUpdateNotifySettings, type UpdateRole } from "@/server/updates/service";
 import { setOfficeMode, recordOfficeState } from "@/server/office/config";
@@ -63,7 +63,7 @@ export async function getOfficeServerInfoAction(): Promise<OfficeServerInfo> {
 }
 
 export async function resetSettingsAction(): Promise<void> {
-  await requireAdmin();
+  await requireSuperAdmin();
   await updateSettings({
     globalMaxFileSize: null,
     defaultUserQuota: null,
@@ -81,7 +81,7 @@ export async function saveOfficeServerUrlAction(
   formData: FormData,
 ): Promise<SettingsState> {
   try {
-    await requireAdmin();
+    await requireSuperAdmin();
   } catch {
     return { error: "Acces interzis." };
   }
@@ -119,7 +119,7 @@ export async function saveOfficeModeAction(
   formData: FormData,
 ): Promise<SettingsState> {
   try {
-    await requireAdmin();
+    await requireSuperAdmin();
   } catch {
     return { error: "Acces interzis." };
   }
@@ -150,7 +150,7 @@ export async function saveSettingAction(
   formData: FormData,
 ): Promise<SettingsState> {
   try {
-    await requireAdmin();
+    await requireSuperAdmin();
   } catch {
     return { error: "Acces interzis." };
   }
@@ -193,7 +193,7 @@ export async function saveUpdateNotifySettingsAction(
   formData: FormData,
 ): Promise<SettingsState> {
   try {
-    await requireAdmin();
+    await requireSuperAdmin();
   } catch {
     return { error: "Acces interzis." };
   }
@@ -215,7 +215,7 @@ export async function saveSettingsAction(
   formData: FormData,
 ): Promise<SettingsState> {
   try {
-    await requireAdmin();
+    await requireSuperAdmin();
   } catch {
     return { error: "Acces interzis." };
   }

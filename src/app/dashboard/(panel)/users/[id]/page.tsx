@@ -16,9 +16,19 @@ async function UserDetailContent({ params }: { params: Promise<{ id: string }> }
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  const isSelf = (data?.claims?.sub as string | undefined) === id;
+  const viewerId = data?.claims?.sub as string | undefined;
+  const isSelf = viewerId === id;
+  let viewerIsSuper = false;
+  if (viewerId) {
+    const { data: viewer } = await supabase
+      .from("profiles")
+      .select("is_super_admin")
+      .eq("id", viewerId)
+      .single();
+    viewerIsSuper = viewer?.is_super_admin ?? false;
+  }
 
-  return <UserDetailBody user={user} isSelf={isSelf} />;
+  return <UserDetailBody user={user} isSelf={isSelf} viewerIsSuper={viewerIsSuper} />;
 }
 
 export default function UserDetailPage({

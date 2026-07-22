@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireSuperAdmin } from "@/server/admin/guard";
 import {
   replyAsAdmin,
   closeTicket,
@@ -72,6 +73,8 @@ export async function reopenTicketAction(id: string): Promise<SimpleResult> {
 
 export async function deleteTicketAction(id: string): Promise<SimpleResult> {
   try {
+    // History deletion is reserved for the super admin.
+    await requireSuperAdmin();
     await deleteTicket(id);
     revalidatePath("/dashboard/tickets");
     return { ok: true };

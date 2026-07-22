@@ -66,7 +66,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
     setOpen(false);
   }
 
-  const audienceLabel = [admin && "Admini", user && "Utilizatori"].filter(Boolean).join(", ");
+  const audienceLabel = [admin && "Manageri", user && "Utilizatori"].filter(Boolean).join(", ");
   const summary = () =>
     !enabled ? (
       <span className="text-zinc-500">Oprit</span>
@@ -135,7 +135,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
                   <div className="flex flex-col gap-3">
                     <ToggleRow on={admin} onFlip={() => setAdmin((v) => !v)}>
                       <span className="flex items-center gap-2 text-sm text-zinc-200">
-                        <Shield className="h-4 w-4 text-zinc-400" /> Admini
+                        <Shield className="h-4 w-4 text-zinc-400" /> Manageri
                       </span>
                     </ToggleRow>
                     <ToggleRow on={user} onFlip={() => setUser((v) => !v)}>

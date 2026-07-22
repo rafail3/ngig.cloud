@@ -13,6 +13,7 @@ import {
   setUserRoleAction,
 } from "@/app/dashboard/(panel)/users/actions";
 import { DeleteUser } from "@/components/dashboard/DeleteUser";
+import { Select } from "@/components/support/Select";
 import { isBlocked, isPermanentBlock, type UserActionState } from "@/lib/user-presence";
 import { useToastState } from "@/lib/useToastState";
 import { splitUnit } from "@/lib/bytes";
@@ -36,6 +37,7 @@ const initial: UserActionState = {};
 export function UserActions({
   user,
   isSelf,
+  viewerIsSuper,
 }: {
   user: {
     id: string;
@@ -48,6 +50,7 @@ export function UserActions({
     max_total_size: number | null;
   };
   isSelf: boolean;
+  viewerIsSuper: boolean;
 }) {
   const blocked = isBlocked(user.blocked_until);
   const [blockState, blockAction, blockPending] = useActionState(blockUserAction, initial);
@@ -70,6 +73,25 @@ export function UserActions({
   const totalLimit = user.max_total_size != null ? formatBytes(user.max_total_size) : "Nelimitat";
   const file = splitUnit(user.max_file_size);
   const total = splitUnit(user.max_total_size);
+
+  // Custom dropdowns are controlled; hidden inputs carry the values on submit.
+  const [blockDuration, setBlockDuration] = useState("24h");
+  const [fileUnit, setFileUnit] = useState<string>(file.unit);
+  const [totalUnit, setTotalUnit] = useState<string>(total.unit);
+
+  // A manager can only act on plain users; manager/super accounts are handled
+  // exclusively by the super admin — show a calm note instead of dead controls.
+  const targetPrivileged = user.role === "admin" || user.is_super_admin;
+  if (!viewerIsSuper && targetPrivileged) {
+    return (
+      <section className="h-fit rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-5">
+        <p className="flex items-start gap-2.5 text-sm text-zinc-400">
+          <Crown className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+          Conturile de manager sunt gestionate doar de super admin.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -116,12 +138,14 @@ export function UserActions({
             <input type="hidden" name="id" value={user.id} />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label htmlFor="duration" className={labelCls}>Durată</label>
-                <select id="duration" name="duration" defaultValue="24h" className={fieldCls}>
-                  {DURATION_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value} className="bg-zinc-900">{o.label}</option>
-                  ))}
-                </select>
+                <span className={labelCls}>Durată</span>
+                <input type="hidden" name="duration" value={blockDuration} />
+                <Select
+                  value={blockDuration}
+                  options={DURATION_OPTIONS.map((o) => ({ key: o.value, label: o.label }))}
+                  onChange={setBlockDuration}
+                  ariaLabel="Durată blocare"
+                />
               </div>
               <div>
                 <label htmlFor="reason" className={labelCls}>
@@ -142,7 +166,8 @@ export function UserActions({
         )}
       </section>
 
-      {/* ===== Role ===== */}
+      {/* ===== Role (super admin only) ===== */}
+      {viewerIsSuper && (
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
         <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
@@ -158,7 +183,7 @@ export function UserActions({
         ) : user.is_super_admin ? (
           <p className="flex items-center gap-2 text-sm text-amber-300/90">
             <Crown className="h-4 w-4 shrink-0" />
-            Master admin — rolul e protejat și nu poate fi schimbat.
+            Super admin — rolul e protejat și nu poate fi schimbat.
           </p>
         ) : (
           <div className="flex flex-col gap-3">
@@ -166,7 +191,7 @@ export function UserActions({
               Rol curent:{" "}
               <span className="inline-flex items-center gap-1.5 font-medium text-zinc-200">
                 {isAdmin ? <Crown className="h-3.5 w-3.5 text-indigo-300" /> : <User className="h-3.5 w-3.5 text-zinc-400" />}
-                {isAdmin ? "Administrator" : "Utilizator"}
+                {isAdmin ? "Manager" : "Utilizator"}
               </span>
             </p>
             <form action={roleAction}>
@@ -186,12 +211,13 @@ export function UserActions({
                   ? "Se salvează…"
                   : isAdmin
                     ? "Retrogradează la utilizator"
-                    : "Promovează la administrator"}
+                    : "Promovează la manager"}
               </button>
             </form>
           </div>
         )}
       </section>
+      )}
 
       {/* ===== Force sign out ===== */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
@@ -227,7 +253,13 @@ export function UserActions({
           </div>
           <button
             type="button"
-            onClick={() => setLimitsOpen((v) => !v)}
+            onClick={() => {
+              if (!limitsOpen) {
+                setFileUnit(file.unit);
+                setTotalUnit(total.unit);
+              }
+              setLimitsOpen(!limitsOpen);
+            }}
             aria-expanded={limitsOpen}
             className={`rounded-lg border px-3 py-1.5 text-sm transition ${
               limitsOpen
@@ -259,10 +291,12 @@ export function UserActions({
             <motion.div
               key="limits-form"
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
+              // overflow stays hidden only while the height animates — once open
+              // it flips to visible so the unit dropdown's popover isn't clipped.
+              animate={{ height: "auto", opacity: 1, transitionEnd: { overflow: "visible" } }}
+              exit={{ height: 0, opacity: 0, overflow: "hidden" }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="overflow-hidden"
+              style={{ overflow: "hidden" }}
             >
               <form action={limitsAction} className="flex flex-col gap-3 pt-4">
                 <input type="hidden" name="id" value={user.id} />
@@ -280,10 +314,14 @@ export function UserActions({
                   placeholder="nelimitat"
                   className={fieldCls}
                 />
-                <select name="maxFileUnit" defaultValue={file.unit} className={`${fieldCls} w-24`}>
-                  <option value="MB" className="bg-zinc-900">MB</option>
-                  <option value="GB" className="bg-zinc-900">GB</option>
-                </select>
+                <input type="hidden" name="maxFileUnit" value={fileUnit} />
+                <Select
+                  value={fileUnit}
+                  options={[{ key: "MB", label: "MB" }, { key: "GB", label: "GB" }]}
+                  onChange={setFileUnit}
+                  ariaLabel="Unitate max fișier"
+                  className="w-24 shrink-0"
+                />
               </div>
             </div>
             <div>
@@ -298,10 +336,14 @@ export function UserActions({
                   placeholder="nelimitat"
                   className={fieldCls}
                 />
-                <select name="maxTotalUnit" defaultValue={total.unit} className={`${fieldCls} w-24`}>
-                  <option value="MB" className="bg-zinc-900">MB</option>
-                  <option value="GB" className="bg-zinc-900">GB</option>
-                </select>
+                <input type="hidden" name="maxTotalUnit" value={totalUnit} />
+                <Select
+                  value={totalUnit}
+                  options={[{ key: "MB", label: "MB" }, { key: "GB", label: "GB" }]}
+                  onChange={setTotalUnit}
+                  ariaLabel="Unitate max total"
+                  className="w-24 shrink-0"
+                />
               </div>
             </div>
           </div>
@@ -334,10 +376,10 @@ export function UserActions({
         </AnimatePresence>
       </section>
 
-      {/* ===== Danger zone ===== */}
+      {/* ===== Danger zone (super admin only) ===== */}
       {/* Hidden on your own account: deleting yourself goes through /profil,
           where you re-authenticate first. */}
-      {!isSelf && <DeleteUser id={user.id} username={user.username} />}
+      {!isSelf && viewerIsSuper && <DeleteUser id={user.id} username={user.username} />}
     </div>
   );
 }

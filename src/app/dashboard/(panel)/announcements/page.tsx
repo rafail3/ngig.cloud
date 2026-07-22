@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { listAnnouncements } from "@/server/announcements/service";
+import { viewerIsSuperAdmin } from "@/server/admin/guard";
 import { AnnouncementComposer } from "@/components/dashboard/AnnouncementComposer";
 import { AnnouncementHistory } from "@/components/dashboard/AnnouncementHistory";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
@@ -9,8 +10,8 @@ export const metadata = { title: "Dashboard — Anunțuri" };
 
 async function HistoryContent() {
   await connection();
-  const items = await listAnnouncements();
-  return <AnnouncementHistory items={items} />;
+  const [items, isSuper] = await Promise.all([listAnnouncements(), viewerIsSuperAdmin()]);
+  return <AnnouncementHistory items={items} canDelete={isSuper} />;
 }
 
 export default function AnnouncementsPage() {

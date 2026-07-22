@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Copy, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { createInviteAction, sendInviteCodeAction } from "@/app/dashboard/(panel)/invites/actions";
+import { Select } from "@/components/support/Select";
 import { useToastState } from "@/lib/useToastState";
 import type { GenerateState, SendCodeState } from "@/lib/invite-status";
 
@@ -85,9 +86,19 @@ function NewCode({ code, email }: { code: string; email?: string }) {
   );
 }
 
-export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
+export function InviteGenerator({
+  prefillEmail,
+  canCreateManager,
+}: {
+  prefillEmail?: string;
+  // Minting manager accounts is super-admin only; managers see just "User".
+  canCreateManager: boolean;
+}) {
   const [state, formAction, pending] = useActionState(createInviteAction, initial);
   useToastState(state);
+  // Custom dropdowns are controlled; hidden inputs carry the values on submit.
+  const [expiry, setExpiry] = useState("never");
+  const [role, setRole] = useState("user");
 
   return (
     <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-6">
@@ -99,22 +110,28 @@ export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
       <form action={formAction} className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="expiry" className={labelCls}>Expiră</label>
-            <select id="expiry" name="expiry" defaultValue="never" className={fieldCls}>
-              {EXPIRY_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value} className="bg-zinc-900">
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <span className={labelCls}>Expiră</span>
+            <input type="hidden" name="expiry" value={expiry} />
+            <Select
+              value={expiry}
+              options={EXPIRY_OPTIONS.map((o) => ({ key: o.value, label: o.label }))}
+              onChange={setExpiry}
+              ariaLabel="Expiră"
+            />
           </div>
 
           <div>
-            <label htmlFor="role" className={labelCls}>Rol</label>
-            <select id="role" name="role" defaultValue="user" className={fieldCls}>
-              <option value="user" className="bg-zinc-900">User</option>
-              <option value="admin" className="bg-zinc-900">Admin</option>
-            </select>
+            <span className={labelCls}>Rol</span>
+            <input type="hidden" name="role" value={role} />
+            <Select
+              value={role}
+              options={[
+                { key: "user", label: "User" },
+                ...(canCreateManager ? [{ key: "admin", label: "Manager" }] : []),
+              ]}
+              onChange={setRole}
+              ariaLabel="Rol"
+            />
           </div>
 
           <div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/server/admin/guard";
+import { requireAdmin, requireSuperAdmin, assertCanManageTarget } from "@/server/admin/guard";
 import {
   blockUser,
   unblockUser,
@@ -42,6 +42,7 @@ export async function blockUserAction(
   const reason = String(formData.get("reason") ?? "").trim() || null;
 
   try {
+    await assertCanManageTarget(adminId, id);
     await blockUser(id, duration, reason);
     refresh(id);
     return { ok: "User blocat." };
@@ -60,9 +61,9 @@ export async function deleteUserAction(input: {
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   let adminId: string;
   try {
-    adminId = await requireAdmin();
+    adminId = await requireSuperAdmin();
   } catch {
-    return { ok: false, error: "Acces interzis." };
+    return { ok: false, error: "Acces interzis. Doar super admin." };
   }
   if (!input.id) return { ok: false, error: "User invalid." };
   if (input.id === adminId) {
@@ -80,9 +81,10 @@ export async function deleteUserAction(input: {
 }
 
 export async function unblockUserAction(formData: FormData) {
-  await requireAdmin();
+  const adminId = await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
+  await assertCanManageTarget(adminId, id);
   await unblockUser(id);
   refresh(id);
 }
@@ -91,14 +93,16 @@ export async function signOutUserAction(
   _prev: UserActionState,
   formData: FormData,
 ): Promise<UserActionState> {
+  let adminId: string;
   try {
-    await requireAdmin();
+    adminId = await requireAdmin();
   } catch {
     return { error: "Acces interzis." };
   }
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "User invalid." };
   try {
+    await assertCanManageTarget(adminId, id);
     await signOutUser(id);
     refresh(id);
     return { ok: "Sesiuni invalidate." };
@@ -113,9 +117,9 @@ export async function setUserRoleAction(
 ): Promise<UserActionState> {
   let adminId: string;
   try {
-    adminId = await requireAdmin();
+    adminId = await requireSuperAdmin();
   } catch {
-    return { error: "Acces interzis." };
+    return { error: "Acces interzis. Doar super admin." };
   }
 
   const id = String(formData.get("id") ?? "");
@@ -127,16 +131,17 @@ export async function setUserRoleAction(
   try {
     await setUserRole(id, role);
     refresh(id);
-    return { ok: role === "admin" ? "User promovat la administrator." : "User setat ca utilizator." };
+    return { ok: role === "admin" ? "User promovat la manager." : "User setat ca utilizator." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la schimbarea rolului." };
   }
 }
 
 export async function resetUserLimitsAction(formData: FormData) {
-  await requireAdmin();
+  const adminId = await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
+  await assertCanManageTarget(adminId, id);
   await setUserLimits(id, { max_file_size: null, max_total_size: null });
   refresh(id);
 }
@@ -145,8 +150,9 @@ export async function setUserLimitsAction(
   _prev: UserActionState,
   formData: FormData,
 ): Promise<UserActionState> {
+  let adminId: string;
   try {
-    await requireAdmin();
+    adminId = await requireAdmin();
   } catch {
     return { error: "Acces interzis." };
   }
@@ -170,6 +176,7 @@ export async function setUserLimitsAction(
   }
 
   try {
+    await assertCanManageTarget(adminId, id);
     await setUserLimits(id, { max_file_size, max_total_size });
     refresh(id);
     return { ok: "Limite actualizate." };

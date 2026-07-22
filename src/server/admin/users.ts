@@ -220,7 +220,7 @@ export async function setUserRole(id: string, role: "user" | "admin"): Promise<v
   await notifyUserEvent(
     id,
     "role_changed",
-    { rol: role === "admin" ? "administrator" : "utilizator" },
+    { rol: role === "admin" ? "manager" : "utilizator" },
     "/",
   );
 }

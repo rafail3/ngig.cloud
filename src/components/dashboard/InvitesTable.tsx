@@ -153,7 +153,14 @@ function ConfirmDeleteModal({
   );
 }
 
-export function InvitesTable({ invites }: { invites: InviteRow[] }) {
+export function InvitesTable({
+  invites,
+  canDelete,
+}: {
+  invites: InviteRow[];
+  // History deletion is super-admin only; managers don't see the button.
+  canDelete: boolean;
+}) {
   if (invites.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-12 text-center text-sm text-zinc-500">
@@ -161,6 +168,10 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
       </div>
     );
   }
+
+  // With deletion super-only, a manager may have no action at all on any row
+  // (revoke only exists on active codes) — drop the empty column entirely.
+  const showActions = canDelete || invites.some((i) => inviteStatus(i) === "active");
 
   return (
     <div>
@@ -175,7 +186,7 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
               <th className="w-[13%] px-4 py-3 font-medium">Creat</th>
               <th className="w-[13%] px-4 py-3 font-medium">Expiră</th>
               <th className="w-[16%] px-4 py-3 font-medium">Folosit de</th>
-              <th className="w-[15%] px-4 py-3 font-medium text-right">Acțiuni</th>
+              {showActions && <th className="w-[15%] px-4 py-3 font-medium text-right">Acțiuni</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-900">
@@ -209,12 +220,14 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
                       <span className="text-zinc-600">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      {status === "active" && <RevokeButton id={inv.id} />}
-                      <DeleteButton id={inv.id} code={inv.code} />
-                    </div>
-                  </td>
+                  {showActions && (
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        {status === "active" && <RevokeButton id={inv.id} />}
+                        {canDelete && <DeleteButton id={inv.id} code={inv.code} />}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -284,7 +297,7 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
                   </div>
                 )}
                 <div className="flex-1">
-                  <DeleteButton id={inv.id} code={inv.code} full />
+                  {canDelete && <DeleteButton id={inv.id} code={inv.code} full />}
                 </div>
               </div>
             </div>

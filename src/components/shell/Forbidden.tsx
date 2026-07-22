@@ -12,7 +12,7 @@ export function Forbidden() {
       <div>
         <h1 className="text-xl font-semibold">Acces interzis</h1>
         <p className="mt-1.5 text-sm text-zinc-400">
-          Acest cont nu are drepturi de administrator.
+          Acest cont nu are drepturi de manager.
         </p>
       </div>
       <form action={dashboardSignOut}>

@@ -24,8 +24,9 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useClickOutside } from "@/lib/useClickOutside";
 import { Avatar } from "./Avatar";
 import { AppVersion } from "./AppVersion";
+import { RoleBadge } from "@/components/dashboard/RoleBadge";
 
-type ShellUser = { username: string; email: string };
+type ShellUser = { username: string; email: string; isSuperAdmin: boolean };
 
 // Nav item key → unread count. Today only Suport uses it (tickets waiting on an
 // admin reply); the shell stays generic so any section can grow a badge.
@@ -33,12 +34,14 @@ type NavBadges = { tickets?: number };
 
 // Nav items use CLEAN paths — on the dashboard host the proxy rewrites them
 // into the /dashboard tree, so the browser URL stays prefix-free.
-// `soon` marks sections built in later phases.
+// `soon` marks sections built in later phases; `superOnly` hides the entry from
+// managers (the pages/actions are guarded server-side too).
 type NavItem = {
   href: string;
   label: string;
   icon: React.ReactNode;
   soon?: boolean;
+  superOnly?: boolean;
 };
 
 const NAV: NavItem[] = [
@@ -49,7 +52,7 @@ const NAV: NavItem[] = [
   { href: "/costs", label: "Costuri", icon: <Wallet className="h-[18px] w-[18px]" /> },
   { href: "/tickets", label: "Suport", icon: <LifeBuoy className="h-[18px] w-[18px]" /> },
   { href: "/announcements", label: "Anunțuri", icon: <Megaphone className="h-[18px] w-[18px]" /> },
-  { href: "/settings", label: "Setări", icon: <Settings className="h-[18px] w-[18px]" /> },
+  { href: "/settings", label: "Setări", icon: <Settings className="h-[18px] w-[18px]" />, superOnly: true },
 ];
 
 export function DashboardShell({
@@ -104,8 +107,8 @@ export function DashboardShell({
               className="block h-8 w-auto shrink-0 dark:hidden sm:h-10"
             />
           </Link>
-          <span className="hidden rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300 sm:inline">
-            admin
+          <span className="hidden sm:inline">
+            <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
           </span>
         </div>
 
@@ -138,9 +141,7 @@ export function DashboardShell({
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-zinc-100">
                       {user.username}
-                      <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300">
-                        admin
-                      </span>
+                      <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
                     </p>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">{user.email}</p>
                   </div>
@@ -150,7 +151,9 @@ export function DashboardShell({
                     <span className="flex items-center gap-2.5 text-zinc-400">
                       <ShieldCheck className="h-4 w-4" /> Rol
                     </span>
-                    <span className="font-medium text-zinc-200">admin</span>
+                    <span className="font-medium text-zinc-200">
+                      {user.isSuperAdmin ? "Super admin" : "Manager"}
+                    </span>
                   </div>
                 </div>
                 <div className="border-t border-zinc-800 p-1.5">
@@ -183,7 +186,7 @@ export function DashboardShell({
             <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
               Administrare
             </p>
-            {NAV.map((item) => {
+            {NAV.filter((i) => !i.superOnly || user.isSuperAdmin).map((item) => {
               const active = item.href === pathname;
               if (item.soon) {
                 return (
