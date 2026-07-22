@@ -110,6 +110,7 @@ export async function cleanupOrphanB2Objects(): Promise<B2CleanupReport> {
     ]);
   } catch (e) {
     report.abortedRun = `citirea DB a eșuat (${e instanceof Error ? e.message : "eroare"})`;
+    console.error(`[b2-cleanup] run ABORTED: ${report.abortedRun}`);
     return report;
   }
 
@@ -120,20 +121,22 @@ export async function cleanupOrphanB2Objects(): Promise<B2CleanupReport> {
   // wrong (or a catastrophic wipe) — never a normal cleanup situation.
   if (objects.length > 0 && fileKeys.size === 0 && ticketKeys.size === 0) {
     report.abortedRun = "DB fără niciun key deși bucketul are obiecte";
+    console.error(`[b2-cleanup] run ABORTED: ${report.abortedRun}`);
     return report;
   }
 
   const now = Date.now();
-  const candidates: { key: string; size: number }[] = [];
+  const candidates: { key: string; size: number; lastModified: Date | null }[] = [];
   for (const o of objects) {
     if (fileKeys.has(o.key) || ticketKeys.has(o.key)) continue; // referenced → keep
     const age = o.lastModified ? now - o.lastModified.getTime() : 0;
     if (age < MIN_AGE_MS) continue; // Layer 2: too fresh — may be in flight
     if (!KNOWN_PATTERNS.some((p) => p.test(o.key))) {
       report.skippedUnknown++; // Layer 3: unknown shape — report, never touch
+      console.warn(`[b2-cleanup] unknown key shape (untouched): ${o.key}`);
       continue;
     }
-    candidates.push({ key: o.key, size: o.size });
+    candidates.push({ key: o.key, size: o.size, lastModified: o.lastModified });
   }
   report.orphans = candidates.length;
 
@@ -143,6 +146,7 @@ export async function cleanupOrphanB2Objects(): Promise<B2CleanupReport> {
     candidates.length / Math.max(1, objects.length) > MAX_ORPHAN_RATIO
   ) {
     report.abortedRun = `prea mulți orfani dintr-o dată (${candidates.length}/${objects.length}) — verificare manuală`;
+    console.error(`[b2-cleanup] run ABORTED: ${report.abortedRun}`);
     return report;
   }
 
@@ -155,8 +159,19 @@ export async function cleanupOrphanB2Objects(): Promise<B2CleanupReport> {
       await deleteObject(c.key);
       report.deleted++;
       report.deletedBytes += c.size;
-    } catch {
+      // Audit trail: every key the sweep ever removes lands in the function
+      // logs (Vercel), with its size and age — deletion is final, so this is
+      // the permanent record of what was touched and why it qualified.
+      console.log(
+        `[b2-cleanup] deleted orphan key=${c.key} size=${c.size}B lastModified=${
+          c.lastModified?.toISOString() ?? "unknown"
+        }`,
+      );
+    } catch (e) {
       // one stubborn object must not stop the sweep
+      console.warn(
+        `[b2-cleanup] delete FAILED key=${c.key}: ${e instanceof Error ? e.message : "error"}`,
+      );
     }
   }
 
