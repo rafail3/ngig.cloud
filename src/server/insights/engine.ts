@@ -335,8 +335,9 @@ export async function getInsights(force = false): Promise<UserProfile> {
   return profile;
 }
 
-// Reusable ranked file suggestions: recency + affinity to the user's top types.
-// Returns the shape the home "Suggested files" section already renders.
+// Ranked file suggestions with a CONFIDENCE bar: a file is suggested only when
+// the user demonstrably keeps coming back to it. No filler — an empty result
+// hides the whole section on the home.
 export type SuggestedFile = {
   id: string;
   name: string;
@@ -346,19 +347,80 @@ export type SuggestedFile = {
   updatedAt: string;
 };
 
+// Gates before anything is suggested: enough recorded history (events + days of
+// activity) so a fresh account never gets noise recommendations.
+const SUGGEST_MIN_EVENTS = 20;
+const SUGGEST_MIN_SPAN_DAYS = 3;
+// The signal: repeat accesses (preview/download) of the same file recently.
+const SUGGEST_WINDOW_DAYS = 14;
+const SUGGEST_MIN_ACCESSES = 2;
+
 export async function getSuggestedFiles(limit = 6): Promise<SuggestedFile[]> {
   const { supabase, uid } = await currentUser();
-  const profile = await getInsights().catch(() => null);
-  const affinity = new Map((profile?.topTypes ?? []).map((t) => [t.category, t.pct]));
+  const now = Date.now();
 
-  const { data } = await supabase
+  // --- History gate (user_events is owner-scoped by RLS) -------------------
+  const { count } = await supabase
+    .from("user_events")
+    .select("id", { count: "exact", head: true });
+  if ((count ?? 0) < SUGGEST_MIN_EVENTS) return [];
+
+  const { data: firstEv } = await supabase
+    .from("user_events")
+    .select("created_at")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  const firstAt = firstEv?.[0]?.created_at;
+  if (!firstAt || now - new Date(firstAt).getTime() < SUGGEST_MIN_SPAN_DAYS * DAY_MS) {
+    return [];
+  }
+
+  // --- Repeat-access signal -------------------------------------------------
+  // egress_events carries the file id per preview/download. Its RLS is
+  // operator-only, so this server-side read goes through the service client —
+  // strictly filtered to the caller's own rows.
+  const admin = createAdminClient();
+  const since = new Date(now - SUGGEST_WINDOW_DAYS * DAY_MS).toISOString();
+  const { data: accesses } = await admin
+    .from("egress_events")
+    .select("file_id, created_at")
+    .eq("user_id", uid)
+    .in("source", ["preview", "download"])
+    .not("file_id", "is", null)
+    .gte("created_at", since)
+    .limit(2000);
+
+  const byFile = new Map<string, { count: number; lastAt: number }>();
+  for (const a of (accesses ?? []) as { file_id: string; created_at: string }[]) {
+    const t = new Date(a.created_at).getTime();
+    const cur = byFile.get(a.file_id);
+    if (cur) {
+      cur.count++;
+      if (t > cur.lastAt) cur.lastAt = t;
+    } else {
+      byFile.set(a.file_id, { count: 1, lastAt: t });
+    }
+  }
+
+  // Confidence bar: only files the user came back to. Score = how often,
+  // boosted by how recently.
+  const candidates = [...byFile.entries()]
+    .filter(([, s]) => s.count >= SUGGEST_MIN_ACCESSES)
+    .map(([fileId, s]) => {
+      const daysSince = (now - s.lastAt) / DAY_MS;
+      return { fileId, score: s.count * 10 + Math.max(0, 7 - daysSince) };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+  if (candidates.length === 0) return [];
+
+  // Resolve to live file rows (owner RLS; trash/archive drop out naturally).
+  const { data: files } = await supabase
     .from("files")
     .select("id, name, mime_type, size, created_at, updated_at")
-    .eq("owner_id", uid)
+    .in("id", candidates.map((c) => c.fileId))
     .is("deleted_at", null)
-    .is("archived_at", null)
-    .order("updated_at", { ascending: false })
-    .limit(80);
+    .is("archived_at", null);
 
   type Row = {
     id: string;
@@ -368,25 +430,19 @@ export async function getSuggestedFiles(limit = 6): Promise<SuggestedFile[]> {
     created_at: string;
     updated_at: string;
   };
-  const rows = (data ?? []) as Row[];
-  const now = Date.now();
-  const scored = rows.map((f) => {
-    const ageDays = (now - new Date(f.updated_at).getTime()) / DAY_MS;
-    const recency = Math.max(0, 30 - ageDays); // newer = higher, ~0 after a month
-    const cat = fileCategory(f.name, f.mime_type);
-    const typeBonus = (affinity.get(cat) ?? 0) / 5; // up to ~20 for a dominant type
-    return { f, score: recency + typeBonus };
-  });
-  scored.sort((a, b) => b.score - a.score);
+  const byId = new Map(((files ?? []) as Row[]).map((f) => [f.id, f]));
 
-  return scored.slice(0, limit).map(({ f }) => ({
-    id: f.id,
-    name: f.name,
-    size: f.size,
-    mimeType: f.mime_type,
-    createdAt: f.created_at,
-    updatedAt: f.updated_at,
-  }));
+  return candidates
+    .map((c) => byId.get(c.fileId))
+    .filter((f): f is Row => Boolean(f))
+    .map((f) => ({
+      id: f.id,
+      name: f.name,
+      size: f.size,
+      mimeType: f.mime_type,
+      createdAt: f.created_at,
+      updatedAt: f.updated_at,
+    }));
 }
 
 // Best-effort behavior log. Owner-scoped by RLS (the user's own client).

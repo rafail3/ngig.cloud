@@ -14,10 +14,12 @@ import { fileTypeShort } from "@/lib/file-type";
 // Remember the section's open/closed choice per browser (starts closed).
 const OPEN_KEY = "ngig:suggested-open";
 
-// "Fișiere sugerate" on the home root: the most recently active files across the
-// whole cloud. A collapsible card (closed by default) revealing horizontal file
-// cards, click to preview. Hidden while searching/filtering. Data is SWR-keyed
-// under "drive", so it live-updates with the rest of the drive.
+// "Fișiere sugerate" on the home root: files the user demonstrably keeps
+// coming back to (confidence-gated server-side — the section disappears
+// entirely when there's nothing worth recommending). A collapsible card
+// (closed by default) revealing horizontal file cards, click to preview.
+// Hidden while searching/filtering. Data is SWR-keyed under "drive", so it
+// live-updates with the rest of the drive.
 export function SuggestedFiles() {
   const { data } = useSuggested();
   const { active } = useFilter();
@@ -71,7 +73,7 @@ export function SuggestedFiles() {
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-zinc-100">Fișiere sugerate</span>
           <span className="hidden text-xs text-zinc-500 sm:block">
-            Cele mai active fișiere din cloud
+            Fișierele la care revii des în ultima vreme
           </span>
         </span>
         <span className="ml-auto flex shrink-0 items-center gap-2.5">
