@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.28.0](https://github.com/rafail3/ngig.cloud/compare/v2.27.0...v2.28.0) (2026-07-22)
+
+
+### Features
+
+* **dashboard:** filter nav and gate pages by manager permissions ([031d58b](https://github.com/rafail3/ngig.cloud/commit/031d58b0f766b76816d1a73dcc7f2f50da50040d))
+* **dashboard:** manager permissions editor on the user detail ([7f25a41](https://github.com/rafail3/ngig.cloud/commit/7f25a41bde1d87d2014ab5ce5b35383e26d93ff3))
+* **roles:** enforce section permissions on server actions ([91dfed8](https://github.com/rafail3/ngig.cloud/commit/91dfed89b53cd0654b4bb07d5ac5449a871bec78))
+* **roles:** per-manager granular dashboard permissions (phase 2) ([1a669cb](https://github.com/rafail3/ngig.cloud/commit/1a669cb28591a97b58403ee94c015061e0249ed1))
+* **roles:** per-manager section permissions — schema + guards ([28c45c9](https://github.com/rafail3/ngig.cloud/commit/28c45c9525b3d3ef6b3a099f50e39b47aec2565d))
+
+
+### Bug Fixes
+
+* **roles:** office status probe actions require the super admin ([adcd511](https://github.com/rafail3/ngig.cloud/commit/adcd511d191745763843afc2b0aa2d780949b646))
+
 ## [2.27.0](https://github.com/rafail3/ngig.cloud/compare/v2.26.0...v2.27.0) (2026-07-22)
 
 
