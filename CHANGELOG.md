@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.30.0](https://github.com/rafail3/ngig.cloud/compare/v2.29.0...v2.30.0) (2026-07-22)
+
+
+### Features
+
+* **uploads:** auto-save extension toggles + close-only panel button ([3639faf](https://github.com/rafail3/ngig.cloud/commit/3639fafa25c4b955834f3cd09601b0340f577ee3))
+* **uploads:** custom extensions join the grid + blocked-only filter ([6f452b9](https://github.com/rafail3/ngig.cloud/commit/6f452b95a028ea4219fa34269024af34a140b128))
+* **uploads:** per-extension upload block-list ([5868659](https://github.com/rafail3/ngig.cloud/commit/5868659732575a07cddb7ae8551314b0a6847017))
+* **uploads:** platform-wide allowed file-type setting + server gate ([96a111e](https://github.com/rafail3/ngig.cloud/commit/96a111ebe2dae8d49e7dc94758c747cc489bc82d))
+* **uploads:** settings card for allowed types + instant picker feedback ([a310ee6](https://github.com/rafail3/ngig.cloud/commit/a310ee6d901b9cb2f4065927a10942372f8d58d5))
+
 ## [2.29.0](https://github.com/rafail3/ngig.cloud/compare/v2.28.0...v2.29.0) (2026-07-22)
 
 
