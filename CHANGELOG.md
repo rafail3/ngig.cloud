@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.33.1](https://github.com/rafail3/ngig.cloud/compare/v2.33.0...v2.33.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **updates:** never announce a version older than the newest announced ([fb68a9d](https://github.com/rafail3/ngig.cloud/commit/fb68a9de357219caa0e98af4d8c23e9fe27b4fce))
+* **updates:** semver guard — never announce an older version ([e8f8202](https://github.com/rafail3/ngig.cloud/commit/e8f82028e04ae6d9c8d5aad081574a5ff08fa1d1))
+
 ## [2.33.0](https://github.com/rafail3/ngig.cloud/compare/v2.32.1...v2.33.0) (2026-07-22)
 
 
