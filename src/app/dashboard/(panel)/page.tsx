@@ -18,6 +18,7 @@ import {
 import { ActiveUsersWindow } from "@/components/dashboard/ActiveUsersWindow";
 import { ActiveUsersLeaderboard } from "@/components/dashboard/ActiveUsersLeaderboard";
 import { viewerAllowedSections } from "@/server/admin/guard";
+import { COST_CARD } from "@/components/dashboard/costs/styles";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 // Resolve the ?au= window param to one of the offered windows (default 30).
@@ -39,7 +40,7 @@ async function ActiveUsersSection({ days }: { days: number }) {
 
   const users = await getActiveUsers(days, 10);
   return (
-    <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
+    <section className={`${COST_CARD} p-4 sm:p-5`}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
           <Flame className="h-4 w-4 text-indigo-400" /> Cei mai activi useri
@@ -63,7 +64,7 @@ function Kpi({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
+    <div className={`${COST_CARD} p-4 sm:p-5`}>
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-xs font-medium text-zinc-500">{label}</span>
         <span className="shrink-0 text-zinc-600">{icon}</span>
@@ -94,17 +95,17 @@ async function OverviewContent() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
+        <section className={`${COST_CARD} p-4 sm:p-5`}>
           <h2 className="mb-3 text-sm font-semibold text-zinc-200">Tipuri de fișiere</h2>
           <FileTypesChart data={fileTypes} />
         </section>
-        <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
+        <section className={`${COST_CARD} p-4 sm:p-5`}>
           <h2 className="mb-3 text-sm font-semibold text-zinc-200">Uploads (30 zile)</h2>
           <UploadsChart data={uploads} />
         </section>
       </div>
 
-      <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
+      <section className={`${COST_CARD} p-4 sm:p-5`}>
         <h2 className="mb-3 text-sm font-semibold text-zinc-200">Accesări useri (30 zile)</h2>
         <LoginsChart data={logins} />
       </section>

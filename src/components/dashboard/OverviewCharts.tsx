@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import type { FileType, UploadDay, LoginDay } from "@/server/admin/stats";
 import { formatDateShort as shortDay } from "@/lib/format-date";
+import { chartTooltipStyle } from "@/components/dashboard/costs/styles";
 
 // Brand-aligned categorical palette: electric blue first, then sky/emerald/
 // amber/green/red — mirrors the FileTypeIcon hues on the app side.
@@ -27,14 +28,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   application: "Documente",
   text: "Text",
   altele: "Altele",
-};
-
-const tooltipStyle = {
-  background: "#18181b",
-  border: "1px solid #3f3f46",
-  borderRadius: 12,
-  color: "#fafafa",
-  fontSize: 12,
 };
 
 function label(cat: string): string {
@@ -84,7 +77,7 @@ export function FileTypesChart({ data }: { data: FileType[] }) {
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip contentStyle={chartTooltipStyle} />
             </PieChart>
           </ResponsiveContainer>
         )}
@@ -127,10 +120,10 @@ function TimeAreaChart({
                 <stop offset="100%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-zinc-800)" vertical={false} />
             <XAxis
               dataKey="day"
-              tick={{ fill: "#71717a", fontSize: 11 }}
+              tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               minTickGap={24}
@@ -140,12 +133,12 @@ function TimeAreaChart({
             <YAxis
               allowDecimals={false}
               domain={[0, (dataMax: number) => Math.max(4, Math.ceil(dataMax))]}
-              tick={{ fill: "#71717a", fontSize: 11 }}
+              tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               width={44}
             />
-            <Tooltip contentStyle={tooltipStyle} />
+            <Tooltip contentStyle={chartTooltipStyle} />
             <Area
               type="monotone"
               dataKey="count"

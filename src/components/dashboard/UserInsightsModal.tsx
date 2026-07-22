@@ -32,6 +32,7 @@ import { getUserActivityAction } from "@/app/dashboard/(panel)/users/actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime, formatDateShort } from "@/lib/format-date";
 import type { UserActivityDetail } from "@/server/admin/stats";
+import { chartTooltipStyle } from "@/components/dashboard/costs/styles";
 
 const COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#22c55e", "#ef4444", "#a1a1aa"];
 const TYPE_LABEL: Record<string, string> = {
@@ -42,14 +43,6 @@ const TYPE_LABEL: Record<string, string> = {
   text: "Text",
   altele: "Altele",
 };
-const tooltipStyle = {
-  background: "#18181b",
-  border: "1px solid #3f3f46",
-  borderRadius: 12,
-  color: "#fafafa",
-  fontSize: 12,
-};
-
 function Kpi({
   icon,
   tint,
@@ -220,10 +213,10 @@ export function UserInsightsModal({
                             <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-zinc-800)" vertical={false} />
                         <XAxis
                           dataKey="day"
-                          tick={{ fill: "#71717a", fontSize: 11 }}
+                          tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
                           tickLine={false}
                           axisLine={false}
                           minTickGap={24}
@@ -232,12 +225,12 @@ export function UserInsightsModal({
                         <YAxis
                           allowDecimals={false}
                           domain={[0, (m: number) => Math.max(4, Math.ceil(m))]}
-                          tick={{ fill: "#71717a", fontSize: 11 }}
+                          tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
                           tickLine={false}
                           axisLine={false}
                           width={40}
                         />
-                        <Tooltip contentStyle={tooltipStyle} />
+                        <Tooltip contentStyle={chartTooltipStyle} />
                         <Area type="monotone" dataKey="actions" name="Acțiuni" stroke="#818cf8" strokeWidth={2} fill="url(#ins-actions)" isAnimationActive animationDuration={800} />
                         <Area type="monotone" dataKey="logins" name="Logări" stroke="#34d399" strokeWidth={2} fill="url(#ins-logins)" isAnimationActive animationDuration={800} />
                       </AreaChart>
@@ -261,7 +254,7 @@ export function UserInsightsModal({
                                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                                 ))}
                               </Pie>
-                              <Tooltip contentStyle={tooltipStyle} />
+                              <Tooltip contentStyle={chartTooltipStyle} />
                             </PieChart>
                           </ResponsiveContainer>
                         </div>

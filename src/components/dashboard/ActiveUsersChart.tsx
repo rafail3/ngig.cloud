@@ -12,6 +12,7 @@ import {
   LabelList,
 } from "recharts";
 import type { ActiveUser } from "@/server/admin/stats";
+import { chartTooltipStyle } from "@/components/dashboard/costs/styles";
 
 // Per-bar horizontal gradients (bright indigo→sky for #1, stepping darker down
 // the ranks) so the podium reads at a glance. Mirrors the Overview palette.
@@ -22,14 +23,6 @@ const BAR_GRADIENTS: [string, string][] = [
   ["#4338ca", "#3730a3"],
   ["#3730a3", "#312e81"],
 ];
-
-const tooltipStyle = {
-  background: "#18181b",
-  border: "1px solid #3f3f46",
-  borderRadius: 12,
-  color: "#fafafa",
-  fontSize: 12,
-};
 
 function useMounted(): boolean {
   const [mounted, setMounted] = useState(false);
@@ -59,7 +52,7 @@ function ChartTooltip({
   if (!active || !payload?.length) return null;
   const r = payload[0].payload;
   return (
-    <div style={tooltipStyle} className="px-3 py-2">
+    <div style={chartTooltipStyle} className="px-3 py-2">
       <p className="mb-1 font-semibold text-zinc-100">{r.name}</p>
       <p className="text-indigo-300">
         Scor <span className="font-semibold tabular-nums">{r.score}</span>
@@ -111,11 +104,11 @@ export function ActiveUsersChart({ users }: { users: ActiveUser[] }) {
               type="category"
               dataKey="name"
               width={96}
-              tick={{ fill: "#d4d4d8", fontSize: 12 }}
+              tick={{ fill: "var(--color-zinc-300)", fontSize: 12 }}
               tickLine={false}
               axisLine={false}
             />
-            <Tooltip content={<ChartTooltip />} cursor={{ fill: "#ffffff08" }} />
+            <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--color-zinc-500)", fillOpacity: 0.08 }} />
             <Bar dataKey="score" radius={[0, 7, 7, 0]} isAnimationActive animationDuration={900} maxBarSize={26}>
               {chart.map((_, i) => (
                 <Cell key={i} fill={`url(#au-bar-${Math.min(i, BAR_GRADIENTS.length - 1)})`} />
@@ -124,7 +117,7 @@ export function ActiveUsersChart({ users }: { users: ActiveUser[] }) {
                 dataKey="score"
                 position="right"
                 offset={8}
-                fill="#e4e4e7"
+                fill="var(--color-zinc-200)"
                 fontSize={12}
                 className="font-semibold tabular-nums"
               />
