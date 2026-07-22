@@ -1,11 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
+import { toast } from "sonner";
 import { revalidateDrive } from "@/components/drive/useDriveData";
 import { Upload, FolderPlus, UploadCloud } from "lucide-react";
 import { useUploads, type UploadItem } from "./UploadProvider";
-import { ensureFolderAction, createFolderAction } from "@/app/drive-actions";
+import {
+  ensureFolderAction,
+  createFolderAction,
+  getUploadTypesAction,
+} from "@/app/drive-actions";
+import { fileTypeDenied, type UploadTypesConfig } from "@/lib/upload-types";
 import { ModalShell, useIsTouch } from "./anim";
 
 type Entry = { file: File; rel: string };
@@ -55,8 +61,36 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
   // the native file picker instead.
   const isTouch = useIsTouch();
 
+  // Platform type restrictions, fetched once for instant picker feedback.
+  // null = unrestricted; the server re-validates on every upload anyway.
+  const [types, setTypes] = useState<UploadTypesConfig>(null);
+  useEffect(() => {
+    getUploadTypesAction()
+      .then(setTypes)
+      .catch(() => {});
+  }, []);
+
+  // Split picked files into allowed vs denied; toast the denied ones (grouped
+  // per reason so 50 blocked .exe files make one toast, not fifty).
+  function filterAllowed<T extends { file: File }>(items: T[]): T[] {
+    if (types === null) return items;
+    const allowed: T[] = [];
+    const denied = new Map<string, number>();
+    for (const item of items) {
+      const reason = fileTypeDenied(item.file.name, item.file.type, types);
+      if (reason) denied.set(reason, (denied.get(reason) ?? 0) + 1);
+      else allowed.push(item);
+    }
+    for (const [reason, count] of denied) {
+      toast.error(count === 1 ? reason : `${count} fișiere respinse: ${reason}`);
+    }
+    return allowed;
+  }
+
   // Resolve each file's folder (creating the tree as needed) and enqueue.
-  async function enqueuePaths(entries: Entry[]) {
+  async function enqueuePaths(allEntries: Entry[]) {
+    // Filter FIRST so folders aren't created for files that get rejected.
+    const entries = filterAllowed(allEntries);
     const cache = new Map<string, string | null>();
     cache.set("", folderId);
     const items: UploadItem[] = [];
@@ -99,7 +133,8 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
 
   function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files ? Array.from(e.target.files) : [];
-    if (files.length) enqueue(files.map((file) => ({ file, folderId })));
+    const items = filterAllowed(files.map((file) => ({ file, folderId })));
+    if (items.length) enqueue(items);
     if (filesRef.current) filesRef.current.value = "";
   }
 

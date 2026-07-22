@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "@/server/admin/guard";
-import { updateSettings, setSetting, type SettingKey } from "@/server/admin/settings";
+import { updateSettings, setSetting, setUploadTypes, type SettingKey } from "@/server/admin/settings";
+import { UPLOAD_CATEGORIES, normalizeExtList } from "@/lib/upload-types";
 import { setUpdateNotifySettings, type UpdateRole } from "@/server/updates/service";
 import { setOfficeMode, recordOfficeState } from "@/server/office/config";
 import {
@@ -72,6 +73,45 @@ export async function resetSettingsAction(): Promise<void> {
   });
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
+}
+
+// Allowed upload types: restricted=false clears the setting (everything
+// allowed); otherwise the enabled categories + extension lists are stored.
+export async function saveUploadTypesAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  try {
+    await requireSuperAdmin();
+  } catch {
+    return { error: "Acces interzis." };
+  }
+
+  const restricted = String(formData.get("restricted")) === "true";
+  try {
+    if (!restricted) {
+      await setUploadTypes(null);
+      revalidatePath("/dashboard/settings");
+      return { ok: "Toate tipurile de fișiere sunt permise." };
+    }
+
+    const categories = UPLOAD_CATEGORIES.map((c) => c.key).filter(
+      (k) => formData.get(`cat_${k}`) === "true",
+    );
+    const allowExt = normalizeExtList(String(formData.get("allowExt") ?? ""));
+    const blockExt = normalizeExtList(String(formData.get("blockExt") ?? ""));
+    if (categories.length === 0 && allowExt.length === 0) {
+      return {
+        error: "Alege cel puțin o categorie sau o extensie permisă — altfel nu se mai poate încărca nimic.",
+      };
+    }
+
+    await setUploadTypes({ categories, allowExt, blockExt });
+    revalidatePath("/dashboard/settings");
+    return { ok: "Restricțiile de tipuri de fișiere au fost salvate." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvare." };
+  }
 }
 
 // Where the Document Server's address comes from: whatever the host announces on

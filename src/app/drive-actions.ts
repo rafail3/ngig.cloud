@@ -3,6 +3,9 @@
 import * as files from "@/server/files/service";
 import type { UploadPlan } from "@/server/files/service";
 import { getSuggestedFiles } from "@/server/insights/engine";
+import { getUploadTypes } from "@/server/admin/settings";
+import { requireActiveUser } from "@/server/auth/active-user";
+import type { UploadTypesConfig } from "@/lib/upload-types";
 import {
   buildEditorConfig,
   forceSave,
@@ -42,6 +45,14 @@ function errMsg(e: unknown): string {
     return (e as { message: string }).message;
   }
   return "Eroare.";
+}
+
+// The platform's allowed-upload-types config, for instant picker feedback.
+// app_settings is admin-only under RLS, so regular users read it through here
+// (auth-gated; it only reveals which types are accepted). null = unrestricted.
+export async function getUploadTypesAction(): Promise<UploadTypesConfig> {
+  await requireActiveUser();
+  return getUploadTypes();
 }
 
 export async function createUploadAction(input: {

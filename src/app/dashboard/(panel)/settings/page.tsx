@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { getSettings } from "@/server/admin/settings";
+import { getSettings, getUploadTypes } from "@/server/admin/settings";
+import { UploadTypesSettings } from "@/components/dashboard/UploadTypesSettings";
 import { getOfficeStatus } from "@/server/office/config";
 import { getOfficeUrlMode } from "@/server/office/onlyoffice";
 import { listNotificationTypes, ADDABLE_ACTIONS } from "@/server/notifications/catalog";
@@ -26,6 +27,12 @@ async function SettingsContent() {
   await connection();
   const settings = await getSettings();
   return <SettingsForm settings={settings} />;
+}
+
+async function UploadTypesContent() {
+  await connection();
+  const cfg = await getUploadTypes();
+  return <UploadTypesSettings cfg={cfg} />;
 }
 
 async function OfficeContent() {
@@ -64,6 +71,10 @@ function GeneralTab() {
       </header>
       <Suspense fallback={<ListSkeleton rows={3} />}>
         <SettingsContent />
+      </Suspense>
+
+      <Suspense fallback={<ListSkeleton rows={2} />}>
+        <UploadTypesContent />
       </Suspense>
     </section>
   );
