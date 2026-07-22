@@ -15,6 +15,7 @@ import {
   Archive,
   Trash2,
   Upload,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -388,10 +389,20 @@ function FileRow({
       data-drive-item
       onClick={(e) => {
         if (longPress.consumedClick()) return;
+        // Touch + active selection: a tap toggles this item — never opens the
+        // preview. Long-press is only needed for the FIRST item.
+        if (isTouch && selection.count > 0) {
+          selection.toggle(item);
+          return;
+        }
         handleRowClick(e);
       }}
       onContextMenu={(e) => {
         e.preventDefault();
+        // Mobile browsers synthesize a contextmenu on long-press, which used
+        // to pop the menu on every press. On touch, long-press is
+        // selection-only — the bottom bar (and the kebab) carry the actions.
+        if (isTouch) return;
         openMenu(actions, e.clientX, e.clientY);
       }}
       // Use 1 (not undefined) for the normal state: framer-motion doesn't reset
@@ -401,7 +412,18 @@ function FileRow({
         selected ? "bg-indigo-500/10" : "hover:bg-zinc-900/50"
       }`}
     >
-      <FileTypeIcon name={file.name} mime={file.mimeType} />
+      {selected ? (
+        // Selected rows swap the type icon for a check — the selection reads
+        // instantly, Google-Drive style, especially on mobile.
+        <span
+          aria-hidden
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15"
+        >
+          <CheckCircle2 className="h-[18px] w-[18px] text-indigo-400" />
+        </span>
+      ) : (
+        <FileTypeIcon name={file.name} mime={file.mimeType} />
+      )}
       <div className="min-w-0 flex-1 text-left">
         <p className="truncate text-sm font-medium text-zinc-100">{file.name}</p>
         <p className="mt-0.5 flex items-center gap-1.5 text-xs text-zinc-500">

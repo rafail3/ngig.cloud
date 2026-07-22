@@ -416,14 +416,18 @@ function BarButton({ action, disabled }: { action: BarAction; disabled?: boolean
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition disabled:opacity-50 ${
+      aria-label={label}
+      title={label}
+      // Icon-only on mobile so the whole bar fits one thumb-friendly row; the
+      // labels return from sm: up.
+      className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-sm transition disabled:opacity-50 sm:px-3 sm:py-1.5 ${
         danger
           ? "border-red-900/60 text-red-300 hover:bg-red-950/40"
           : "border-zinc-700 text-zinc-200 hover:bg-zinc-50/10"
       }`}
     >
       <Icon className="h-4 w-4" />
-      <span>{label}</span>
+      <span className="hidden sm:inline">{label}</span>
     </button>
   );
 }
