@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireSuperAdmin } from "@/server/admin/guard";
+import { requireSection, requireSuperAdmin } from "@/server/admin/guard";
 import {
   createInvite,
   revokeInvite,
@@ -20,7 +20,7 @@ export async function createInviteAction(
 ): Promise<GenerateState> {
   let adminId: string;
   try {
-    adminId = await requireAdmin();
+    adminId = await requireSection("invites");
   } catch {
     return { error: "Acces interzis." };
   }
@@ -60,7 +60,7 @@ export async function sendInviteCodeAction(
   formData: FormData,
 ): Promise<SendCodeState> {
   try {
-    await requireAdmin();
+    await requireSection("invites");
   } catch {
     return { error: "Acces interzis." };
   }
@@ -78,7 +78,7 @@ export async function sendInviteCodeAction(
 }
 
 export async function revokeInviteAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("invites");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await revokeInvite(id);

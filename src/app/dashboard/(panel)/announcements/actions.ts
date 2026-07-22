@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireSuperAdmin } from "@/server/admin/guard";
+import { requireSection, requireSuperAdmin } from "@/server/admin/guard";
 import {
   createAnnouncement,
   scheduleAnnouncement,
@@ -33,7 +33,7 @@ export async function sendAnnouncementAction(
 ): Promise<AnnouncementState> {
   let adminId: string;
   try {
-    adminId = await requireAdmin();
+    adminId = await requireSection("announcements");
   } catch {
     return { error: "Acces interzis." };
   }
@@ -102,7 +102,7 @@ export async function deleteAnnouncementAction(formData: FormData) {
 }
 
 export async function resendAnnouncementAction(formData: FormData) {
-  const adminId = await requireAdmin();
+  const adminId = await requireSection("announcements");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await resendAnnouncement(id, adminId);

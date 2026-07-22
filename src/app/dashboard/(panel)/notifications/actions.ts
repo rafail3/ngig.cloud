@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/server/admin/guard";
+import { requireSuperAdmin } from "@/server/admin/guard";
 import {
   setNotificationEnabled,
   setNotificationTemplate,
@@ -12,7 +12,7 @@ export async function setNotificationEnabledAction(
   type: string,
   enabled: boolean,
 ): Promise<void> {
-  await requireAdmin();
+  await requireSuperAdmin();
   await setNotificationEnabled(type, enabled);
   revalidatePath("/dashboard/settings");
 }
@@ -22,7 +22,7 @@ export async function setNotificationTemplateAction(
   title: string,
   body: string,
 ): Promise<{ error?: string }> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const t = title.trim();
   const b = body.trim();
   if (!t) return { error: "Titlul nu poate fi gol." };
@@ -35,7 +35,7 @@ export async function setNotificationTemplateAction(
 }
 
 export async function resetNotificationTemplateAction(type: string): Promise<void> {
-  await requireAdmin();
+  await requireSuperAdmin();
   await resetNotificationTemplate(type);
   revalidatePath("/dashboard/settings");
 }
