@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { Mail, CalendarClock, LogIn } from "lucide-react";
-import { getMyProfile, listMySessions } from "@/server/account/profile";
+import { getMyProfile, listMySessions, getMyStorageSettings } from "@/server/account/profile";
 import { SettingsCard, UsernameForm, PasswordForm, EmailForm } from "@/components/account/AccountForms";
+import { StorageSettings } from "@/components/account/StorageSettings";
 import { DeleteAccount } from "@/components/account/DeleteAccount";
 import { ProfileTabs } from "@/components/account/ProfileTabs";
 import { ActivityPanel } from "@/components/account/ActivityPanel";
@@ -15,7 +16,11 @@ export const metadata = { title: "Profilul meu" };
 // Profile + sessions are per-user (uncached), so the whole body streams behind
 // <Suspense> while the page container paints instantly.
 async function ProfileContent() {
-  const [me, sessions] = await Promise.all([getMyProfile(), listMySessions()]);
+  const [me, sessions, storage] = await Promise.all([
+    getMyProfile(),
+    listMySessions(),
+    getMyStorageSettings(),
+  ]);
 
   return (
     <>
@@ -62,6 +67,7 @@ async function ProfileContent() {
               <UsernameForm currentUsername={me.username} />
               <EmailForm currentEmail={me.email} />
             </SettingsCard>
+            <StorageSettings settings={storage} />
             <DeleteAccount username={me.username} />
           </div>
         }

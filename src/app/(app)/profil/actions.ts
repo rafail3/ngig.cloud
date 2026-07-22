@@ -100,3 +100,53 @@ export async function revokeOtherSessionsAction(): Promise<void> {
   await revokeMyOtherSessions();
   revalidatePath("/profil");
 }
+
+// ── Storage: own per-file cap + alert threshold ──────────────────────────────
+
+export async function setSelfMaxFileAction(
+  _prev: AccountState,
+  formData: FormData,
+): Promise<AccountState> {
+  const raw = String(formData.get("value") ?? "").trim();
+  const unit = String(formData.get("unit") ?? "GB");
+  try {
+    let bytes: number | null = null;
+    if (raw !== "") {
+      const n = Number(raw.replace(",", "."));
+      if (!Number.isFinite(n) || n <= 0) return { error: "Valoare invalidă (ex: 2 sau 0.5)." };
+      bytes = Math.round(n * (unit === "MB" ? 1024 ** 2 : 1024 ** 3));
+    }
+    const { setMySelfMaxFile } = await import("@/server/account/profile");
+    await setMySelfMaxFile(bytes);
+    revalidatePath("/profil");
+    return { ok: bytes == null ? "Limita proprie a fost ștearsă." : "Limita proprie a fost salvată." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvare." };
+  }
+}
+
+export async function setStorageAlertAction(
+  _prev: AccountState,
+  formData: FormData,
+): Promise<AccountState> {
+  const enabled = String(formData.get("enabled")) === "true";
+  const mode = String(formData.get("mode"));
+  const raw = String(formData.get("value") ?? "").trim();
+  try {
+    const { setMyStorageAlert } = await import("@/server/account/profile");
+    if (!enabled) {
+      await setMyStorageAlert(null);
+      revalidatePath("/profil");
+      return { ok: "Alerta a fost dezactivată." };
+    }
+    if (mode !== "percent" && mode !== "absolute") return { error: "Mod invalid." };
+    const n = Number(raw.replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0) return { error: "Valoare invalidă." };
+    const value = mode === "percent" ? Math.round(n) : Math.round(n * 1024 ** 3);
+    await setMyStorageAlert({ mode, value });
+    revalidatePath("/profil");
+    return { ok: "Alerta a fost salvată." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvare." };
+  }
+}
