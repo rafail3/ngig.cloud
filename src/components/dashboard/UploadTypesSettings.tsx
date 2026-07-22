@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { FileCheck2, Search, ShieldBan } from "lucide-react";
+import { FileCheck2, Search, ShieldBan, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { saveUploadTypesAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
 import { EXT_CATALOG, normalizeExtList, type UploadTypesConfig } from "@/lib/upload-types";
@@ -51,7 +52,7 @@ function ExtToggle({
       <span
         className={`font-mono text-xs font-semibold ${on ? "text-red-300 line-through" : "text-zinc-200"}`}
       >
-        {ext}
+        .{ext}
       </span>
       <span className="ml-auto truncate text-[10px] text-zinc-500">{label}</span>
     </button>
@@ -60,18 +61,24 @@ function ExtToggle({
 
 // Super-admin card: which extensions are BLOCKED on upload. Default = nothing
 // blocked (everything allowed); flipping a switch ON blocks that extension.
+// Custom extensions join the grid as first-class cells; turning one OFF
+// removes it (it only exists because it was blocked).
 export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
   const [state, action, pending] = useActionState(saveUploadTypesAction, initial);
   useToastState(state);
 
   const saved = useMemo(() => new Set(cfg?.blockExt ?? []), [cfg]);
+  const savedCustom = useMemo(
+    () => [...saved].filter((e) => !CATALOG_EXTS.has(e)),
+    [saved],
+  );
+
   const [open, setOpen] = useState(false);
   const [blocked, setBlocked] = useState<Set<string>>(() => new Set(saved));
+  const [customExts, setCustomExts] = useState<string[]>(savedCustom);
   const [query, setQuery] = useState("");
-  // Blocked extensions outside the catalog (typed in the custom field).
-  const [custom, setCustom] = useState(
-    [...saved].filter((e) => !CATALOG_EXTS.has(e)).join(", "),
-  );
+  const [onlyBlocked, setOnlyBlocked] = useState(false);
+  const [draft, setDraft] = useState("");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -80,12 +87,24 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
 
   function cancel() {
     setBlocked(new Set(saved));
-    setCustom([...saved].filter((e) => !CATALOG_EXTS.has(e)).join(", "));
+    setCustomExts(savedCustom);
     setQuery("");
+    setOnlyBlocked(false);
+    setDraft("");
     setOpen(false);
   }
 
-  function flip(ext: string) {
+  // Toggling a custom cell OFF removes it from the grid entirely.
+  function flip(ext: string, isCustom: boolean) {
+    if (isCustom) {
+      setCustomExts((prev) => prev.filter((e) => e !== ext));
+      setBlocked((prev) => {
+        const next = new Set(prev);
+        next.delete(ext);
+        return next;
+      });
+      return;
+    }
     setBlocked((prev) => {
       const next = new Set(prev);
       if (next.has(ext)) next.delete(ext);
@@ -94,19 +113,36 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
     });
   }
 
-  const q = query.trim().toLowerCase();
-  const visible = q
-    ? EXT_CATALOG.filter(
-        (e) => e.ext.includes(q) || e.label.toLowerCase().includes(q),
-      )
-    : EXT_CATALOG;
+  // Add a custom extension: validated, deduped against catalog + existing
+  // customs, then it lands in the grid already blocked.
+  function addCustom() {
+    const exts = normalizeExtList(draft);
+    if (exts.length === 0) {
+      toast.error("Extensie invalidă (ex: torrent).");
+      return;
+    }
+    let added = 0;
+    for (const ext of exts) {
+      if (CATALOG_EXTS.has(ext) || customExts.includes(ext)) {
+        toast.error(`Extensia .${ext} există deja în tabel.`);
+        continue;
+      }
+      setCustomExts((prev) => [ext, ...prev]);
+      setBlocked((prev) => new Set(prev).add(ext));
+      added++;
+    }
+    if (added > 0) setDraft("");
+  }
 
-  // The form sends only catalog toggles here; the custom field rides separately.
-  const blockedCsv = [...blocked].filter((e) => CATALOG_EXTS.has(e)).join(",");
-  const totalBlocked = new Set([
-    ...[...blocked].filter((e) => CATALOG_EXTS.has(e)),
-    ...normalizeExtList(custom),
-  ]).size;
+  const q = query.trim().toLowerCase().replace(/^\.+/, "");
+  const items = [
+    ...customExts.map((ext) => ({ ext, label: "Custom", custom: true })),
+    ...EXT_CATALOG.map((e) => ({ ...e, custom: false })),
+  ].filter((e) => {
+    if (onlyBlocked && !blocked.has(e.ext)) return false;
+    if (q && !e.ext.includes(q) && !e.label.toLowerCase().includes(q)) return false;
+    return true;
+  });
 
   const savedCount = saved.size;
   const summary =
@@ -163,9 +199,9 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
             className="overflow-hidden"
           >
             <div className="flex flex-col gap-4 pt-4">
-              {/* Search + live counter */}
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative min-w-0 flex-1 sm:max-w-xs">
+              {/* Search + filter + add */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="relative min-w-0 flex-1 sm:max-w-[15rem]">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
                   <input
                     type="text"
@@ -175,52 +211,90 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
                     className="w-full rounded-xl border border-zinc-800 bg-zinc-950/50 py-2 pl-9 pr-3 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15"
                   />
                 </div>
-                <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-                  <ShieldBan className="h-3.5 w-3.5 text-red-400" />
-                  <span className="tabular-nums font-medium text-zinc-300">{totalBlocked}</span>{" "}
-                  blocate
-                </span>
+
+                {/* All / blocked-only filter */}
+                <div
+                  role="radiogroup"
+                  aria-label="Filtru extensii"
+                  className="flex gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!onlyBlocked}
+                    onClick={() => setOnlyBlocked(false)}
+                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                      !onlyBlocked ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25" : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    Toate
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={onlyBlocked}
+                    onClick={() => setOnlyBlocked(true)}
+                    className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                      onlyBlocked ? "bg-red-500 text-white shadow-sm shadow-red-500/25" : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    <ShieldBan className="h-3 w-3" />
+                    Blocate
+                    <span className="tabular-nums">({blocked.size})</span>
+                  </button>
+                </div>
+
+                {/* Add a custom extension into the grid */}
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addCustom();
+                      }
+                    }}
+                    placeholder="ex: torrent"
+                    aria-label="Adaugă extensie custom"
+                    className="w-28 rounded-xl border border-zinc-800 bg-zinc-950/50 px-3 py-2 font-mono text-xs text-zinc-50 outline-none transition placeholder:font-sans placeholder:text-zinc-500 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCustom}
+                    className="flex items-center gap-1 rounded-lg border border-zinc-800 px-2.5 py-2 text-xs font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/30 hover:text-red-200"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Blochează
+                  </button>
+                </div>
               </div>
 
-              {/* Compact extension grid — popular first, scrolls past ~7 rows. */}
+              {/* Compact extension grid — customs first, then popular. */}
               <div className="max-h-80 overflow-y-auto rounded-xl border border-zinc-800/70 bg-zinc-950/30 p-2">
-                {visible.length === 0 ? (
+                {items.length === 0 ? (
                   <p className="p-4 text-center text-sm text-zinc-500">
-                    Nicio extensie nu se potrivește căutării.
+                    {onlyBlocked && blocked.size === 0
+                      ? "Nicio extensie blocată."
+                      : "Nicio extensie nu se potrivește căutării."}
                   </p>
                 ) : (
                   <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
-                    {visible.map((e) => (
+                    {items.map((e) => (
                       <ExtToggle
                         key={e.ext}
                         ext={e.ext}
                         label={e.label}
                         on={blocked.has(e.ext)}
-                        onFlip={() => flip(e.ext)}
+                        onFlip={() => flip(e.ext, e.custom)}
                       />
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Anything exotic that isn't in the catalog. */}
-              <div>
-                <label htmlFor="customExt" className="mb-1.5 block text-sm font-medium text-zinc-300">
-                  Alte extensii blocate <span className="text-zinc-500">(opțional)</span>
-                </label>
-                <input
-                  id="customExt"
-                  type="text"
-                  value={custom}
-                  onChange={(e) => setCustom(e.target.value)}
-                  placeholder="ex: torrent, lnk"
-                  className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-950/50 px-3.5 py-2.5 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-500 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15"
-                />
-              </div>
-
               <form action={action}>
-                <input type="hidden" name="blocked" value={blockedCsv} />
-                <input type="hidden" name="custom" value={custom} />
+                <input type="hidden" name="blocked" value={[...blocked].join(",")} />
                 <button
                   type="submit"
                   disabled={pending}
