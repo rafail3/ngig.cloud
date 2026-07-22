@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.36.0](https://github.com/rafail3/ngig.cloud/compare/v2.35.0...v2.36.0) (2026-07-22)
+
+
+### Features
+
+* **auth:** instant security check + mobile logout investigation ([2b59721](https://github.com/rafail3/ngig.cloud/commit/2b59721c39dd88888088e8dbab53f6c5e1c58f58))
+* **auth:** log every forced sign-out with its reason ([731f69a](https://github.com/rafail3/ngig.cloud/commit/731f69accc0c70fad6ec402d7e8045a77a3baf4b))
+* **auth:** queued submit — the anti-bot check never blocks the button ([01400e2](https://github.com/rafail3/ngig.cloud/commit/01400e2a6f63986431b7755d9ef4345ed8a30019))
+
 ## [2.35.0](https://github.com/rafail3/ngig.cloud/compare/v2.34.0...v2.35.0) (2026-07-22)
 
 
