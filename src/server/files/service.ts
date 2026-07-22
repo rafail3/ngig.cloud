@@ -109,24 +109,23 @@ async function enforceQuota(
     throw new Error("Fișier prea mare.");
   }
 
-  // The user's own per-file cap — only meaningful when no admin limit applies
-  // (an admin limit always wins; the profile UI hides the setting then).
-  if (perFile == null) {
+  // Total quota: the admin's (per-user, else the global default) always wins;
+  // only without one does the user's own self-set cap apply.
+  const adminQuota = userMaxTotal ?? s.defaultUserQuota ?? null;
+  let quota = adminQuota;
+  let selfQuota = false;
+  if (quota == null) {
     const supabase = await createClient();
     const { data: pref } = await supabase
       .from("profiles")
-      .select("self_max_file_size")
+      .select("self_max_total_size")
       .eq("id", userId)
       .single();
-    const selfMax = pref?.self_max_file_size ?? null;
-    if (selfMax != null && size > selfMax) {
-      throw new Error(
-        `Fișierul depășește limita pe care ți-ai setat-o singur (${formatBytes(selfMax)}). O poți schimba din profil.`,
-      );
+    if (pref?.self_max_total_size != null) {
+      quota = pref.self_max_total_size;
+      selfQuota = true;
     }
   }
-
-  const quota = userMaxTotal ?? s.defaultUserQuota ?? null;
   const needPlatform = s.globalMaxTotal != null;
 
   // Run the two independent usage reads in parallel (only when actually needed).
@@ -136,6 +135,12 @@ async function enforceQuota(
   ]);
 
   if (quota != null && used + size > quota) {
+    if (selfQuota) {
+      // The user's own budget — their business alone, no admin flag.
+      throw new Error(
+        `Ai atins plafonul de stocare pe care ți l-ai setat singur (${formatBytes(quota)}). Îl poți schimba din profil.`,
+      );
+    }
     // Tell the user, and flag the admins that someone hit their storage ceiling.
     await notifyUserEvent(userId, "quota_user", { limita: formatBytes(quota) }, "/");
     await notifyAdminsQuota(userId, quota);
@@ -610,12 +615,18 @@ export async function saveTextFile(
 // is the sum across ALL the user's files, not just the current folder.
 export async function myUsage(): Promise<{ used: number; quota: number | null }> {
   const userId = await requireUserId();
-  const [used, { maxTotal }, { defaultUserQuota }] = await Promise.all([
+  const supabase = await createClient();
+  const [used, { maxTotal }, { defaultUserQuota }, { data: pref }] = await Promise.all([
     repo.totalUsage(userId),
     effectiveLimits(userId),
     getSettings(),
+    supabase.from("profiles").select("self_max_total_size").eq("id", userId).single(),
   ]);
-  return { used, quota: maxTotal ?? defaultUserQuota ?? null };
+  // Admin quota wins; the user's own cap fills in only when there is none.
+  return {
+    used,
+    quota: maxTotal ?? defaultUserQuota ?? pref?.self_max_total_size ?? null,
+  };
 }
 
 // An upload plan: a small file gets one presigned PUT; a large file gets a

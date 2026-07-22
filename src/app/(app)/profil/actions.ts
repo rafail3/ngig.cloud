@@ -101,9 +101,9 @@ export async function revokeOtherSessionsAction(): Promise<void> {
   revalidatePath("/profil");
 }
 
-// ── Storage: own per-file cap + alert threshold ──────────────────────────────
+// ── Storage: own total cap + alert threshold ────────────────────────────────
 
-export async function setSelfMaxFileAction(
+export async function setSelfMaxTotalAction(
   _prev: AccountState,
   formData: FormData,
 ): Promise<AccountState> {
@@ -116,10 +116,10 @@ export async function setSelfMaxFileAction(
       if (!Number.isFinite(n) || n <= 0) return { error: "Valoare invalidă (ex: 2 sau 0.5)." };
       bytes = Math.round(n * (unit === "MB" ? 1024 ** 2 : 1024 ** 3));
     }
-    const { setMySelfMaxFile } = await import("@/server/account/profile");
-    await setMySelfMaxFile(bytes);
+    const { setMySelfMaxTotal } = await import("@/server/account/profile");
+    await setMySelfMaxTotal(bytes);
     revalidatePath("/profil");
-    return { ok: bytes == null ? "Limita proprie a fost ștearsă." : "Limita proprie a fost salvată." };
+    return { ok: bytes == null ? "Plafonul propriu a fost șters." : "Plafonul propriu a fost salvat." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la salvare." };
   }
@@ -132,6 +132,7 @@ export async function setStorageAlertAction(
   const enabled = String(formData.get("enabled")) === "true";
   const mode = String(formData.get("mode"));
   const raw = String(formData.get("value") ?? "").trim();
+  const unit = String(formData.get("unit") ?? "GB");
   try {
     const { setMyStorageAlert } = await import("@/server/account/profile");
     if (!enabled) {
@@ -142,7 +143,10 @@ export async function setStorageAlertAction(
     if (mode !== "percent" && mode !== "absolute") return { error: "Mod invalid." };
     const n = Number(raw.replace(",", "."));
     if (!Number.isFinite(n) || n <= 0) return { error: "Valoare invalidă." };
-    const value = mode === "percent" ? Math.round(n) : Math.round(n * 1024 ** 3);
+    const value =
+      mode === "percent"
+        ? Math.round(n)
+        : Math.round(n * (unit === "MB" ? 1024 ** 2 : 1024 ** 3));
     await setMyStorageAlert({ mode, value });
     revalidatePath("/profil");
     return { ok: "Alerta a fost salvată." };

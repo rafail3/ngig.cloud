@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Info, HardDrive, BellRing } from "lucide-react";
-import { setSelfMaxFileAction, setStorageAlertAction } from "@/app/(app)/profil/actions";
+import { setSelfMaxTotalAction, setStorageAlertAction } from "@/app/(app)/profil/actions";
 import { useToastState } from "@/lib/useToastState";
 import { formatBytes } from "@/lib/format";
 import { splitUnit } from "@/lib/bytes";
@@ -98,79 +98,82 @@ function UnitPicker({
   );
 }
 
-// Profile → storage preferences: an own per-file cap (only when no admin limit
-// applies) and a total-usage alert threshold (percent of quota or absolute).
+// Profile → storage preferences: an own TOTAL storage cap (only when no admin
+// quota applies) and a usage alert threshold (percent of the effective quota
+// or a fixed MB/GB value).
 export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
-  const [limitState, limitAction, limitPending] = useActionState(setSelfMaxFileAction, initial);
+  const [capState, capAction, capPending] = useActionState(setSelfMaxTotalAction, initial);
   const [alertState, alertAction, alertPending] = useActionState(setStorageAlertAction, initial);
-  useToastState(limitState);
+  useToastState(capState);
   useToastState(alertState);
 
-  const [limitOpen, setLimitOpen] = useState(false);
+  const [capOpen, setCapOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (limitState.ok) setLimitOpen(false);
-  }, [limitState.ok]);
+    if (capState.ok) setCapOpen(false);
+  }, [capState.ok]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (alertState.ok) setAlertOpen(false);
   }, [alertState.ok]);
 
-  const self = splitUnit(settings.selfMaxFile);
-  const [unit, setUnit] = useState<string>(self.unit);
+  const self = splitUnit(settings.selfMaxTotal);
+  const [capUnit, setCapUnit] = useState<string>(self.unit);
 
-  const hasQuota = settings.quota != null;
   const alert = settings.alert;
+  const hasQuota = settings.effectiveQuota != null;
   const [mode, setMode] = useState<"percent" | "absolute">(
     alert?.mode ?? (hasQuota ? "percent" : "absolute"),
   );
+  const alertSplit = splitUnit(alert?.mode === "absolute" ? alert.value : null);
+  const [alertUnit, setAlertUnit] = useState<string>(alertSplit.unit);
 
   const alertValue =
     alert == null
       ? "Dezactivată"
       : alert.mode === "percent"
-        ? `La ${alert.value}% din cota de ${formatBytes(settings.quota ?? 0)}`
+        ? `La ${alert.value}% din cota de ${formatBytes(settings.effectiveQuota ?? 0)}`
         : `La ${formatBytes(alert.value)} stocați`;
 
   return (
     <div className="divide-y divide-zinc-800/50 rounded-2xl border border-zinc-800/70 bg-zinc-900/40">
-      {/* ── Own per-file cap ── */}
-      {settings.adminMaxFile != null ? (
+      {/* ── Own total cap ── */}
+      {settings.adminQuota != null ? (
         <section className="flex items-start gap-3 px-4 py-3.5 sm:px-5">
           <span className="mt-0.5 shrink-0 text-zinc-500">
             <Info className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-zinc-100">Limită de upload</p>
+            <p className="text-sm font-medium text-zinc-100">Cota mea de stocare</p>
             <p className="mt-0.5 text-sm text-zinc-500">
-              Limita pe fișier e stabilită de administrator:{" "}
-              <span className="font-medium text-zinc-300">{formatBytes(settings.adminMaxFile)}</span>{" "}
+              Cota totală e stabilită de administrator:{" "}
+              <span className="font-medium text-zinc-300">{formatBytes(settings.adminQuota)}</span>{" "}
               — nu poate fi modificată de aici.
             </p>
           </div>
         </section>
       ) : (
         <Row
-          label="Limita mea de upload"
+          label="Plafonul meu de stocare"
           value={
-            settings.selfMaxFile != null
-              ? `Max ${formatBytes(settings.selfMaxFile)} / fișier — setată de tine`
-              : "Nelimitat — îți poți seta un plafon propriu"
+            settings.selfMaxTotal != null
+              ? `Max ${formatBytes(settings.selfMaxTotal)} în total — setat de tine`
+              : "Nelimitat — îți poți seta un plafon total propriu"
           }
-          open={limitOpen}
-          onToggle={() => setLimitOpen((v) => !v)}
+          open={capOpen}
+          onToggle={() => setCapOpen((v) => !v)}
         >
-          <form action={limitAction} className="flex flex-col gap-3">
+          <form action={capAction} className="flex flex-col gap-3">
             <p className="flex items-start gap-2 text-xs text-zinc-500">
               <HardDrive className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Protecție proprie: upload-urile peste plafon sunt refuzate. Gol = fără plafon.
+              Buget personal: upload-urile care ar depăși plafonul total sunt refuzate. Gol = fără plafon.
             </p>
             <div className="flex items-end gap-2">
               <div className="w-40">
-                <label htmlFor="selfMax" className={labelCls}>Max / fișier</label>
+                <label htmlFor="selfMaxTotal" className={labelCls}>Plafon total</label>
                 <input
-                  id="selfMax"
+                  id="selfMaxTotal"
                   name="value"
                   type="text"
                   inputMode="decimal"
@@ -179,12 +182,12 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
                   className={inputCls}
                 />
               </div>
-              <input type="hidden" name="unit" value={unit} />
-              <UnitPicker value={unit} onChange={setUnit} />
+              <input type="hidden" name="unit" value={capUnit} />
+              <UnitPicker value={capUnit} onChange={setCapUnit} />
             </div>
             <div>
-              <button type="submit" disabled={limitPending} className={saveCls}>
-                {limitPending ? "Se salvează…" : "Salvează"}
+              <button type="submit" disabled={capPending} className={saveCls}>
+                {capPending ? "Se salvează…" : "Salvează"}
               </button>
             </div>
           </form>
@@ -210,19 +213,19 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
             aria-label="Tip prag"
             className="flex w-fit gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
           >
-            {hasQuota && (
-              <button
-                type="button"
-                role="radio"
-                aria-checked={mode === "percent"}
-                onClick={() => setMode("percent")}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                  mode === "percent" ? "bg-indigo-500 text-white" : "text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                % din cotă
-              </button>
-            )}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === "percent"}
+              disabled={!hasQuota}
+              onClick={() => setMode("percent")}
+              title={hasQuota ? undefined : "Necesită o cotă (a adminului sau plafonul tău propriu)."}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                mode === "percent" ? "bg-indigo-500 text-white" : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              % din cotă
+            </button>
             <button
               type="button"
               role="radio"
@@ -232,14 +235,19 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
                 mode === "absolute" ? "bg-indigo-500 text-white" : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              Valoare fixă (GB)
+              Valoare fixă
             </button>
           </div>
+          {!hasQuota && (
+            <p className="text-xs text-zinc-600">
+              Pragul procentual devine disponibil când există o cotă — a adminului sau plafonul tău propriu.
+            </p>
+          )}
 
           <div className="flex items-end gap-2">
             <div className="w-40">
               <label htmlFor="alertValue" className={labelCls}>
-                {mode === "percent" ? "Prag (%)" : "Prag (GB)"}
+                {mode === "percent" ? "Prag (%)" : "Prag"}
               </label>
               <input
                 id="alertValue"
@@ -251,15 +259,19 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
                     ? ""
                     : alert.mode === "percent"
                       ? String(alert.value)
-                      : String(Math.round((alert.value / 1024 ** 3) * 100) / 100)
+                      : alertSplit.value
                 }
                 placeholder={mode === "percent" ? "ex: 80" : "ex: 4"}
                 className={inputCls}
               />
             </div>
+            {mode === "absolute" && (
+              <UnitPicker value={alertUnit} onChange={setAlertUnit} />
+            )}
           </div>
 
           <input type="hidden" name="mode" value={mode} />
+          <input type="hidden" name="unit" value={alertUnit} />
           <div className="flex flex-wrap gap-2">
             <button type="submit" name="enabled" value="true" disabled={alertPending} className={saveCls}>
               {alertPending ? "Se salvează…" : "Salvează alerta"}

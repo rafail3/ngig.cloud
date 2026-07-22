@@ -31,19 +31,24 @@ export async function checkStorageAlert(userId: string): Promise<void> {
     const admin = createAdminClient();
     const { data: p } = await admin
       .from("profiles")
-      .select("storage_alert, max_total_size")
+      .select("storage_alert, max_total_size, self_max_total_size")
       .eq("id", userId)
       .single();
     const alert = parseStorageAlert(p?.storage_alert);
     if (!alert) return;
 
     // Threshold in bytes. Percent mode needs an effective quota to be a
-    // percentage OF — without one it simply never fires.
+    // percentage OF — admin quota, else the user's own total cap; without
+    // either it simply never fires.
     let threshold: number | null = null;
     if (alert.mode === "absolute") {
       threshold = alert.value;
     } else {
-      const quota = p?.max_total_size ?? (await getSettings()).defaultUserQuota ?? null;
+      const quota =
+        p?.max_total_size ??
+        (await getSettings()).defaultUserQuota ??
+        p?.self_max_total_size ??
+        null;
       if (quota != null) threshold = Math.floor((quota * alert.value) / 100);
     }
     if (threshold == null || threshold <= 0) return;

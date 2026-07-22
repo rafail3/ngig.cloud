@@ -70,13 +70,13 @@ export async function getMyProfile(): Promise<MyProfile> {
   };
 }
 
-// The caller's storage-limit picture for the profile page: whether an admin
-// cap applies (per-user or global — it always wins), their own self-cap, the
-// effective quota, and their alert config.
+// The caller's storage picture for the profile page: whether an admin total
+// quota applies (per-user or the global default — it always wins), their own
+// total cap, the effective quota (admin, else self), and their alert config.
 export type MyStorageSettings = {
-  adminMaxFile: number | null; // effective admin per-file cap (null = none)
-  selfMaxFile: number | null;
-  quota: number | null; // effective total quota (per-user or default)
+  adminQuota: number | null; // admin total quota (null = none)
+  selfMaxTotal: number | null;
+  effectiveQuota: number | null; // adminQuota ?? selfMaxTotal — funds the % alert
   alert: { mode: "percent" | "absolute"; value: number } | null;
 };
 
@@ -85,36 +85,36 @@ export async function getMyStorageSettings(): Promise<MyStorageSettings> {
   const [{ data: p }, settings] = await Promise.all([
     supabase
       .from("profiles")
-      .select("max_file_size, max_total_size, self_max_file_size, storage_alert")
+      .select("max_total_size, self_max_total_size, storage_alert")
       .eq("id", id)
       .single(),
     getSettings(),
   ]);
-  const adminMaxFile =
-    p?.max_file_size ?? settings.globalMaxFileSize ?? null;
+  const adminQuota = p?.max_total_size ?? settings.defaultUserQuota ?? null;
+  const selfMaxTotal = p?.self_max_total_size ?? null;
   const alertRaw = parseStorageAlert(p?.storage_alert);
   return {
-    adminMaxFile,
-    selfMaxFile: p?.self_max_file_size ?? null,
-    quota: p?.max_total_size ?? settings.defaultUserQuota ?? null,
+    adminQuota,
+    selfMaxTotal,
+    effectiveQuota: adminQuota ?? selfMaxTotal,
     alert: alertRaw ? { mode: alertRaw.mode, value: alertRaw.value } : null,
   };
 }
 
-// Set (or clear, with null) the caller's own per-file cap. Refused while an
-// admin limit applies — that one always wins and the UI explains it.
-export async function setMySelfMaxFile(bytes: number | null): Promise<void> {
+// Set (or clear, with null) the caller's own TOTAL storage cap. Refused while
+// an admin quota applies — that one always wins and the UI explains it.
+export async function setMySelfMaxTotal(bytes: number | null): Promise<void> {
   const { supabase, id } = await currentUser();
   if (bytes != null && (!Number.isFinite(bytes) || bytes <= 0)) {
     throw new Error("Valoare invalidă.");
   }
   const current = await getMyStorageSettings();
-  if (current.adminMaxFile != null) {
-    throw new Error("Limita pe fișier e stabilită de administrator — nu poate fi modificată.");
+  if (current.adminQuota != null) {
+    throw new Error("Cota de stocare e stabilită de administrator — nu poate fi modificată.");
   }
   const { error } = await supabase
     .from("profiles")
-    .update({ self_max_file_size: bytes })
+    .update({ self_max_total_size: bytes })
     .eq("id", id);
   if (error) throw error;
 }
