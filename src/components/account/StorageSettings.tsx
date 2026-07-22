@@ -1,12 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Info, HardDrive, BellRing } from "lucide-react";
 import { setSelfMaxTotalAction, setStorageAlertAction } from "@/app/(app)/profil/actions";
 import { useToastState } from "@/lib/useToastState";
 import { formatBytes } from "@/lib/format";
-import { splitUnit } from "@/lib/bytes";
 import type { MyStorageSettings } from "@/server/account/profile";
 import type { AccountState } from "@/lib/account-state";
 
@@ -17,6 +16,15 @@ const inputCls =
   "w-full rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-600 focus:border-indigo-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-indigo-500/15";
 const saveCls =
   "rounded-lg bg-indigo-500 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-400 active:bg-indigo-600 disabled:opacity-60";
+
+// The saved value lives in a small chip next to the input — never inside it.
+function CurrentChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex h-9 items-center rounded-lg border border-zinc-800 bg-zinc-900/60 px-2.5 text-xs text-zinc-400">
+      {children}
+    </span>
+  );
+}
 
 // One expandable row, mirroring the AccountForms pattern (name + value +
 // toggle button, form slides open underneath).
@@ -101,35 +109,65 @@ function UnitPicker({
 // Profile → storage preferences: an own TOTAL storage cap (only when no admin
 // quota applies) and a usage alert threshold (percent of the effective quota
 // or a fixed MB/GB value).
+//
+// The actions are dispatched MANUALLY (controlled inputs + startTransition),
+// not via <form action>: React 19's automatic form reset after an action races
+// with the AnimatePresence unmount and crashes ("fiber.reset is not a
+// function"). Manual dispatch sidesteps that machinery entirely — and the
+// inputs stay blank by design, with the saved value in a chip beside them.
 export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
-  const [capState, capAction, capPending] = useActionState(setSelfMaxTotalAction, initial);
-  const [alertState, alertAction, alertPending] = useActionState(setStorageAlertAction, initial);
+  const [capState, capDispatch, capPending] = useActionState(setSelfMaxTotalAction, initial);
+  const [alertState, alertDispatch, alertPending] = useActionState(setStorageAlertAction, initial);
   useToastState(capState);
   useToastState(alertState);
+  const [, startTransition] = useTransition();
 
   const [capOpen, setCapOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (capState.ok) setCapOpen(false);
-  }, [capState.ok]);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (alertState.ok) setAlertOpen(false);
-  }, [alertState.ok]);
-
-  const self = splitUnit(settings.selfMaxTotal);
-  const [capUnit, setCapUnit] = useState<string>(self.unit);
+  const [capValue, setCapValue] = useState("");
+  const [capUnit, setCapUnit] = useState("GB");
+  const [alertValue, setAlertValue] = useState("");
+  const [alertUnit, setAlertUnit] = useState("GB");
 
   const alert = settings.alert;
   const hasQuota = settings.effectiveQuota != null;
   const [mode, setMode] = useState<"percent" | "absolute">(
     alert?.mode ?? (hasQuota ? "percent" : "absolute"),
   );
-  const alertSplit = splitUnit(alert?.mode === "absolute" ? alert.value : null);
-  const [alertUnit, setAlertUnit] = useState<string>(alertSplit.unit);
 
-  const alertValue =
+  useEffect(() => {
+    if (capState.ok) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCapOpen(false);
+      setCapValue("");
+    }
+  }, [capState.ok]);
+  useEffect(() => {
+    if (alertState.ok) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAlertOpen(false);
+      setAlertValue("");
+    }
+  }, [alertState.ok]);
+
+  function submitCap(reset: boolean) {
+    const fd = new FormData();
+    fd.set("reset", String(reset));
+    fd.set("value", capValue);
+    fd.set("unit", capUnit);
+    startTransition(() => capDispatch(fd));
+  }
+
+  function submitAlert(enabled: boolean) {
+    const fd = new FormData();
+    fd.set("enabled", String(enabled));
+    fd.set("mode", mode);
+    fd.set("value", alertValue);
+    fd.set("unit", alertUnit);
+    startTransition(() => alertDispatch(fd));
+  }
+
+  const alertSummary =
     alert == null
       ? "Dezactivată"
       : alert.mode === "percent"
@@ -164,35 +202,40 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
           open={capOpen}
           onToggle={() => setCapOpen((v) => !v)}
         >
-          <form action={capAction} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
             <p className="flex items-start gap-2 text-xs text-zinc-500">
               <HardDrive className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               Buget personal: upload-urile care ar depăși plafonul total sunt refuzate.
             </p>
-            <div className="flex items-end gap-2">
+            <div className="flex flex-wrap items-end gap-2">
               <div className="w-40">
                 <label htmlFor="selfMaxTotal" className={labelCls}>Plafon total</label>
                 <input
                   id="selfMaxTotal"
-                  name="value"
                   type="text"
                   inputMode="decimal"
+                  value={capValue}
+                  onChange={(e) => setCapValue(e.target.value)}
                   placeholder="ex: 2"
                   className={inputCls}
                 />
               </div>
-              <input type="hidden" name="unit" value={capUnit} />
               <UnitPicker value={capUnit} onChange={setCapUnit} />
+              <CurrentChip>
+                Actual:{" "}
+                <span className="ml-1 font-medium text-zinc-200">
+                  {settings.selfMaxTotal != null ? formatBytes(settings.selfMaxTotal) : "nelimitat"}
+                </span>
+              </CurrentChip>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="submit" disabled={capPending} className={saveCls}>
+              <button type="button" onClick={() => submitCap(false)} disabled={capPending} className={saveCls}>
                 {capPending ? "Se salvează…" : "Salvează"}
               </button>
               {settings.selfMaxTotal != null && (
                 <button
-                  type="submit"
-                  name="reset"
-                  value="true"
+                  type="button"
+                  onClick={() => submitCap(true)}
                   disabled={capPending}
                   className="rounded-lg border border-zinc-800 px-3.5 py-1.5 text-sm text-zinc-300 transition hover:border-red-900/60 hover:text-red-200"
                 >
@@ -200,18 +243,18 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
                 </button>
               )}
             </div>
-          </form>
+          </div>
         </Row>
       )}
 
       {/* ── Storage alert ── */}
       <Row
         label="Alertă de spațiu"
-        value={alertValue}
+        value={alertSummary}
         open={alertOpen}
         onToggle={() => setAlertOpen((v) => !v)}
       >
-        <form action={alertAction} className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <p className="flex items-start gap-2 text-xs text-zinc-500">
             <BellRing className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             Primești notificare + email când stocarea ta depășește pragul. Se rearmează când
@@ -254,36 +297,42 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
             </p>
           )}
 
-          <div className="flex items-end gap-2">
+          <div className="flex flex-wrap items-end gap-2">
             <div className="w-40">
               <label htmlFor="alertValue" className={labelCls}>
                 {mode === "percent" ? "Prag (%)" : "Prag"}
               </label>
               <input
                 id="alertValue"
-                name="value"
                 type="text"
                 inputMode="decimal"
+                value={alertValue}
+                onChange={(e) => setAlertValue(e.target.value)}
                 placeholder={mode === "percent" ? "ex: 80" : "ex: 4"}
                 className={inputCls}
               />
             </div>
-            {mode === "absolute" && (
-              <UnitPicker value={alertUnit} onChange={setAlertUnit} />
-            )}
+            {mode === "absolute" && <UnitPicker value={alertUnit} onChange={setAlertUnit} />}
+            <CurrentChip>
+              Actual:{" "}
+              <span className="ml-1 font-medium text-zinc-200">
+                {alert == null
+                  ? "dezactivată"
+                  : alert.mode === "percent"
+                    ? `${alert.value}%`
+                    : formatBytes(alert.value)}
+              </span>
+            </CurrentChip>
           </div>
 
-          <input type="hidden" name="mode" value={mode} />
-          <input type="hidden" name="unit" value={alertUnit} />
           <div className="flex flex-wrap gap-2">
-            <button type="submit" name="enabled" value="true" disabled={alertPending} className={saveCls}>
+            <button type="button" onClick={() => submitAlert(true)} disabled={alertPending} className={saveCls}>
               {alertPending ? "Se salvează…" : "Salvează alerta"}
             </button>
             {alert != null && (
               <button
-                type="submit"
-                name="enabled"
-                value="false"
+                type="button"
+                onClick={() => submitAlert(false)}
                 disabled={alertPending}
                 className="rounded-lg border border-zinc-800 px-3.5 py-1.5 text-sm text-zinc-300 transition hover:border-red-900/60 hover:text-red-200"
               >
@@ -291,7 +340,7 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
               </button>
             )}
           </div>
-        </form>
+        </div>
       </Row>
     </div>
   );
