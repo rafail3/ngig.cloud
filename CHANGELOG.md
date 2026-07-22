@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.31.0](https://github.com/rafail3/ngig.cloud/compare/v2.30.0...v2.31.0) (2026-07-22)
+
+
+### Features
+
+* **costs:** rolling period windows alongside calendar months ([1efd32b](https://github.com/rafail3/ngig.cloud/commit/1efd32b3fd89fcd386d677d32ae0b8a64b26db87))
+
+
+### Bug Fixes
+
+* **costs:** dedup preview egress so the meter tracks what B2 bills ([9a648e3](https://github.com/rafail3/ngig.cloud/commit/9a648e3c9cc9e141d0f11a52f4794ffaa60b7e41))
+* **dashboard:** light-mode overview, version-only update notif, egress accuracy ([6df1723](https://github.com/rafail3/ngig.cloud/commit/6df17234ac8af5b266844e24024f83f48c82a45c))
+* **overview:** theme the stat cards and charts for light mode ([ba19cce](https://github.com/rafail3/ngig.cloud/commit/ba19cce55ecd45bcc6eba9814876ed0415fbb5e5))
+* **updates:** version-only update notification ([454c7ba](https://github.com/rafail3/ngig.cloud/commit/454c7ba0d2d140dcef9eecf9643f90247aae0c7e))
+
 ## [2.30.0](https://github.com/rafail3/ngig.cloud/compare/v2.29.0...v2.30.0) (2026-07-22)
 
 
