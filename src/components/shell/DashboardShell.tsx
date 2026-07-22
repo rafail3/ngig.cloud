@@ -35,33 +35,38 @@ type NavBadges = { tickets?: number };
 // Nav items use CLEAN paths — on the dashboard host the proxy rewrites them
 // into the /dashboard tree, so the browser URL stays prefix-free.
 // `soon` marks sections built in later phases; `superOnly` hides the entry from
-// managers (the pages/actions are guarded server-side too).
+// managers; `section` ties the entry to a per-manager permission key (the
+// pages/actions are guarded server-side too).
 type NavItem = {
   href: string;
   label: string;
   icon: React.ReactNode;
   soon?: boolean;
   superOnly?: boolean;
+  section?: string;
 };
 
 const NAV: NavItem[] = [
   { href: "/", label: "Overview", icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
-  { href: "/invites", label: "Invite codes", icon: <Ticket className="h-[18px] w-[18px]" /> },
-  { href: "/invite-requests", label: "Cereri invitații", icon: <Inbox className="h-[18px] w-[18px]" /> },
-  { href: "/users", label: "Useri", icon: <Users className="h-[18px] w-[18px]" /> },
-  { href: "/costs", label: "Costuri", icon: <Wallet className="h-[18px] w-[18px]" /> },
-  { href: "/tickets", label: "Suport", icon: <LifeBuoy className="h-[18px] w-[18px]" /> },
-  { href: "/announcements", label: "Anunțuri", icon: <Megaphone className="h-[18px] w-[18px]" /> },
+  { href: "/invites", label: "Invite codes", icon: <Ticket className="h-[18px] w-[18px]" />, section: "invites" },
+  { href: "/invite-requests", label: "Cereri invitații", icon: <Inbox className="h-[18px] w-[18px]" />, section: "invite-requests" },
+  { href: "/users", label: "Useri", icon: <Users className="h-[18px] w-[18px]" />, section: "users" },
+  { href: "/costs", label: "Costuri", icon: <Wallet className="h-[18px] w-[18px]" />, section: "costs" },
+  { href: "/tickets", label: "Suport", icon: <LifeBuoy className="h-[18px] w-[18px]" />, section: "tickets" },
+  { href: "/announcements", label: "Anunțuri", icon: <Megaphone className="h-[18px] w-[18px]" />, section: "announcements" },
   { href: "/settings", label: "Setări", icon: <Settings className="h-[18px] w-[18px]" />, superOnly: true },
 ];
 
 export function DashboardShell({
   user,
   badges,
+  sections,
   children,
 }: {
   user: ShellUser;
   badges?: NavBadges;
+  // Allowed section keys for this manager; null/undefined = full access.
+  sections?: string[] | null;
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -186,7 +191,11 @@ export function DashboardShell({
             <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
               Administrare
             </p>
-            {NAV.filter((i) => !i.superOnly || user.isSuperAdmin).map((item) => {
+            {NAV.filter(
+              (i) =>
+                (!i.superOnly || user.isSuperAdmin) &&
+                (!i.section || sections == null || sections.includes(i.section)),
+            ).map((item) => {
               const active = item.href === pathname;
               if (item.soon) {
                 return (

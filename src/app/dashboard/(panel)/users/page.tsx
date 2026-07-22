@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { listUsers } from "@/server/admin/users";
 import { UsersTable } from "@/components/dashboard/UsersTable";
+import { SectionGate } from "@/components/dashboard/SectionGate";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Useri" };
@@ -32,7 +33,9 @@ export default function UsersPage() {
       </header>
 
       <Suspense fallback={<ListSkeleton />}>
-        <UsersContent />
+        <SectionGate section="users">
+          <UsersContent />
+        </SectionGate>
       </Suspense>
     </div>
   );

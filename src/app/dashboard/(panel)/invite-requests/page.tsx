@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { listInviteRequests } from "@/server/invites/service";
 import { viewerIsSuperAdmin } from "@/server/admin/guard";
 import { InviteRequestsTable } from "@/components/dashboard/InviteRequestsTable";
+import { SectionGate } from "@/components/dashboard/SectionGate";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Cereri invitații" };
@@ -34,7 +35,9 @@ export default function InviteRequestsPage() {
       </header>
 
       <Suspense fallback={<ListSkeleton />}>
-        <RequestsContent />
+        <SectionGate section="invite-requests">
+          <RequestsContent />
+        </SectionGate>
       </Suspense>
     </div>
   );

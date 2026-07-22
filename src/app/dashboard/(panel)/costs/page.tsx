@@ -7,6 +7,7 @@ import { CostSummary } from "@/components/dashboard/costs/CostSummary";
 import { FreeTierMeter } from "@/components/dashboard/costs/FreeTierMeter";
 import { TopUsersChart, CompositionChart } from "@/components/dashboard/costs/CostCharts";
 import { CostTable } from "@/components/dashboard/costs/CostTable";
+import { SectionGate } from "@/components/dashboard/SectionGate";
 
 export const metadata = { title: "Dashboard — Costuri" };
 
@@ -99,7 +100,9 @@ export default async function CostsPage({
       </header>
 
       <Suspense key={period.key} fallback={<CostSkeleton />}>
-        <CostData from={period.from} to={period.to} month={period.key} />
+        <SectionGate section="costs">
+          <CostData from={period.from} to={period.to} month={period.key} />
+        </SectionGate>
       </Suspense>
     </div>
   );

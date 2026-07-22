@@ -1,13 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireSuperAdmin, assertCanManageTarget } from "@/server/admin/guard";
+import {
+  requireSection,
+  requireSuperAdmin,
+  assertCanManageTarget,
+  DASHBOARD_SECTIONS,
+} from "@/server/admin/guard";
 import {
   blockUser,
   unblockUser,
   signOutUser,
   setUserLimits,
   setUserRole,
+  setManagerSections,
   deleteUserAccount,
   type BlockDuration,
 } from "@/server/admin/users";
@@ -27,7 +33,7 @@ export async function blockUserAction(
 ): Promise<UserActionState> {
   let adminId: string;
   try {
-    adminId = await requireAdmin();
+    adminId = await requireSection("users");
   } catch {
     return { error: "Acces interzis." };
   }
@@ -81,7 +87,7 @@ export async function deleteUserAction(input: {
 }
 
 export async function unblockUserAction(formData: FormData) {
-  const adminId = await requireAdmin();
+  const adminId = await requireSection("users");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await assertCanManageTarget(adminId, id);
@@ -95,7 +101,7 @@ export async function signOutUserAction(
 ): Promise<UserActionState> {
   let adminId: string;
   try {
-    adminId = await requireAdmin();
+    adminId = await requireSection("users");
   } catch {
     return { error: "Acces interzis." };
   }
@@ -137,8 +143,40 @@ export async function setUserRoleAction(
   }
 }
 
+// Per-manager dashboard sections — super admin only. The form sends
+// preset=full (clears the restriction) or preset=custom plus one
+// section_<key>=true|false input per section.
+export async function setManagerPermissionsAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  try {
+    await requireSuperAdmin();
+  } catch {
+    return { error: "Acces interzis. Doar super admin." };
+  }
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "User invalid." };
+
+  const preset = String(formData.get("preset") ?? "");
+  if (preset !== "full" && preset !== "custom") return { error: "Preset invalid." };
+  const sections =
+    preset === "full"
+      ? null
+      : DASHBOARD_SECTIONS.filter((s) => formData.get(`section_${s}`) === "true");
+
+  try {
+    await setManagerSections(id, sections);
+    refresh(id);
+    return { ok: "Permisiuni actualizate." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvarea permisiunilor." };
+  }
+}
+
 export async function resetUserLimitsAction(formData: FormData) {
-  const adminId = await requireAdmin();
+  const adminId = await requireSection("users");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await assertCanManageTarget(adminId, id);
@@ -152,7 +190,7 @@ export async function setUserLimitsAction(
 ): Promise<UserActionState> {
   let adminId: string;
   try {
-    adminId = await requireAdmin();
+    adminId = await requireSection("users");
   } catch {
     return { error: "Acces interzis." };
   }

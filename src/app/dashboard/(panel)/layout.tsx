@@ -8,6 +8,7 @@ import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
 import { RefreshOnLand } from "@/components/realtime/RefreshOnLand";
 import { countUnreadTickets } from "@/server/tickets/service";
 import { maybeAnnounceUpdate } from "@/server/updates/service";
+import { parseSections } from "@/server/admin/guard";
 
 // Every dashboard data source — so any admin page/action updates live.
 const DASHBOARD_TABLES = [
@@ -50,13 +51,18 @@ async function Shell({
   if (userId) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username, role, is_super_admin")
+      .select("username, role, is_super_admin, permissions")
       .eq("id", userId)
       .single();
 
     if (profile?.role !== "admin") {
       return <Forbidden />;
     }
+
+    // Per-manager section permissions: null = full access. The super admin is
+    // never restricted. profiles is in DASHBOARD_TABLES, so a permissions
+    // change re-renders this layout live and the nav updates on its own.
+    const sections = profile.is_super_admin ? null : parseSections(profile.permissions);
 
     // Nav badge: threads this admin hasn't read yet — same count as the "nou"
     // rows. Opening a ticket writes its read mark, which realtime picks up and
@@ -74,6 +80,7 @@ async function Shell({
           isSuperAdmin: profile.is_super_admin ?? false,
         }}
         badges={{ tickets: ticketsWaiting }}
+        sections={sections}
       >
         <RealtimeRefresh tables={DASHBOARD_TABLES} />
         {/* Returning to the list must not replay its cached rows. */}

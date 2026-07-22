@@ -68,10 +68,14 @@ export function UserDetailBody({
   user,
   isSelf,
   viewerIsSuper,
+  managerSections = null,
 }: {
   user: AdminUser;
   isSelf: boolean;
   viewerIsSuper: boolean;
+  // The manager's allowed dashboard sections (null = full access); only
+  // provided when the viewer is the super admin and the target is a manager.
+  managerSections?: string[] | null;
 }) {
   const online = isOnline(user.last_seen_at);
   const blocked = isBlocked(user.blocked_until);
@@ -208,6 +212,7 @@ export function UserDetailBody({
           }}
           isSelf={isSelf}
           viewerIsSuper={viewerIsSuper}
+          managerSections={managerSections}
         />
       </div>
     </>

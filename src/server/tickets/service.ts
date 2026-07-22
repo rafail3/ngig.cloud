@@ -4,7 +4,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireActiveUser } from "@/server/auth/active-user";
-import { requireAdmin } from "@/server/admin/guard";
+import { requireSection } from "@/server/admin/guard";
 import { appOrigin, dashboardOrigin } from "@/lib/dashboard";
 import {
   presignUpload,
@@ -374,7 +374,7 @@ export async function markTicketSeen(ticketId: string, viewerId: string): Promis
 // ticket sinking to the bottom made the list look randomly ordered. Use the
 // status filter to see only open ones.
 export async function listAllTickets(): Promise<AdminTicketRow[]> {
-  const adminId = await requireAdmin();
+  const adminId = await requireSection("tickets");
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("tickets")
@@ -471,7 +471,7 @@ export async function getMyTicket(id: string): Promise<TicketDetail | null> {
 
 // A ticket for an admin (any owner).
 export async function getTicketAsAdmin(id: string): Promise<TicketDetail | null> {
-  const adminId = await requireAdmin();
+  const adminId = await requireSection("tickets");
   const admin = createAdminClient();
   const { data: t } = await admin
     .from("tickets")
@@ -559,7 +559,7 @@ export async function replyAsAdmin(input: {
   body: string;
   attachments: IncomingAttachment[];
 }): Promise<void> {
-  const adminId = await requireAdmin();
+  const adminId = await requireSection("tickets");
   const body = input.body.trim().slice(0, TICKET_MAX_BODY);
   if (!body) throw new Error("Adaugă un mesaj.");
   validateAttachments(input.attachments, adminId);
@@ -599,7 +599,7 @@ export async function setTicketPriority(
   id: string,
   priority: string,
 ): Promise<void> {
-  await requireAdmin();
+  await requireSection("tickets");
   if (!isTicketPriority(priority)) throw new Error("Prioritate invalidă.");
   const admin = createAdminClient();
   const { error } = await admin.from("tickets").update({ priority }).eq("id", id);
@@ -659,7 +659,7 @@ export async function closeMyTicket(id: string): Promise<void> {
 
 // ── Status ──────────────────────────────────────────────────────────────────
 export async function closeTicket(id: string): Promise<void> {
-  const adminId = await requireAdmin();
+  const adminId = await requireSection("tickets");
   const admin = createAdminClient();
   const { data: ticket } = await admin
     .from("tickets")
@@ -701,7 +701,7 @@ export async function closeTicket(id: string): Promise<void> {
 }
 
 export async function reopenTicket(id: string): Promise<void> {
-  const adminId = await requireAdmin();
+  const adminId = await requireSection("tickets");
   const admin = createAdminClient();
   const { data: ticket } = await admin
     .from("tickets")
@@ -753,7 +753,7 @@ async function purgeTicketMedia(ticketIds: string[]): Promise<void> {
 // Admin: wipe a ticket completely — B2 media, the whole thread, read state, and
 // it disappears from the owner's list too.
 export async function deleteTicket(id: string): Promise<void> {
-  await requireAdmin();
+  await requireSection("tickets");
   await purgeTicketMedia([id]);
   const admin = createAdminClient();
   const { error } = await admin.from("tickets").delete().eq("id", id);

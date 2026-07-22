@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireSuperAdmin } from "@/server/admin/guard";
+import { requireSection, requireSuperAdmin } from "@/server/admin/guard";
 import {
   approveInviteRequest,
   rejectInviteRequest,
@@ -10,7 +10,7 @@ import {
 import { sendInviteCode, sendInviteRejected } from "@/server/email/resend";
 
 export async function approveRequestAction(formData: FormData) {
-  const adminId = await requireAdmin();
+  const adminId = await requireSection("invite-requests");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
@@ -25,7 +25,7 @@ export async function approveRequestAction(formData: FormData) {
 }
 
 export async function rejectRequestAction(formData: FormData) {
-  const adminId = await requireAdmin();
+  const adminId = await requireSection("invite-requests");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 

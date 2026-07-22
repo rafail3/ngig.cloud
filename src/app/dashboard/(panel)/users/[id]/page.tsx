@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getUser } from "@/server/admin/users";
+import { getUser, getManagerSections } from "@/server/admin/users";
 import { UserDetailBody } from "@/components/dashboard/UserDetailBody";
 import { UserDetailSkeleton } from "@/components/dashboard/UserDetailSkeleton";
+import { SectionGate } from "@/components/dashboard/SectionGate";
 
 // `id` (dynamic param), the user lookup and the self-check are all per-request,
 // so they resolve inside <Suspense> while the back-link header paints instantly.
@@ -28,7 +29,20 @@ async function UserDetailContent({ params }: { params: Promise<{ id: string }> }
     viewerIsSuper = viewer?.is_super_admin ?? false;
   }
 
-  return <UserDetailBody user={user} isSelf={isSelf} viewerIsSuper={viewerIsSuper} />;
+  // Only the super admin's manager-permissions card needs the current config.
+  const managerSections =
+    viewerIsSuper && user.role === "admin" && !user.is_super_admin
+      ? await getManagerSections(id)
+      : null;
+
+  return (
+    <UserDetailBody
+      user={user}
+      isSelf={isSelf}
+      viewerIsSuper={viewerIsSuper}
+      managerSections={managerSections}
+    />
+  );
 }
 
 export default function UserDetailPage({
@@ -47,7 +61,9 @@ export default function UserDetailPage({
         </Link>
       </div>
       <Suspense fallback={<UserDetailSkeleton />}>
-        <UserDetailContent params={params} />
+        <SectionGate section="users">
+          <UserDetailContent params={params} />
+        </SectionGate>
       </Suspense>
     </div>
   );

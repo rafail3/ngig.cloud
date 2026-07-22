@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
 import { wipeUserData, assertNotLastAdmin } from "@/server/account/wipe";
+import { parseSections, type DashboardSection } from "@/server/admin/guard";
 import { formatBytes } from "@/lib/format";
 
 export type AdminUser = {
@@ -214,7 +215,10 @@ export async function setUserRole(id: string, role: "user" | "admin"): Promise<v
     await assertNotLastAdmin(id);
   }
 
-  const { error } = await admin.from("profiles").update({ role }).eq("id", id);
+  // Demotion also clears any per-manager permissions, so a later re-promotion
+  // starts from a clean full-access slate instead of a stale config.
+  const patch = role === "user" ? { role, permissions: null } : { role };
+  const { error } = await admin.from("profiles").update(patch).eq("id", id);
   if (error) throw error;
 
   await notifyUserEvent(
@@ -223,6 +227,39 @@ export async function setUserRole(id: string, role: "user" | "admin"): Promise<v
     { rol: role === "admin" ? "manager" : "utilizator" },
     "/",
   );
+}
+
+// The target manager's allowed dashboard sections (null = full access), read
+// with the service client — the super admin reads it for the config UI.
+export async function getManagerSections(id: string): Promise<DashboardSection[] | null> {
+  const admin = createAdminClient();
+  const { data } = await admin.from("profiles").select("permissions").eq("id", id).single();
+  return parseSections(data?.permissions);
+}
+
+// Write the per-manager section permissions. null = full access (clears the
+// restriction). Only meaningful on manager accounts; the super admin is never
+// restricted, so the row is refused outright.
+export async function setManagerSections(
+  id: string,
+  sections: DashboardSection[] | null,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { data: target } = await admin
+    .from("profiles")
+    .select("role, is_super_admin")
+    .eq("id", id)
+    .maybeSingle();
+  if (!target) throw new Error("Utilizator inexistent.");
+  if (target.role !== "admin" || target.is_super_admin) {
+    throw new Error("Permisiunile se configurează doar pe conturi de manager.");
+  }
+
+  const { error } = await admin
+    .from("profiles")
+    .update({ permissions: sections === null ? null : { sections } })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 // Cron-only: find time-limited blocks that have lapsed (blocked_until in the

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { listAllTickets } from "@/server/tickets/service";
 import { TicketsTable } from "@/components/dashboard/TicketsTable";
+import { SectionGate } from "@/components/dashboard/SectionGate";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Suport" };
@@ -32,7 +33,9 @@ export default function TicketsPage() {
       </header>
 
       <Suspense fallback={<ListSkeleton />}>
-        <TicketsContent />
+        <SectionGate section="tickets">
+          <TicketsContent />
+        </SectionGate>
       </Suspense>
     </div>
   );

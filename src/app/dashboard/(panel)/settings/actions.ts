@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireSuperAdmin } from "@/server/admin/guard";
+import { requireSuperAdmin } from "@/server/admin/guard";
 import { updateSettings, setSetting, type SettingKey } from "@/server/admin/settings";
 import { setUpdateNotifySettings, type UpdateRole } from "@/server/updates/service";
 import { setOfficeMode, recordOfficeState } from "@/server/office/config";
@@ -31,7 +31,7 @@ export type OfficeHealthSample = OfficeProbe & {
 
 // A single live probe, polled once a second by the status panel.
 export async function getOfficeHealthAction(): Promise<OfficeHealthSample> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const probe = await probeDocumentServer();
   const stamp = await recordOfficeState(probe.up);
   return {
@@ -54,7 +54,7 @@ export type OfficeServerInfo = {
 
 // The server's identity + live version. Fetched once when the panel opens.
 export async function getOfficeServerInfoAction(): Promise<OfficeServerInfo> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const [info, version] = await Promise.all([
     officeServerInfo(),
     getDocumentServerVersion(),
