@@ -3,13 +3,14 @@ import { randomUUID } from "crypto";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveUser } from "@/server/auth/active-user";
-import { getSettings } from "@/server/admin/settings";
+import { getSettings, getUploadTypes } from "@/server/admin/settings";
 import { platformUsage } from "@/server/admin/stats";
 import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/service";
 import { logEvent } from "@/server/insights/engine";
 import { logEgress } from "@/server/billing/egress";
 import * as repo from "./repository";
 import { extensionOf } from "@/lib/file-type";
+import { fileTypeDenied } from "@/lib/upload-types";
 import { formatBytes } from "@/lib/format";
 import {
   presignUpload,
@@ -620,6 +621,11 @@ export async function createUpload(input: {
   // requireActiveUser re-checks block / forced sign-out and returns fresh limits.
   const { id: userId, maxFile, maxTotal } = await requireActiveUser();
   if (input.size <= 0) throw new Error("Fișier gol.");
+
+  // Platform-wide type allowlist (super-admin setting; null = unrestricted).
+  // The picker filters client-side too, but this is the authoritative gate.
+  const denied = fileTypeDenied(input.name, input.contentType, await getUploadTypes());
+  if (denied) throw new Error(denied);
 
   await enforceQuota(userId, input.size, maxFile, maxTotal);
 

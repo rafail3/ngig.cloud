@@ -81,7 +81,7 @@ const BY_EXT: Record<string, string> = {
   gz: "Arhivă GZIP",
 };
 
-function extOf(name: string): string | null {
+export function extOf(name: string): string | null {
   return name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? null;
 }
 

@@ -1,5 +1,30 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseUploadTypes, type UploadTypesConfig } from "@/lib/upload-types";
+
+// Allowed upload types (jsonb under its own key; missing row = unrestricted).
+const UPLOAD_TYPES_KEY = "upload_types";
+
+export async function getUploadTypes(): Promise<UploadTypesConfig> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("app_settings")
+    .select("value")
+    .eq("key", UPLOAD_TYPES_KEY)
+    .maybeSingle();
+  return parseUploadTypes(data?.value);
+}
+
+export async function setUploadTypes(cfg: UploadTypesConfig): Promise<void> {
+  const admin = createAdminClient();
+  if (cfg === null) {
+    await admin.from("app_settings").delete().eq("key", UPLOAD_TYPES_KEY);
+  } else {
+    await admin
+      .from("app_settings")
+      .upsert({ key: UPLOAD_TYPES_KEY, value: cfg, updated_at: new Date().toISOString() });
+  }
+}
 
 // Global storage settings (bytes; null = unlimited).
 export type GlobalSettings = {
