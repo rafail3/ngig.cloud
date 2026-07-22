@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.27.0](https://github.com/rafail3/ngig.cloud/compare/v2.26.0...v2.27.0) (2026-07-22)
+
+
+### Features
+
+* **dashboard:** custom dropdowns everywhere + drop empty invites column ([b9ecb44](https://github.com/rafail3/ngig.cloud/commit/b9ecb44b5123a70f0f14b0371a546d0d9449d257))
+* **roles:** manager relabel + super-admin reserved actions (phase 1) ([b2d934f](https://github.com/rafail3/ngig.cloud/commit/b2d934fdcec793e9a889809a6d72d953bae618d2))
+* **roles:** manager relabel + super-admin reserved actions (phase 1) ([522679a](https://github.com/rafail3/ngig.cloud/commit/522679ad7268014899d1007fe33a7bac962dca61))
+* **roles:** managers cannot mint managers, delete history, or open settings ([feadaba](https://github.com/rafail3/ngig.cloud/commit/feadaba512c43993fd35f1d9876883f7f2c01875))
+* **roles:** managers see only block / sign-out / limits on user detail ([f12d766](https://github.com/rafail3/ngig.cloud/commit/f12d766dcde9cd1bc2792799bebb3ec7d6b3cf98))
+
+
+### Bug Fixes
+
+* **dashboard:** unclip dropdown popovers in animated editors ([42b1361](https://github.com/rafail3/ngig.cloud/commit/42b1361df0e372845acfad44cefeedf45ab4a1f7))
+* **ui:** render the Select popover in a portal, flipping up near the edge ([9579967](https://github.com/rafail3/ngig.cloud/commit/9579967fec6c944c01bd7598d2387893f18d10f0))
+
 ## [2.26.0](https://github.com/rafail3/ngig.cloud/compare/v2.25.0...v2.26.0) (2026-07-21)
 
 
