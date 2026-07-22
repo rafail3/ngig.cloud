@@ -36,6 +36,7 @@ const initial: UserActionState = {};
 export function UserActions({
   user,
   isSelf,
+  viewerIsSuper,
 }: {
   user: {
     id: string;
@@ -48,6 +49,7 @@ export function UserActions({
     max_total_size: number | null;
   };
   isSelf: boolean;
+  viewerIsSuper: boolean;
 }) {
   const blocked = isBlocked(user.blocked_until);
   const [blockState, blockAction, blockPending] = useActionState(blockUserAction, initial);
@@ -70,6 +72,20 @@ export function UserActions({
   const totalLimit = user.max_total_size != null ? formatBytes(user.max_total_size) : "Nelimitat";
   const file = splitUnit(user.max_file_size);
   const total = splitUnit(user.max_total_size);
+
+  // A manager can only act on plain users; manager/super accounts are handled
+  // exclusively by the super admin — show a calm note instead of dead controls.
+  const targetPrivileged = user.role === "admin" || user.is_super_admin;
+  if (!viewerIsSuper && targetPrivileged) {
+    return (
+      <section className="h-fit rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-5">
+        <p className="flex items-start gap-2.5 text-sm text-zinc-400">
+          <Crown className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+          Conturile de manager sunt gestionate doar de super admin.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -142,7 +158,8 @@ export function UserActions({
         )}
       </section>
 
-      {/* ===== Role ===== */}
+      {/* ===== Role (super admin only) ===== */}
+      {viewerIsSuper && (
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
         <div className="mb-3 flex items-center gap-2.5 text-zinc-100">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
@@ -192,6 +209,7 @@ export function UserActions({
           </div>
         )}
       </section>
+      )}
 
       {/* ===== Force sign out ===== */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
@@ -334,10 +352,10 @@ export function UserActions({
         </AnimatePresence>
       </section>
 
-      {/* ===== Danger zone ===== */}
+      {/* ===== Danger zone (super admin only) ===== */}
       {/* Hidden on your own account: deleting yourself goes through /profil,
           where you re-authenticate first. */}
-      {!isSelf && <DeleteUser id={user.id} username={user.username} />}
+      {!isSelf && viewerIsSuper && <DeleteUser id={user.id} username={user.username} />}
     </div>
   );
 }

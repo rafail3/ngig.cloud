@@ -64,7 +64,15 @@ function InfoRow({
 
 // Shared detail content — rendered both as a full page and inside the
 // intercepted overlay. The page/overlay wrappers add their own chrome.
-export function UserDetailBody({ user, isSelf }: { user: AdminUser; isSelf: boolean }) {
+export function UserDetailBody({
+  user,
+  isSelf,
+  viewerIsSuper,
+}: {
+  user: AdminUser;
+  isSelf: boolean;
+  viewerIsSuper: boolean;
+}) {
   const online = isOnline(user.last_seen_at);
   const blocked = isBlocked(user.blocked_until);
   const location = [user.last_city, user.last_country].filter(Boolean).join(", ") || "—";
@@ -199,6 +207,7 @@ export function UserDetailBody({ user, isSelf }: { user: AdminUser; isSelf: bool
             max_total_size: user.max_total_size,
           }}
           isSelf={isSelf}
+          viewerIsSuper={viewerIsSuper}
         />
       </div>
     </>
