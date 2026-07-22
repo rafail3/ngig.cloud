@@ -291,10 +291,12 @@ export function UserActions({
             <motion.div
               key="limits-form"
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
+              // overflow stays hidden only while the height animates — once open
+              // it flips to visible so the unit dropdown's popover isn't clipped.
+              animate={{ height: "auto", opacity: 1, transitionEnd: { overflow: "visible" } }}
+              exit={{ height: 0, opacity: 0, overflow: "hidden" }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="overflow-hidden"
+              style={{ overflow: "hidden" }}
             >
               <form action={limitsAction} className="flex flex-col gap-3 pt-4">
                 <input type="hidden" name="id" value={user.id} />

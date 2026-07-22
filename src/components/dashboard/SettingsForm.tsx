@@ -102,10 +102,12 @@ function SettingRow({
           <motion.div
             key="form"
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            // overflow stays hidden only while the height animates — once open
+            // it flips to visible so the unit dropdown's popover isn't clipped.
+            animate={{ height: "auto", opacity: 1, transitionEnd: { overflow: "visible" } }}
+            exit={{ height: 0, opacity: 0, overflow: "hidden" }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="overflow-hidden"
+            style={{ overflow: "hidden" }}
           >
             <form action={action} className="flex flex-col gap-3 pt-4 sm:pl-12">
               <input type="hidden" name="field" value={field} />
@@ -178,7 +180,7 @@ function Group({
         <Icon className="h-4 w-4 text-zinc-400" />
         {title}
       </h3>
-      <div className="overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/40 divide-y divide-zinc-800/70">
+      <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 divide-y divide-zinc-800/70">
         {children}
       </div>
     </section>
