@@ -8,13 +8,14 @@ import { ChatPanel } from "@/components/support/ChatPanel";
 import { CategoryBadge, StatusBadge } from "@/components/support/badges";
 import { AdminReply } from "@/components/dashboard/AdminReply";
 import { TicketStatusControls } from "@/components/dashboard/TicketStatusControls";
+import { viewerIsSuperAdmin } from "@/server/admin/guard";
 import { TicketPrioritySelect } from "@/components/dashboard/TicketPrioritySelect";
 
 export const metadata = { title: "Dashboard — Ticket" };
 
 async function TicketContent({ id }: { id: string }) {
   await connection();
-  const ticket = await getTicketAsAdmin(id);
+  const [ticket, isSuper] = await Promise.all([getTicketAsAdmin(id), viewerIsSuperAdmin()]);
   if (!ticket) notFound();
 
   return (
@@ -36,7 +37,7 @@ async function TicketContent({ id }: { id: string }) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <TicketPrioritySelect ticketId={ticket.id} priority={ticket.priority} />
-            <TicketStatusControls ticketId={ticket.id} status={ticket.status} />
+            <TicketStatusControls ticketId={ticket.id} status={ticket.status} canDelete={isSuper} />
           </div>
         </div>
       </header>

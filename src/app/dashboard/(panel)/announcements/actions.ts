@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/server/admin/guard";
+import { requireAdmin, requireSuperAdmin } from "@/server/admin/guard";
 import {
   createAnnouncement,
   scheduleAnnouncement,
@@ -93,7 +93,8 @@ export async function sendAnnouncementAction(
 }
 
 export async function deleteAnnouncementAction(formData: FormData) {
-  await requireAdmin();
+  // History deletion (which also recalls the broadcast) — super admin only.
+  await requireSuperAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteAnnouncement(id);

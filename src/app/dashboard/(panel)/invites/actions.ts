@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/server/admin/guard";
+import { requireAdmin, requireSuperAdmin } from "@/server/admin/guard";
 import {
   createInvite,
   revokeInvite,
@@ -30,6 +30,14 @@ export async function createInviteAction(
 
   const role = String(formData.get("role") ?? "user");
   if (role !== "user" && role !== "admin") return { error: "Rol invalid." };
+  // Minting a MANAGER account is managing managers — super admin only.
+  if (role === "admin") {
+    try {
+      await requireSuperAdmin();
+    } catch {
+      return { error: "Doar super admin poate genera invitații de manager." };
+    }
+  }
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase() || null;
   if (email && !EMAIL_RE.test(email)) return { error: "Adresă de email invalidă." };
@@ -78,7 +86,8 @@ export async function revokeInviteAction(formData: FormData) {
 }
 
 export async function deleteInviteAction(formData: FormData) {
-  await requireAdmin();
+  // History deletion is reserved for the super admin.
+  await requireSuperAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteInvite(id);

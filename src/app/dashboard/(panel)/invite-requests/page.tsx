@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { listInviteRequests } from "@/server/invites/service";
+import { viewerIsSuperAdmin } from "@/server/admin/guard";
 import { InviteRequestsTable } from "@/components/dashboard/InviteRequestsTable";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
@@ -8,7 +9,7 @@ export const metadata = { title: "Dashboard — Cereri invitații" };
 
 async function RequestsContent() {
   await connection();
-  const requests = await listInviteRequests();
+  const [requests, isSuper] = await Promise.all([listInviteRequests(), viewerIsSuperAdmin()]);
   const pending = requests.filter((r) => r.status === "pending").length;
 
   return (
@@ -17,7 +18,7 @@ async function RequestsContent() {
         Cereri ({requests.length}
         {pending > 0 ? ` · ${pending} în așteptare` : ""})
       </h2>
-      <InviteRequestsTable requests={requests} />
+      <InviteRequestsTable requests={requests} canDelete={isSuper} />
     </section>
   );
 }

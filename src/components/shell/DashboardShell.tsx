@@ -34,12 +34,14 @@ type NavBadges = { tickets?: number };
 
 // Nav items use CLEAN paths — on the dashboard host the proxy rewrites them
 // into the /dashboard tree, so the browser URL stays prefix-free.
-// `soon` marks sections built in later phases.
+// `soon` marks sections built in later phases; `superOnly` hides the entry from
+// managers (the pages/actions are guarded server-side too).
 type NavItem = {
   href: string;
   label: string;
   icon: React.ReactNode;
   soon?: boolean;
+  superOnly?: boolean;
 };
 
 const NAV: NavItem[] = [
@@ -50,7 +52,7 @@ const NAV: NavItem[] = [
   { href: "/costs", label: "Costuri", icon: <Wallet className="h-[18px] w-[18px]" /> },
   { href: "/tickets", label: "Suport", icon: <LifeBuoy className="h-[18px] w-[18px]" /> },
   { href: "/announcements", label: "Anunțuri", icon: <Megaphone className="h-[18px] w-[18px]" /> },
-  { href: "/settings", label: "Setări", icon: <Settings className="h-[18px] w-[18px]" /> },
+  { href: "/settings", label: "Setări", icon: <Settings className="h-[18px] w-[18px]" />, superOnly: true },
 ];
 
 export function DashboardShell({
@@ -184,7 +186,7 @@ export function DashboardShell({
             <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
               Administrare
             </p>
-            {NAV.map((item) => {
+            {NAV.filter((i) => !i.superOnly || user.isSuperAdmin).map((item) => {
               const active = item.href === pathname;
               if (item.soon) {
                 return (

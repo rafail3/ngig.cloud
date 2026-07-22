@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { listInvites } from "@/server/invites/service";
+import { viewerIsSuperAdmin } from "@/server/admin/guard";
 import { InviteGenerator } from "@/components/dashboard/InviteGenerator";
 import { InvitesTable } from "@/components/dashboard/InvitesTable";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
@@ -16,17 +17,17 @@ async function InvitesContent({
 }) {
   await connection();
   const { email } = await searchParams;
-  const invites = await listInvites();
+  const [invites, isSuper] = await Promise.all([listInvites(), viewerIsSuperAdmin()]);
 
   return (
     <>
-      <InviteGenerator prefillEmail={email} />
+      <InviteGenerator prefillEmail={email} canCreateManager={isSuper} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-zinc-400">
           Istoric ({invites.length})
         </h2>
-        <InvitesTable invites={invites} />
+        <InvitesTable invites={invites} canDelete={isSuper} />
       </section>
     </>
   );

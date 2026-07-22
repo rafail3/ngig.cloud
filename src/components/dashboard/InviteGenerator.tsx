@@ -85,7 +85,14 @@ function NewCode({ code, email }: { code: string; email?: string }) {
   );
 }
 
-export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
+export function InviteGenerator({
+  prefillEmail,
+  canCreateManager,
+}: {
+  prefillEmail?: string;
+  // Minting manager accounts is super-admin only; managers see just "User".
+  canCreateManager: boolean;
+}) {
   const [state, formAction, pending] = useActionState(createInviteAction, initial);
   useToastState(state);
 
@@ -113,7 +120,9 @@ export function InviteGenerator({ prefillEmail }: { prefillEmail?: string }) {
             <label htmlFor="role" className={labelCls}>Rol</label>
             <select id="role" name="role" defaultValue="user" className={fieldCls}>
               <option value="user" className="bg-zinc-900">User</option>
-              <option value="admin" className="bg-zinc-900">Manager</option>
+              {canCreateManager && (
+                <option value="admin" className="bg-zinc-900">Manager</option>
+              )}
             </select>
           </div>
 

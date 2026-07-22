@@ -16,9 +16,12 @@ import type { TicketStatus } from "@/lib/tickets";
 export function TicketStatusControls({
   ticketId,
   status,
+  canDelete,
 }: {
   ticketId: string;
   status: TicketStatus;
+  // Ticket deletion is super-admin only; managers don't see the button.
+  canDelete: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -72,14 +75,16 @@ export function TicketStatusControls({
         {status === "open" ? "Închide ticketul" : "Redeschide"}
       </button>
 
-      <button
-        type="button"
-        onClick={() => setConfirmDelete(true)}
-        disabled={pending}
-        className="inline-flex items-center gap-2 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-400 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60"
-      >
-        <Trash2 className="h-4 w-4" /> Șterge
-      </button>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          disabled={pending}
+          className="inline-flex items-center gap-2 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-400 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60"
+        >
+          <Trash2 className="h-4 w-4" /> Șterge
+        </button>
+      )}
 
       <AnimatePresence>
         {confirmDelete && (

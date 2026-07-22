@@ -245,7 +245,14 @@ function ConfirmDelete({
   );
 }
 
-export function AnnouncementHistory({ items }: { items: AnnouncementRow[] }) {
+export function AnnouncementHistory({
+  items,
+  canDelete,
+}: {
+  items: AnnouncementRow[];
+  // Deleting/recalling broadcasts is super-admin only; managers don't see it.
+  canDelete: boolean;
+}) {
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-12 text-center text-sm text-zinc-500">
@@ -312,7 +319,7 @@ export function AnnouncementHistory({ items }: { items: AnnouncementRow[] }) {
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
                     {a.sent_at && <ResendButton id={a.id} title={a.title} />}
-                    <DeleteButton id={a.id} title={a.title} scheduled={!a.sent_at} />
+                    {canDelete && <DeleteButton id={a.id} title={a.title} scheduled={!a.sent_at} />}
                   </div>
                 </td>
               </tr>
@@ -353,7 +360,7 @@ export function AnnouncementHistory({ items }: { items: AnnouncementRow[] }) {
 
             <div className="mt-4 flex gap-2">
               {a.sent_at && <ResendButton id={a.id} title={a.title} full />}
-              <DeleteButton id={a.id} title={a.title} scheduled={!a.sent_at} full />
+              {canDelete && <DeleteButton id={a.id} title={a.title} scheduled={!a.sent_at} full />}
             </div>
           </div>
         ))}

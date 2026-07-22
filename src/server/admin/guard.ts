@@ -41,6 +41,21 @@ export async function requireSuperAdmin(): Promise<string> {
   return id;
 }
 
+// Non-throwing check for UI decisions (hide super-only controls). NOT a
+// security gate — the actions still call requireSuperAdmin themselves.
+export async function viewerIsSuperAdmin(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const id = data?.claims?.sub as string | undefined;
+  if (!id) return false;
+  const { data: p } = await supabase
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", id)
+    .single();
+  return p?.is_super_admin ?? false;
+}
+
 // A manager may act on plain users, but not on other managers / the super admin
 // — only the super admin can. Call after requireAdmin in user-management actions.
 export async function assertCanManageTarget(callerId: string, targetId: string): Promise<void> {

@@ -197,7 +197,15 @@ function ConfirmDeleteModal({
   );
 }
 
-function Actions({ req, full = false }: { req: InviteRequestRow; full?: boolean }) {
+function Actions({
+  req,
+  full = false,
+  canDelete,
+}: {
+  req: InviteRequestRow;
+  full?: boolean;
+  canDelete: boolean;
+}) {
   return (
     <div className={`flex items-center gap-2 ${full ? "" : "justify-end"}`}>
       {req.status === "pending" && (
@@ -206,7 +214,7 @@ function Actions({ req, full = false }: { req: InviteRequestRow; full?: boolean 
           <RejectButton id={req.id} full={full} />
         </>
       )}
-      {req.status !== "pending" && (
+      {req.status !== "pending" && canDelete && (
         <div className={full ? "flex-1" : ""}>
           <DeleteButton id={req.id} email={req.email} full={full} />
         </div>
@@ -215,7 +223,14 @@ function Actions({ req, full = false }: { req: InviteRequestRow; full?: boolean 
   );
 }
 
-export function InviteRequestsTable({ requests }: { requests: InviteRequestRow[] }) {
+export function InviteRequestsTable({
+  requests,
+  canDelete,
+}: {
+  requests: InviteRequestRow[];
+  // History deletion is super-admin only; managers don't see the button.
+  canDelete: boolean;
+}) {
   if (requests.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-12 text-center text-sm text-zinc-500">
@@ -253,10 +268,10 @@ export function InviteRequestsTable({ requests }: { requests: InviteRequestRow[]
                   {req.status === "approved" && req.invite_code ? (
                     <div className="flex flex-col items-end gap-2">
                       <CodeChip code={req.invite_code} />
-                      <DeleteButton id={req.id} email={req.email} />
+                      {canDelete && <DeleteButton id={req.id} email={req.email} />}
                     </div>
                   ) : (
-                    <Actions req={req} />
+                    <Actions req={req} canDelete={canDelete} />
                   )}
                 </td>
               </tr>
@@ -303,7 +318,7 @@ export function InviteRequestsTable({ requests }: { requests: InviteRequestRow[]
             )}
 
             <div className="mt-4 flex items-center gap-2">
-              <Actions req={req} full />
+              <Actions req={req} full canDelete={canDelete} />
             </div>
           </div>
         ))}

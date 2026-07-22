@@ -13,6 +13,7 @@ import { SettingsTabs } from "@/components/dashboard/SettingsTabs";
 import { NotificationSettings } from "@/components/dashboard/NotificationTypesList";
 import { UpdateNotifySettings } from "@/components/dashboard/UpdateNotifySettings";
 import { getUpdateNotifySettings } from "@/server/updates/service";
+import { viewerIsSuperAdmin } from "@/server/admin/guard";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 export const metadata = { title: "Dashboard — Setări" };
@@ -116,11 +117,29 @@ export default function SettingsPage() {
         </p>
       </header>
 
-      <SettingsTabs
-        general={<GeneralTab />}
-        servers={<ServersTab />}
-        notifications={<NotificationsTab />}
-      />
+      <Suspense fallback={<ListSkeleton rows={4} />}>
+        <SettingsGate />
+      </Suspense>
     </div>
+  );
+}
+
+// The whole settings surface is super-admin only (nav hides it from managers;
+// this gate covers direct URLs).
+async function SettingsGate() {
+  await connection();
+  if (!(await viewerIsSuperAdmin())) {
+    return (
+      <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-8 text-center text-sm text-zinc-400">
+        Setările platformei sunt gestionate doar de super admin.
+      </div>
+    );
+  }
+  return (
+    <SettingsTabs
+      general={<GeneralTab />}
+      servers={<ServersTab />}
+      notifications={<NotificationsTab />}
+    />
   );
 }

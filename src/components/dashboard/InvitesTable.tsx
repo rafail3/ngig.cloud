@@ -153,7 +153,14 @@ function ConfirmDeleteModal({
   );
 }
 
-export function InvitesTable({ invites }: { invites: InviteRow[] }) {
+export function InvitesTable({
+  invites,
+  canDelete,
+}: {
+  invites: InviteRow[];
+  // History deletion is super-admin only; managers don't see the button.
+  canDelete: boolean;
+}) {
   if (invites.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-12 text-center text-sm text-zinc-500">
@@ -212,7 +219,7 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       {status === "active" && <RevokeButton id={inv.id} />}
-                      <DeleteButton id={inv.id} code={inv.code} />
+                      {canDelete && <DeleteButton id={inv.id} code={inv.code} />}
                     </div>
                   </td>
                 </tr>
@@ -284,7 +291,7 @@ export function InvitesTable({ invites }: { invites: InviteRow[] }) {
                   </div>
                 )}
                 <div className="flex-1">
-                  <DeleteButton id={inv.id} code={inv.code} full />
+                  {canDelete && <DeleteButton id={inv.id} code={inv.code} full />}
                 </div>
               </div>
             </div>

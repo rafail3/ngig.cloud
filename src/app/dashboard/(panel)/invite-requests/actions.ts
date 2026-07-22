@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/server/admin/guard";
+import { requireAdmin, requireSuperAdmin } from "@/server/admin/guard";
 import {
   approveInviteRequest,
   rejectInviteRequest,
@@ -40,7 +40,8 @@ export async function rejectRequestAction(formData: FormData) {
 }
 
 export async function deleteRequestAction(formData: FormData) {
-  await requireAdmin();
+  // History deletion is reserved for the super admin.
+  await requireSuperAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deleteInviteRequest(id);
