@@ -13,6 +13,7 @@ import {
   setUserRoleAction,
 } from "@/app/dashboard/(panel)/users/actions";
 import { DeleteUser } from "@/components/dashboard/DeleteUser";
+import { Select } from "@/components/support/Select";
 import { isBlocked, isPermanentBlock, type UserActionState } from "@/lib/user-presence";
 import { useToastState } from "@/lib/useToastState";
 import { splitUnit } from "@/lib/bytes";
@@ -73,6 +74,11 @@ export function UserActions({
   const file = splitUnit(user.max_file_size);
   const total = splitUnit(user.max_total_size);
 
+  // Custom dropdowns are controlled; hidden inputs carry the values on submit.
+  const [blockDuration, setBlockDuration] = useState("24h");
+  const [fileUnit, setFileUnit] = useState<string>(file.unit);
+  const [totalUnit, setTotalUnit] = useState<string>(total.unit);
+
   // A manager can only act on plain users; manager/super accounts are handled
   // exclusively by the super admin — show a calm note instead of dead controls.
   const targetPrivileged = user.role === "admin" || user.is_super_admin;
@@ -132,12 +138,14 @@ export function UserActions({
             <input type="hidden" name="id" value={user.id} />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label htmlFor="duration" className={labelCls}>Durată</label>
-                <select id="duration" name="duration" defaultValue="24h" className={fieldCls}>
-                  {DURATION_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value} className="bg-zinc-900">{o.label}</option>
-                  ))}
-                </select>
+                <span className={labelCls}>Durată</span>
+                <input type="hidden" name="duration" value={blockDuration} />
+                <Select
+                  value={blockDuration}
+                  options={DURATION_OPTIONS.map((o) => ({ key: o.value, label: o.label }))}
+                  onChange={setBlockDuration}
+                  ariaLabel="Durată blocare"
+                />
               </div>
               <div>
                 <label htmlFor="reason" className={labelCls}>
@@ -245,7 +253,13 @@ export function UserActions({
           </div>
           <button
             type="button"
-            onClick={() => setLimitsOpen((v) => !v)}
+            onClick={() => {
+              if (!limitsOpen) {
+                setFileUnit(file.unit);
+                setTotalUnit(total.unit);
+              }
+              setLimitsOpen(!limitsOpen);
+            }}
             aria-expanded={limitsOpen}
             className={`rounded-lg border px-3 py-1.5 text-sm transition ${
               limitsOpen
@@ -298,10 +312,14 @@ export function UserActions({
                   placeholder="nelimitat"
                   className={fieldCls}
                 />
-                <select name="maxFileUnit" defaultValue={file.unit} className={`${fieldCls} w-24`}>
-                  <option value="MB" className="bg-zinc-900">MB</option>
-                  <option value="GB" className="bg-zinc-900">GB</option>
-                </select>
+                <input type="hidden" name="maxFileUnit" value={fileUnit} />
+                <Select
+                  value={fileUnit}
+                  options={[{ key: "MB", label: "MB" }, { key: "GB", label: "GB" }]}
+                  onChange={setFileUnit}
+                  ariaLabel="Unitate max fișier"
+                  className="w-24 shrink-0"
+                />
               </div>
             </div>
             <div>
@@ -316,10 +334,14 @@ export function UserActions({
                   placeholder="nelimitat"
                   className={fieldCls}
                 />
-                <select name="maxTotalUnit" defaultValue={total.unit} className={`${fieldCls} w-24`}>
-                  <option value="MB" className="bg-zinc-900">MB</option>
-                  <option value="GB" className="bg-zinc-900">GB</option>
-                </select>
+                <input type="hidden" name="maxTotalUnit" value={totalUnit} />
+                <Select
+                  value={totalUnit}
+                  options={[{ key: "MB", label: "MB" }, { key: "GB", label: "GB" }]}
+                  onChange={setTotalUnit}
+                  ariaLabel="Unitate max total"
+                  className="w-24 shrink-0"
+                />
               </div>
             </div>
           </div>

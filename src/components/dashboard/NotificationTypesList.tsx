@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { User, Shield, Plus, BellOff, Pencil, X, RotateCcw, Search } from "lucide-react";
+import { Select } from "@/components/support/Select";
 import {
   setNotificationEnabledAction,
   setNotificationTemplateAction,
@@ -610,23 +611,15 @@ function AddTab({ addable }: { addable: NotificationTypeMeta[] }) {
 
   return (
     <div className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-5">
-      <label htmlFor="add-action" className="mb-1.5 block text-xs font-medium text-zinc-400">
-        Acțiune
-      </label>
+      <span className="mb-1.5 block text-xs font-medium text-zinc-400">Acțiune</span>
       <div className="flex flex-col gap-3 sm:flex-row">
-        <select
-          id="add-action"
+        <Select
           value={selected}
-          onChange={(e) => setSelected(e.target.value)}
-          className="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-indigo-500/60 focus:outline-none"
-        >
-          <option value="">Alege o acțiune…</option>
-          {addable.map((a) => (
-            <option key={a.key} value={a.key}>
-              {a.label}
-            </option>
-          ))}
-        </select>
+          options={addable.map((a) => ({ key: a.key, label: a.label }))}
+          onChange={setSelected}
+          ariaLabel="Alege o acțiune"
+          className="flex-1"
+        />
         <button
           type="button"
           disabled={!selected}

@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HardDrive, FileText, User, Database, Users, type LucideIcon } from "lucide-react";
 import { saveSettingAction } from "@/app/dashboard/(panel)/settings/actions";
+import { Select } from "@/components/support/Select";
 import { useToastState } from "@/lib/useToastState";
 import { splitUnit } from "@/lib/bytes";
 import { formatBytes } from "@/lib/format";
@@ -45,6 +46,7 @@ function SettingRow({
   }, [state.ok]);
 
   const bytes = splitUnit(current);
+  const [unit, setUnit] = useState<string>(bytes.unit);
   const display =
     current == null
       ? "Nelimitat"
@@ -74,7 +76,10 @@ function SettingRow({
           </span>
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
+            onClick={() => {
+              if (!open) setUnit(bytes.unit);
+              setOpen(!open);
+            }}
             aria-expanded={open}
             className={`rounded-lg border px-3 py-1.5 text-sm transition ${
               open
@@ -115,10 +120,19 @@ function SettingRow({
                   className={inputCls}
                 />
                 {kind === "bytes" && (
-                  <select name="unit" defaultValue={bytes.unit} className={`${inputCls} w-24`}>
-                    <option value="MB" className="bg-zinc-900">MB</option>
-                    <option value="GB" className="bg-zinc-900">GB</option>
-                  </select>
+                  <>
+                    <input type="hidden" name="unit" value={unit} />
+                    <Select
+                      value={unit}
+                      options={[
+                        { key: "MB", label: "MB" },
+                        { key: "GB", label: "GB" },
+                      ]}
+                      onChange={setUnit}
+                      ariaLabel="Unitate"
+                      className="w-24 shrink-0"
+                    />
+                  </>
                 )}
               </div>
               <div className="flex items-center gap-2">
