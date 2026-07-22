@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.34.0](https://github.com/rafail3/ngig.cloud/compare/v2.33.1...v2.34.0) (2026-07-22)
+
+
+### Features
+
+* **maintenance:** nightly guarded orphan sweep for B2 ([c30bf75](https://github.com/rafail3/ngig.cloud/commit/c30bf753405c470d5e5ce63ba2960b9d06b4e0d0))
+* **maintenance:** nightly guarded orphan sweep for B2 ([652634b](https://github.com/rafail3/ngig.cloud/commit/652634bab8f71d28c0d60fb771c73469c915104e))
+
 ## [2.33.1](https://github.com/rafail3/ngig.cloud/compare/v2.33.0...v2.33.1) (2026-07-22)
 
 
