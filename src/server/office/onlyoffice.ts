@@ -487,7 +487,7 @@ export async function openFileForEditor(token: string): Promise<{
 
   // The Document Server pulls the file out of B2 through us — real egress. No
   // session here, so attribute it to the file owner via the service-role path.
-  after(() => logEgress((file.size as number) ?? 0, "office", ownerId));
+  after(() => logEgress((file.size as number) ?? 0, "office", { userId: ownerId }));
 
   return {
     stream: res.body,

@@ -44,6 +44,34 @@ const RO_MONTHS = [
   "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie",
 ];
 
+// Rolling windows (ending now) offered above the calendar months. The free
+// egress allowance is monthly, so each carries how many months it spans.
+const ROLLING: { key: string; label: string; days: number }[] = [
+  { key: "r30", label: "Ultimele 30 de zile", days: 30 },
+  { key: "r90", label: "Ultimele 3 luni", days: 90 },
+  { key: "r180", label: "Ultimele 6 luni", days: 180 },
+  { key: "r270", label: "Ultimele 9 luni", days: 270 },
+  { key: "r365", label: "Ultimele 12 luni", days: 365 },
+];
+
+const DAY_MS = 86_400_000;
+
+export function rollingOptions(): MonthOption[] {
+  const now = new Date();
+  return ROLLING.map((r) => ({
+    key: r.key,
+    label: r.label,
+    from: new Date(now.getTime() - r.days * DAY_MS).toISOString(),
+    to: now.toISOString(),
+  }));
+}
+
+// How many monthly free-egress allowances a window earns (calendar month = 1).
+export function monthsInWindow(from: string, to: string): number {
+  const days = (new Date(to).getTime() - new Date(from).getTime()) / DAY_MS;
+  return Math.max(1, Math.round(days / 30));
+}
+
 // The last `count` months (most recent first), as UTC month boundaries.
 export function recentMonths(count = 12): MonthOption[] {
   const now = new Date();
@@ -63,9 +91,11 @@ export function recentMonths(count = 12): MonthOption[] {
   return out;
 }
 
-// Resolve a month key (e.g. "2026-07") back to its window, defaulting to the
-// current month when the key is missing or malformed.
+// Resolve a period key — a rolling window ("r90") or a month ("2026-07") —
+// back to its bounds, defaulting to the current month.
 export function resolveMonth(key?: string): MonthOption {
+  const rolling = rollingOptions().find((r) => r.key === key);
+  if (rolling) return rolling;
   const months = recentMonths(12);
   return months.find((m) => m.key === key) ?? months[0];
 }
@@ -81,6 +111,7 @@ export async function getCostReport(from: string, to: string): Promise<CostRepor
     getEffectiveRates(),
   ]);
   const { rates } = effective;
+  const months = monthsInWindow(from, to);
 
   const egressByUser = new Map<string, number>(
     (egressRes.data ?? []).map((r: { user_id: string; bytes: number }) => [
@@ -95,7 +126,7 @@ export async function getCostReport(from: string, to: string): Promise<CostRepor
       const egressBytes = egressByUser.get(u.id) ?? 0;
       const storageCost = storageCostUsd(storageBytes, false, rates);
       // Per-user attribution: each user's own storage funds their free egress.
-      const { cost: egressCost } = egressCostUsd(egressBytes, storageBytes, rates);
+      const { cost: egressCost } = egressCostUsd(egressBytes, storageBytes, rates, months);
       return {
         id: u.id,
         username: u.username,
@@ -116,7 +147,7 @@ export async function getCostReport(from: string, to: string): Promise<CostRepor
     cost: platformEgressCost,
     freeBytes: egressFreeBytes,
     billableBytes: egressBillableBytes,
-  } = egressCostUsd(platformEgress, platformStorage, rates);
+  } = egressCostUsd(platformEgress, platformStorage, rates, months);
   const transactionsCost = transactionsCostUsd();
 
   const platform: PlatformCost = {
@@ -174,7 +205,12 @@ export async function getUserCostDetail(
 
   const storageBytes = Number(user.total_size ?? 0);
   const storageCost = storageCostUsd(storageBytes, false, rates);
-  const { cost: egressCost } = egressCostUsd(egressBytes, storageBytes, rates);
+  const { cost: egressCost } = egressCostUsd(
+    egressBytes,
+    storageBytes,
+    rates,
+    monthsInWindow(from, to),
+  );
 
   return {
     id: user.id,

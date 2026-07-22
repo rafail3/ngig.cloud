@@ -1,7 +1,13 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { Info } from "lucide-react";
-import { getCostReport, resolveMonth, recentMonths } from "@/server/admin/costs";
+import {
+  getCostReport,
+  resolveMonth,
+  recentMonths,
+  rollingOptions,
+  monthsInWindow,
+} from "@/server/admin/costs";
 import { MonthSelector } from "@/components/dashboard/costs/MonthSelector";
 import { CostSummary } from "@/components/dashboard/costs/CostSummary";
 import { FreeTierMeter } from "@/components/dashboard/costs/FreeTierMeter";
@@ -33,6 +39,7 @@ async function CostData({ from, to, month }: { from: string; to: string; month: 
         freeStorageBytes={report.rates.freeStorageBytes}
         egressBytes={report.platform.egressBytes}
         egressFreeBytes={report.platform.egressFreeBytes}
+        egressMonths={monthsInWindow(from, to)}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -85,7 +92,8 @@ export default async function CostsPage({
 }) {
   const { m } = await searchParams;
   const period = resolveMonth(m);
-  const months = recentMonths(12);
+  // Rolling windows first, then the calendar months.
+  const months = [...rollingOptions(), ...recentMonths(12)];
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">

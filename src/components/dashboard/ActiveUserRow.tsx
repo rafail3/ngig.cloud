@@ -62,7 +62,9 @@ export function ActiveUserRow({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group flex w-full items-center gap-3 rounded-xl border border-transparent px-2 py-2.5 text-left transition hover:border-zinc-800 hover:bg-zinc-900/70 sm:gap-4 sm:px-3"
+        // Hover: zinc-900/70 mirrors to near-white in light mode (invisible on
+        // the white card), so light gets an explicit non-mirrored tint.
+        className="group flex w-full items-center gap-3 rounded-xl border border-transparent px-2 py-2.5 text-left transition hover:border-black/[0.06] hover:bg-black/[0.03] dark:hover:border-zinc-800 dark:hover:bg-zinc-900/70 sm:gap-4 sm:px-3"
       >
         {/* Rank numeral */}
         <span

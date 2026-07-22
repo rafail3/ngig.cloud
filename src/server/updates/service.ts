@@ -2,8 +2,8 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // The "new version" notification: on the first request after a prod deploy, all
-// users in the chosen audience get a one-off notification with the version and
-// the changelog highlights. Toggle + audience live in app_settings.
+// users in the chosen audience get a one-off notification with the new version.
+// Toggle + audience live in app_settings.
 
 export type UpdateRole = "admin" | "user";
 export type UpdateNotifySettings = {
@@ -14,14 +14,12 @@ export type UpdateNotifySettings = {
 const KEY_ENABLED = "update_notify_enabled";
 const KEY_AUDIENCE = "update_notify_audience";
 const DEFAULT_AUDIENCE: UpdateRole[] = ["admin", "user"];
-const GITHUB_REPO = "rafail3/ngig.cloud";
 
+// Baked in from package.json's version via next.config at build time — so a
+// version bump lands here with the deploy, and the first request after it
+// triggers the announcement below.
 function deployedVersion(): string | null {
   return process.env.NEXT_PUBLIC_APP_VERSION || null;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 export async function getUpdateNotifySettings(): Promise<UpdateNotifySettings> {
@@ -48,44 +46,6 @@ export async function setUpdateNotifySettings(s: UpdateNotifySettings): Promise<
     { key: KEY_ENABLED, value: s.enabled, updated_at: now },
     { key: KEY_AUDIENCE, value: s.audience, updated_at: now },
   ]);
-}
-
-// Release notes for a version tag, pulled off GitHub (best-effort) and reduced
-// to a short plain-text highlight list. Null if unavailable.
-async function fetchChangelogHighlights(version: string): Promise<string | null> {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/releases/tags/v${version}`,
-      {
-        signal: controller.signal,
-        headers: { accept: "application/vnd.github+json", "user-agent": "ngig.cloud" },
-      },
-    ).finally(() => clearTimeout(timer));
-    if (!res.ok) return null;
-    const json = (await res.json()) as { body?: string };
-    const cleaned = (json.body ?? "")
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.startsWith("* ") || l.startsWith("- "))
-      .map((l) =>
-        l
-          .replace(/^[*-]\s+/, "")
-          .replace(/\(\[[^\]]*\]\([^)]*\)\)/g, "") // strip ([abc](url)) refs
-          .replace(/\*\*/g, "")
-          .replace(/`/g, "")
-          .trim(),
-      )
-      .filter(Boolean);
-    // Release notes often repeat a line — keep unique, capped. The body is
-    // rendered as HTML in the bell, so escape (notes are semi-trusted) and use
-    // <br> for real line breaks.
-    const bullets = [...new Set(cleaned)].slice(0, 4).map(escapeHtml);
-    return bullets.length ? bullets.map((b) => `• ${b}`).join("<br>") : null;
-  } catch {
-    return null;
-  }
 }
 
 async function broadcastUpdate(
@@ -125,10 +85,8 @@ export async function maybeAnnounceUpdate(): Promise<void> {
     if (error) return;
     handledVersion = version;
     if (!claimed) return; // another request already announced this version
-    const highlights = await fetchChangelogHighlights(version);
-    const body = `Aplicația a fost actualizată la versiunea <strong>v${version}</strong>.${
-      highlights ? `<br><br>${highlights}` : ""
-    }`;
+    // Version only — no changelog body; the details live in the GitHub release.
+    const body = `Aplicația a fost actualizată la versiunea <strong>v${version}</strong>.`;
     await broadcastUpdate(audience, "Versiune actualizată", body);
   } catch {
     // non-critical — a missed broadcast is recoverable on the next deploy

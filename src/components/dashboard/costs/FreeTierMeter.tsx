@@ -68,11 +68,15 @@ export function FreeTierMeter({
   freeStorageBytes,
   egressBytes,
   egressFreeBytes,
+  egressMonths = 1,
 }: {
   storageBytes: number;
   freeStorageBytes: number;
   egressBytes: number;
   egressFreeBytes: number;
+  // Months the selected window spans — the free egress allowance is monthly,
+  // so a 3-month window shows (and earns) a 3x allowance.
+  egressMonths?: number;
 }) {
   const reduced = useReducedMotion() ?? false;
   return (
@@ -91,7 +95,7 @@ export function FreeTierMeter({
         />
         <Meter
           icon={<ArrowDownToLine className="h-4 w-4" />}
-          label="Egress gratuit (lună)"
+          label={egressMonths > 1 ? `Egress gratuit (${egressMonths} luni)` : "Egress gratuit (lună)"}
           used={egressBytes}
           limit={egressFreeBytes}
           reduced={reduced}

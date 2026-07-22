@@ -71,14 +71,16 @@ export function freeEgressBytes(
 }
 
 // Egress cost for `egressBytes` moved, given the storage that funds the free
-// allowance. Free up to 3x storage, then $0.01/GB. Returns the billable bytes
-// too so the UI can show how much of the allowance was used.
+// allowance. Free up to 3x storage PER MONTH, then $0.01/GB — so a multi-month
+// window earns the allowance once per month it spans. Returns the billable
+// bytes too so the UI can show how much of the allowance was used.
 export function egressCostUsd(
   egressBytes: number,
   storageBytes: number,
   rates: B2Rates = DEFAULT_B2_RATES,
+  months = 1,
 ): { cost: number; freeBytes: number; billableBytes: number } {
-  const freeBytes = freeEgressBytes(storageBytes, rates);
+  const freeBytes = freeEgressBytes(storageBytes, rates) * Math.max(1, months);
   const billableBytes = Math.max(0, egressBytes - freeBytes);
   return { cost: (billableBytes / GB) * rates.egressUsdPerGb, freeBytes, billableBytes };
 }
