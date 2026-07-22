@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { revalidateDrive } from "@/components/drive/useDriveData";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Folder, Trash2, Download, Info, Pencil, FolderInput, Loader2 } from "lucide-react";
+import { Folder, Trash2, Download, Info, Pencil, FolderInput, Loader2, CheckCircle2 } from "lucide-react";
 import {
   deleteFolderAction,
   renameFolderAction,
@@ -223,10 +223,20 @@ function FolderCard({
       data-drive-item
       onClick={(e) => {
         if (longPress.consumedClick()) return;
+        // Touch + active selection: a tap toggles this folder — it doesn't
+        // navigate. Long-press is only needed for the FIRST item.
+        if (isTouch && selection.count > 0) {
+          selection.toggle(item);
+          return;
+        }
         handleRowClick(e);
       }}
       onContextMenu={(e) => {
         e.preventDefault();
+        // Mobile browsers synthesize a contextmenu on long-press, which used
+        // to pop the menu on every press. On touch, long-press is
+        // selection-only — the bottom bar (and the kebab) carry the actions.
+        if (isTouch) return;
         openMenu(actions, e.clientX, e.clientY);
       }}
       // Use 1 (not undefined) for the normal state: framer-motion doesn't reset
@@ -243,9 +253,16 @@ function FolderCard({
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <span
           aria-hidden
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10"
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+            selected ? "bg-indigo-500/15" : "bg-indigo-500/10"
+          }`}
         >
-          <Folder className="h-[18px] w-[18px] text-indigo-400" />
+          {selected ? (
+            // Selected rows swap the icon for a check — instant read on mobile.
+            <CheckCircle2 className="h-[18px] w-[18px] text-indigo-400" />
+          ) : (
+            <Folder className="h-[18px] w-[18px] text-indigo-400" />
+          )}
         </span>
         <span className="truncate text-sm font-medium text-zinc-100">{folder.name}</span>
       </div>
