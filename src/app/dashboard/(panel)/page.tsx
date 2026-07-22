@@ -17,6 +17,7 @@ import {
 } from "@/components/dashboard/OverviewCharts";
 import { ActiveUsersWindow } from "@/components/dashboard/ActiveUsersWindow";
 import { ActiveUsersLeaderboard } from "@/components/dashboard/ActiveUsersLeaderboard";
+import { viewerAllowedSections } from "@/server/admin/guard";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
 
 // Resolve the ?au= window param to one of the offered windows (default 30).
@@ -27,10 +28,27 @@ function resolveWindow(raw: string | undefined): ActiveUserWindow {
     : 30;
 }
 
-async function ActiveUsersContent({ days }: { days: number }) {
+// The leaderboard exposes per-user activity and links to the user detail, so
+// it's gated on the "users" section — a manager without that permission sees
+// nothing here (Overview itself stays visible). Header + selector live inside
+// so the whole card appears/streams as one unit.
+async function ActiveUsersSection({ days }: { days: number }) {
   await connection();
+  const allowed = await viewerAllowedSections();
+  if (allowed !== null && !allowed.includes("users")) return null;
+
   const users = await getActiveUsers(days, 10);
-  return <ActiveUsersLeaderboard users={users} />;
+  return (
+    <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+          <Flame className="h-4 w-4 text-indigo-400" /> Cei mai activi useri
+        </h2>
+        <ActiveUsersWindow selected={days} />
+      </div>
+      <ActiveUsersLeaderboard users={users} />
+    </section>
+  );
 }
 
 export const metadata = { title: "Dashboard — Overview" };
@@ -130,19 +148,11 @@ export default async function DashboardOverviewPage({
         <OverviewContent />
       </Suspense>
 
-      {/* Most active users — its own window selector + Suspense so it streams
-          and refreshes independently of the charts above. */}
-      <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
-            <Flame className="h-4 w-4 text-indigo-400" /> Cei mai activi useri
-          </h2>
-          <ActiveUsersWindow selected={days} />
-        </div>
-        <Suspense key={days} fallback={<ListSkeleton rows={5} />}>
-          <ActiveUsersContent days={days} />
-        </Suspense>
-      </section>
+      {/* Most active users — streams in its own Suspense keyed to the window,
+          so switching the period refreshes only this card. */}
+      <Suspense key={days} fallback={<ListSkeleton rows={6} />}>
+        <ActiveUsersSection days={days} />
+      </Suspense>
     </div>
   );
 }
