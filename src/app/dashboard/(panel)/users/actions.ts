@@ -17,6 +17,7 @@ import {
   deleteUserAccount,
   type BlockDuration,
 } from "@/server/admin/users";
+import { getUserActivity, type UserActivityDetail } from "@/server/admin/stats";
 import type { UserActionState } from "@/lib/user-presence";
 import { toBytes } from "@/lib/bytes";
 
@@ -140,6 +141,27 @@ export async function setUserRoleAction(
     return { ok: role === "admin" ? "User promovat la manager." : "User setat ca utilizator." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la schimbarea rolului." };
+  }
+}
+
+// Per-user activity detail for the Overview leaderboard's insights modal.
+// Section-gated on "users" (same as the leaderboard); the window is validated.
+export async function getUserActivityAction(
+  userId: string,
+  days: number,
+): Promise<{ ok: true; data: UserActivityDetail } | { ok: false; error: string }> {
+  try {
+    await requireSection("users");
+  } catch {
+    return { ok: false, error: "Acces interzis." };
+  }
+  if (!userId) return { ok: false, error: "User invalid." };
+  const win = [7, 30, 90].includes(days) ? days : 30;
+  try {
+    const data = await getUserActivity(userId, win);
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Eroare la încărcare." };
   }
 }
 

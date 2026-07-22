@@ -1,18 +1,55 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { Files, HardDrive, Users, Activity } from "lucide-react";
+import { Files, HardDrive, Users, Activity, Flame } from "lucide-react";
 import {
   getOverview,
   getFileTypes,
   getUploadsDaily,
   getLoginsDaily,
+  getActiveUsers,
 } from "@/server/admin/stats";
+import { ACTIVE_USER_WINDOWS, type ActiveUserWindow } from "@/lib/active-users";
 import { formatBytes } from "@/lib/format";
 import {
   FileTypesChart,
   UploadsChart,
   LoginsChart,
 } from "@/components/dashboard/OverviewCharts";
+import { ActiveUsersWindow } from "@/components/dashboard/ActiveUsersWindow";
+import { ActiveUsersLeaderboard } from "@/components/dashboard/ActiveUsersLeaderboard";
+import { viewerAllowedSections } from "@/server/admin/guard";
+import { ListSkeleton } from "@/components/drive/ListSkeleton";
+
+// Resolve the ?au= window param to one of the offered windows (default 30).
+function resolveWindow(raw: string | undefined): ActiveUserWindow {
+  const n = Number(raw);
+  return (ACTIVE_USER_WINDOWS as readonly number[]).includes(n)
+    ? (n as ActiveUserWindow)
+    : 30;
+}
+
+// The leaderboard exposes per-user activity and links to the user detail, so
+// it's gated on the "users" section — a manager without that permission sees
+// nothing here (Overview itself stays visible). Header + selector live inside
+// so the whole card appears/streams as one unit.
+async function ActiveUsersSection({ days }: { days: number }) {
+  await connection();
+  const allowed = await viewerAllowedSections();
+  if (allowed !== null && !allowed.includes("users")) return null;
+
+  const users = await getActiveUsers(days, 10);
+  return (
+    <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4 sm:p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+          <Flame className="h-4 w-4 text-indigo-400" /> Cei mai activi useri
+        </h2>
+        <ActiveUsersWindow selected={days} />
+      </div>
+      <ActiveUsersLeaderboard users={users} days={days} />
+    </section>
+  );
+}
 
 export const metadata = { title: "Dashboard — Overview" };
 
@@ -92,7 +129,14 @@ function OverviewSkeleton() {
   );
 }
 
-export default function DashboardOverviewPage() {
+export default async function DashboardOverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ au?: string }>;
+}) {
+  const { au } = await searchParams;
+  const days = resolveWindow(au);
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <header>
@@ -102,6 +146,12 @@ export default function DashboardOverviewPage() {
 
       <Suspense fallback={<OverviewSkeleton />}>
         <OverviewContent />
+      </Suspense>
+
+      {/* Most active users — streams in its own Suspense keyed to the window,
+          so switching the period refreshes only this card. */}
+      <Suspense key={days} fallback={<ListSkeleton rows={6} />}>
+        <ActiveUsersSection days={days} />
       </Suspense>
     </div>
   );
