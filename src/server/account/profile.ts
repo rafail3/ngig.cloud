@@ -7,6 +7,10 @@ import { emailHasAccount } from "@/server/invites/service";
 import { sendEmailChangedNotice, sendEmailActivation } from "@/server/email/resend";
 import { notifyUserEvent } from "@/server/notifications/service";
 import { wipeUserData, assertNotLastAdmin } from "@/server/account/wipe";
+import { getSettings } from "@/server/admin/settings";
+import { parseStorageAlert } from "@/server/account/storage-alert";
+import { totalUsage } from "@/server/files/repository";
+import { formatBytes } from "@/lib/format";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -66,6 +70,85 @@ export async function getMyProfile(): Promise<MyProfile> {
     created_at: profile?.created_at ?? "",
     lastSignIn: u?.user?.last_sign_in_at ?? null,
   };
+}
+
+// The caller's storage picture for the profile page: whether an admin total
+// quota applies (per-user or the global default — it always wins), their own
+// total cap, the effective quota (admin, else self), and their alert config.
+export type MyStorageSettings = {
+  adminQuota: number | null; // admin total quota (null = none)
+  selfMaxTotal: number | null;
+  effectiveQuota: number | null; // adminQuota ?? selfMaxTotal — funds the % alert
+  alert: { mode: "percent" | "absolute"; value: number } | null;
+};
+
+export async function getMyStorageSettings(): Promise<MyStorageSettings> {
+  const { supabase, id } = await currentUser();
+  const [{ data: p }, settings] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("max_total_size, self_max_total_size, storage_alert")
+      .eq("id", id)
+      .single(),
+    getSettings(),
+  ]);
+  const adminQuota = p?.max_total_size ?? settings.defaultUserQuota ?? null;
+  const selfMaxTotal = p?.self_max_total_size ?? null;
+  const alertRaw = parseStorageAlert(p?.storage_alert);
+  return {
+    adminQuota,
+    selfMaxTotal,
+    effectiveQuota: adminQuota ?? selfMaxTotal,
+    alert: alertRaw ? { mode: alertRaw.mode, value: alertRaw.value } : null,
+  };
+}
+
+// Set (or clear, with null) the caller's own TOTAL storage cap. Refused while
+// an admin quota applies — that one always wins and the UI explains it — and
+// refused below what's already stored (a cap you're instantly over is a trap).
+export async function setMySelfMaxTotal(bytes: number | null): Promise<void> {
+  const { supabase, id } = await currentUser();
+  if (bytes != null && (!Number.isFinite(bytes) || bytes <= 0)) {
+    throw new Error("Valoare invalidă.");
+  }
+  const current = await getMyStorageSettings();
+  if (current.adminQuota != null) {
+    throw new Error("Cota de stocare e stabilită de administrator — nu poate fi modificată.");
+  }
+  if (bytes != null) {
+    const used = await totalUsage(id);
+    if (bytes < used) {
+      throw new Error(
+        `Plafonul nu poate fi sub spațiul deja folosit (${formatBytes(used)}).`,
+      );
+    }
+  }
+  const { error } = await supabase
+    .from("profiles")
+    .update({ self_max_total_size: bytes })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Set (or clear) the caller's storage alert. Resets the fired flag so a new
+// threshold is evaluated fresh on the next usage change.
+export async function setMyStorageAlert(
+  alert: { mode: "percent" | "absolute"; value: number } | null,
+): Promise<void> {
+  const { supabase, id } = await currentUser();
+  if (alert) {
+    if (!Number.isFinite(alert.value) || alert.value <= 0) throw new Error("Valoare invalidă.");
+    if (alert.mode === "percent" && (alert.value < 1 || alert.value > 100)) {
+      throw new Error("Procentul trebuie să fie între 1 și 100.");
+    }
+  }
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      storage_alert: alert ? { mode: alert.mode, value: alert.value, fired: false } : null,
+    })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 // Real active sessions for the caller (revocable). Uses the user's own client

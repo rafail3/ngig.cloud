@@ -11,6 +11,7 @@ import { logEgress } from "@/server/billing/egress";
 import * as repo from "./repository";
 import { extensionOf } from "@/lib/file-type";
 import { fileTypeDenied } from "@/lib/upload-types";
+import { checkStorageAlert } from "@/server/account/storage-alert";
 import { formatBytes } from "@/lib/format";
 import {
   presignUpload,
@@ -108,7 +109,23 @@ async function enforceQuota(
     throw new Error("Fișier prea mare.");
   }
 
-  const quota = userMaxTotal ?? s.defaultUserQuota ?? null;
+  // Total quota: the admin's (per-user, else the global default) always wins;
+  // only without one does the user's own self-set cap apply.
+  const adminQuota = userMaxTotal ?? s.defaultUserQuota ?? null;
+  let quota = adminQuota;
+  let selfQuota = false;
+  if (quota == null) {
+    const supabase = await createClient();
+    const { data: pref } = await supabase
+      .from("profiles")
+      .select("self_max_total_size")
+      .eq("id", userId)
+      .single();
+    if (pref?.self_max_total_size != null) {
+      quota = pref.self_max_total_size;
+      selfQuota = true;
+    }
+  }
   const needPlatform = s.globalMaxTotal != null;
 
   // Run the two independent usage reads in parallel (only when actually needed).
@@ -118,6 +135,14 @@ async function enforceQuota(
   ]);
 
   if (quota != null && used + size > quota) {
+    if (selfQuota) {
+      // The user's own budget — their business alone, no admin flag. The bell
+      // gets a note too, mirroring the admin-quota rejection.
+      await notifyUserEvent(userId, "self_quota", { limita: formatBytes(quota) }, "/profil");
+      throw new Error(
+        `Ai atins plafonul de stocare pe care ți l-ai setat singur (${formatBytes(quota)}). Îl poți schimba din profil.`,
+      );
+    }
     // Tell the user, and flag the admins that someone hit their storage ceiling.
     await notifyUserEvent(userId, "quota_user", { limita: formatBytes(quota) }, "/");
     await notifyAdminsQuota(userId, quota);
@@ -592,12 +617,18 @@ export async function saveTextFile(
 // is the sum across ALL the user's files, not just the current folder.
 export async function myUsage(): Promise<{ used: number; quota: number | null }> {
   const userId = await requireUserId();
-  const [used, { maxTotal }, { defaultUserQuota }] = await Promise.all([
+  const supabase = await createClient();
+  const [used, { maxTotal }, { defaultUserQuota }, { data: pref }] = await Promise.all([
     repo.totalUsage(userId),
     effectiveLimits(userId),
     getSettings(),
+    supabase.from("profiles").select("self_max_total_size").eq("id", userId).single(),
   ]);
-  return { used, quota: maxTotal ?? defaultUserQuota ?? null };
+  // Admin quota wins; the user's own cap fills in only when there is none.
+  return {
+    used,
+    quota: maxTotal ?? defaultUserQuota ?? pref?.self_max_total_size ?? null,
+  };
 }
 
 // An upload plan: a small file gets one presigned PUT; a large file gets a
@@ -728,6 +759,7 @@ export async function confirmUpload(input: {
   }
 
   after(() => logEvent("upload", { ext: extensionOf(input.name) }));
+  after(() => checkStorageAlert(userId));
   return repo.insertFile({
     owner_id: userId,
     name: input.name,
@@ -965,6 +997,8 @@ export async function deleteFilePermanently(id: string): Promise<void> {
     // Object may already be gone from B2 — drop the row regardless.
   }
   await repo.deleteFileRow(id);
+  // Usage dropped — re-arm (or clear) the user's storage alert.
+  after(() => checkStorageAlert(userId));
 }
 
 // Permanently delete everything currently in the caller's trash.
@@ -975,6 +1009,8 @@ export async function emptyTrash(): Promise<void> {
   for (const k of keys) assertOwnedKey(userId, k);
   await Promise.all(keys.map((k) => deleteObject(k).catch(() => {})));
   await repo.deleteFileRowsByKeys(keys);
+  // Usage dropped — re-arm (or clear) the user's storage alert.
+  after(() => checkStorageAlert(userId));
 }
 
 // Cron-only: permanently remove trashed files older than the retention window,

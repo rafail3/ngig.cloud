@@ -664,3 +664,45 @@ export async function sendTicketClosed(input: {
 
   if (error) throw new Error("Nu am putut trimite notificarea.");
 }
+
+// Self-set storage threshold crossed — mirrors the in-app "storage_alert" bell
+// notification for users who aren't in the app when it happens.
+export async function sendStorageAlert(input: {
+  email: string;
+  used: string; // already formatted (e.g. "4.1 GB")
+  threshold: string; // e.g. "80% din cotă" / "4 GB"
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const url = appOrigin();
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Salut,<br/>Stocarea ta a ajuns la <strong style="color:#fafafa">${escapeHtml(input.used)}</strong>
+      și a depășit pragul pe care ți l-ai setat (<strong style="color:#fafafa">${escapeHtml(input.threshold)}</strong>).
+    </p>
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Poți elibera spațiu ștergând fișiere sau golind coșul, ori îți poți ajusta pragul din pagina de profil.
+    </p>
+    ${button(url, "Deschide cloud-ul")}
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: "Prag de spațiu atins — ngig.cloud",
+    text: [
+      "Salut,",
+      `Stocarea ta a ajuns la ${input.used} și a depășit pragul setat (${input.threshold}).`,
+      "",
+      "Eliberează spațiu sau ajustează pragul din pagina de profil.",
+      "",
+      `Deschide cloud-ul: ${url}`,
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Prag de spațiu atins", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite alerta.");
+}
