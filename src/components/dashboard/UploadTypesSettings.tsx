@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { FileCheck2, Search, ShieldBan, Plus } from "lucide-react";
+import { FileCheck2, Search, ShieldBan, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { saveUploadTypesAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
@@ -62,7 +62,8 @@ function ExtToggle({
 // Super-admin card: which extensions are BLOCKED on upload. Default = nothing
 // blocked (everything allowed); flipping a switch ON blocks that extension.
 // Custom extensions join the grid as first-class cells; turning one OFF
-// removes it (it only exists because it was blocked).
+// removes it (it only exists because it was blocked). Every change saves on
+// its own (debounced) — the panel button just closes.
 export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
   const [state, action, pending] = useActionState(saveUploadTypesAction, initial);
   useToastState(state);
@@ -80,14 +81,34 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
   const [onlyBlocked, setOnlyBlocked] = useState(false);
   const [draft, setDraft] = useState("");
 
+  // Auto-save: any user change schedules a debounced submit of the hidden form,
+  // so rapid toggling lands as one write. dirtyRef keeps prop-sync and mount
+  // from triggering saves.
+  const formRef = useRef<HTMLFormElement>(null);
+  const dirtyRef = useRef(false);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (state.ok) setOpen(false);
-  }, [state.ok]);
+    if (!dirtyRef.current) return;
+    dirtyRef.current = false;
+    const t = setTimeout(() => formRef.current?.requestSubmit(), 500);
+    return () => clearTimeout(t);
+  }, [blocked, customExts]);
 
-  function cancel() {
+  // While the panel is open the local state is the source of truth (saves flow
+  // local → server). Re-sync from the server only when closed, so an in-flight
+  // save can never clobber a toggle made right after it.
+  useEffect(() => {
+    if (open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBlocked(new Set(saved));
-    setCustomExts(savedCustom);
+    setCustomExts([...saved].filter((e) => !CATALOG_EXTS.has(e)));
+  }, [saved, open]);
+
+  function close() {
+    // Flush an unsaved change immediately — closing before the debounce fires
+    // would unmount the form and silently drop it.
+    const unsaved =
+      blocked.size !== saved.size || [...blocked].some((e) => !saved.has(e));
+    if (unsaved) formRef.current?.requestSubmit();
     setQuery("");
     setOnlyBlocked(false);
     setDraft("");
@@ -96,6 +117,7 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
 
   // Toggling a custom cell OFF removes it from the grid entirely.
   function flip(ext: string, isCustom: boolean) {
+    dirtyRef.current = true;
     if (isCustom) {
       setCustomExts((prev) => prev.filter((e) => e !== ext));
       setBlocked((prev) => {
@@ -127,6 +149,7 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
         toast.error(`Extensia .${ext} există deja în tabel.`);
         continue;
       }
+      dirtyRef.current = true;
       setCustomExts((prev) => [ext, ...prev]);
       setBlocked((prev) => new Set(prev).add(ext));
       added++;
@@ -170,10 +193,15 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          {pending && (
+            <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Se salvează…
+            </span>
+          )}
           <span className="hidden text-sm sm:inline">{summary}</span>
           <button
             type="button"
-            onClick={() => (open ? cancel() : setOpen(true))}
+            onClick={() => (open ? close() : setOpen(true))}
             aria-expanded={open}
             className={`rounded-lg border px-3 py-1.5 text-sm transition ${
               open
@@ -181,7 +209,7 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
                 : "border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50"
             }`}
           >
-            {open ? "Anulează" : "Editează"}
+            {open ? "Închide" : "Editează"}
           </button>
         </div>
       </div>
@@ -293,15 +321,10 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
                 )}
               </div>
 
-              <form action={action}>
+              {/* Invisible form: changes auto-submit it (debounced) — no
+                  manual save button. */}
+              <form ref={formRef} action={action} className="hidden">
                 <input type="hidden" name="blocked" value={[...blocked].join(",")} />
-                <button
-                  type="submit"
-                  disabled={pending}
-                  className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
-                >
-                  {pending ? "Se salvează…" : "Salvează"}
-                </button>
               </form>
             </div>
           </motion.div>
