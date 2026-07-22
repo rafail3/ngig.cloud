@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 
 // Cloudflare Turnstile, rendered EXPLICITLY so it works on every page and on
 // client-side navigation (login -> register). The script is loaded once
@@ -32,6 +32,37 @@ function ensureScript() {
   s.async = true;
   s.defer = true;
   document.head.appendChild(s);
+}
+
+// Lets the user press submit BEFORE the invisible check finishes: the click is
+// queued and the form auto-submits the moment the token lands. The button can
+// stay enabled the whole time — on slow mobile networks the user no longer
+// stares at a blocked "Verificare de securitate…" button; they just press and
+// the form goes through as soon as the background check completes.
+export function useQueuedSubmit(ready: boolean): {
+  formRef: RefObject<HTMLFormElement | null>;
+  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  queued: boolean;
+} {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [queued, setQueued] = useState(false);
+
+  useEffect(() => {
+    if (ready && queued) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setQueued(false);
+      formRef.current?.requestSubmit();
+    }
+  }, [ready, queued]);
+
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    if (!ready) {
+      e.preventDefault();
+      setQueued(true);
+    }
+  };
+
+  return { formRef, onSubmit, queued };
 }
 
 // `resetSignal` should change after each form submit (pass the action state).

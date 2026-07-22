@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
 import { requestInviteAction } from "@/app/cere-invitatie/actions";
 import type { InviteRequestState } from "@/lib/email-state";
-import { Turnstile } from "./Turnstile";
+import { Turnstile, useQueuedSubmit } from "./Turnstile";
 import { Spinner } from "./Spinner";
 
 const initial: InviteRequestState = {};
@@ -16,7 +16,8 @@ const inputCls =
 export function InviteRequestForm() {
   const [state, formAction, pending] = useActionState(requestInviteAction, initial);
   const [botReady, setBotReady] = useState(false);
-  const busy = pending || !botReady;
+  const { formRef, onSubmit, queued } = useQueuedSubmit(botReady);
+  const busy = pending || queued;
   useEffect(() => {
     if (state.error) toast.error(state.error);
   }, [state]);
@@ -33,7 +34,7 @@ export function InviteRequestForm() {
   }
 
   return (
-    <form noValidate action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
+    <form noValidate ref={formRef} onSubmit={onSubmit} action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
       <div>
         <label htmlFor="name" className={labelCls}>Nume</label>
         <input id="name" name="name" type="text" required defaultValue={state.values?.name} className={inputCls} />
@@ -65,7 +66,7 @@ export function InviteRequestForm() {
         disabled={busy}
         className="relative mt-1 rounded-xl bg-indigo-500 hover:bg-indigo-400 px-4 py-2.5 text-base font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
       >
-        {pending ? "Se trimite…" : !botReady ? "Verificare de securitate…" : "Trimite cererea"}
+        {pending || queued ? "Se trimite…" : "Trimite cererea"}
         {busy && <Spinner className="absolute right-4 top-1/2 -translate-y-1/2" />}
       </button>
     </form>
