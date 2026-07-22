@@ -77,7 +77,7 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
     const allowed: T[] = [];
     const denied = new Map<string, number>();
     for (const item of items) {
-      const reason = fileTypeDenied(item.file.name, item.file.type, types);
+      const reason = fileTypeDenied(item.file.name, types);
       if (reason) denied.set(reason, (denied.get(reason) ?? 0) + 1);
       else allowed.push(item);
     }

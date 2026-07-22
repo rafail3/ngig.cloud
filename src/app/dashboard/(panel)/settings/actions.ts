@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "@/server/admin/guard";
 import { updateSettings, setSetting, setUploadTypes, type SettingKey } from "@/server/admin/settings";
-import { UPLOAD_CATEGORIES, normalizeExtList } from "@/lib/upload-types";
+import { normalizeExtList } from "@/lib/upload-types";
 import { setUpdateNotifySettings, type UpdateRole } from "@/server/updates/service";
 import { setOfficeMode, recordOfficeState } from "@/server/office/config";
 import {
@@ -75,8 +75,9 @@ export async function resetSettingsAction(): Promise<void> {
   revalidatePath("/dashboard");
 }
 
-// Allowed upload types: restricted=false clears the setting (everything
-// allowed); otherwise the enabled categories + extension lists are stored.
+// Blocked upload extensions. `blocked` = comma list from the grid toggles,
+// `custom` = free-typed extensions not in the catalog. Empty = everything
+// allowed (the row is deleted).
 export async function saveUploadTypesAction(
   _prev: SettingsState,
   formData: FormData,
@@ -87,28 +88,18 @@ export async function saveUploadTypesAction(
     return { error: "Acces interzis." };
   }
 
-  const restricted = String(formData.get("restricted")) === "true";
   try {
-    if (!restricted) {
-      await setUploadTypes(null);
-      revalidatePath("/dashboard/settings");
-      return { ok: "Toate tipurile de fișiere sunt permise." };
-    }
-
-    const categories = UPLOAD_CATEGORIES.map((c) => c.key).filter(
-      (k) => formData.get(`cat_${k}`) === "true",
+    const blockExt = normalizeExtList(
+      `${formData.get("blocked") ?? ""},${formData.get("custom") ?? ""}`,
     );
-    const allowExt = normalizeExtList(String(formData.get("allowExt") ?? ""));
-    const blockExt = normalizeExtList(String(formData.get("blockExt") ?? ""));
-    if (categories.length === 0 && allowExt.length === 0) {
-      return {
-        error: "Alege cel puțin o categorie sau o extensie permisă — altfel nu se mai poate încărca nimic.",
-      };
-    }
-
-    await setUploadTypes({ categories, allowExt, blockExt });
+    await setUploadTypes(blockExt.length > 0 ? { blockExt } : null);
     revalidatePath("/dashboard/settings");
-    return { ok: "Restricțiile de tipuri de fișiere au fost salvate." };
+    return {
+      ok:
+        blockExt.length > 0
+          ? `${blockExt.length} ${blockExt.length === 1 ? "extensie blocată" : "extensii blocate"}.`
+          : "Toate extensiile sunt permise.",
+    };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la salvare." };
   }

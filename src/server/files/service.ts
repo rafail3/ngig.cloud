@@ -622,9 +622,9 @@ export async function createUpload(input: {
   const { id: userId, maxFile, maxTotal } = await requireActiveUser();
   if (input.size <= 0) throw new Error("Fișier gol.");
 
-  // Platform-wide type allowlist (super-admin setting; null = unrestricted).
+  // Platform-wide blocked extensions (super-admin setting; null = none).
   // The picker filters client-side too, but this is the authoritative gate.
-  const denied = fileTypeDenied(input.name, input.contentType, await getUploadTypes());
+  const denied = fileTypeDenied(input.name, await getUploadTypes());
   if (denied) throw new Error(denied);
 
   await enforceQuota(userId, input.size, maxFile, maxTotal);
