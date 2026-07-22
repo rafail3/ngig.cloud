@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.32.1](https://github.com/rafail3/ngig.cloud/compare/v2.32.0...v2.32.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **dashboard:** duplicate version notifications + stale extension block-list ([cdeb20e](https://github.com/rafail3/ngig.cloud/commit/cdeb20efe18493d2014702604256eb1f633e52b1))
+* **updates:** announce each version exactly once, ever ([a2f0db0](https://github.com/rafail3/ngig.cloud/commit/a2f0db0acf5bfc659537ae3906f20c2b7125781d))
+* **uploads:** refresh the extension block-list when the tab regains focus ([dcb1140](https://github.com/rafail3/ngig.cloud/commit/dcb114003590acc7fe84a0cf56ed831daefb433a))
+
 ## [2.32.0](https://github.com/rafail3/ngig.cloud/compare/v2.31.0...v2.32.0) (2026-07-22)
 
 
