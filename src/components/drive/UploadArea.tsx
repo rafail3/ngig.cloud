@@ -61,13 +61,27 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
   // the native file picker instead.
   const isTouch = useIsTouch();
 
-  // Platform type restrictions, fetched once for instant picker feedback.
-  // null = unrestricted; the server re-validates on every upload anyway.
+  // Platform type restrictions for instant picker feedback. Refetched whenever
+  // the tab regains focus so a block/unblock made in the dashboard (another
+  // tab) applies here without a page refresh. null = unrestricted; the server
+  // re-validates on every upload anyway.
   const [types, setTypes] = useState<UploadTypesConfig>(null);
   useEffect(() => {
-    getUploadTypesAction()
-      .then(setTypes)
-      .catch(() => {});
+    const load = () => {
+      getUploadTypesAction()
+        .then(setTypes)
+        .catch(() => {});
+    };
+    load();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    window.addEventListener("focus", load);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", load);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   // Split picked files into allowed vs denied; toast the denied ones (grouped
