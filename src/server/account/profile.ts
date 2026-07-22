@@ -9,6 +9,8 @@ import { notifyUserEvent } from "@/server/notifications/service";
 import { wipeUserData, assertNotLastAdmin } from "@/server/account/wipe";
 import { getSettings } from "@/server/admin/settings";
 import { parseStorageAlert } from "@/server/account/storage-alert";
+import { totalUsage } from "@/server/files/repository";
+import { formatBytes } from "@/lib/format";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -102,7 +104,8 @@ export async function getMyStorageSettings(): Promise<MyStorageSettings> {
 }
 
 // Set (or clear, with null) the caller's own TOTAL storage cap. Refused while
-// an admin quota applies — that one always wins and the UI explains it.
+// an admin quota applies — that one always wins and the UI explains it — and
+// refused below what's already stored (a cap you're instantly over is a trap).
 export async function setMySelfMaxTotal(bytes: number | null): Promise<void> {
   const { supabase, id } = await currentUser();
   if (bytes != null && (!Number.isFinite(bytes) || bytes <= 0)) {
@@ -111,6 +114,14 @@ export async function setMySelfMaxTotal(bytes: number | null): Promise<void> {
   const current = await getMyStorageSettings();
   if (current.adminQuota != null) {
     throw new Error("Cota de stocare e stabilită de administrator — nu poate fi modificată.");
+  }
+  if (bytes != null) {
+    const used = await totalUsage(id);
+    if (bytes < used) {
+      throw new Error(
+        `Plafonul nu poate fi sub spațiul deja folosit (${formatBytes(used)}).`,
+      );
+    }
   }
   const { error } = await supabase
     .from("profiles")
