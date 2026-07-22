@@ -523,7 +523,7 @@ export async function getViewUrl(
   assertOwnedKey(userId, file.storage_key);
   const url = await presignView(file.storage_key);
   after(() => logEvent("preview", { ext: extensionOf(file.name) }));
-  after(() => logEgress(file.size, "preview"));
+  after(() => logEgress(file.size, "preview", { fileId: file.id }));
   return { url, name: file.name, mime: file.mime_type };
 }
 
