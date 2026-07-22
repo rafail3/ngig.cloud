@@ -1,6 +1,6 @@
 {
   "name": "ngig.cloud",
-  "version": "2.34.0",
+  "version": "2.35.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3002",

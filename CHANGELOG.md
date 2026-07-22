@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.35.0](https://github.com/rafail3/ngig.cloud/compare/v2.34.0...v2.35.0) (2026-07-22)
+
+
+### Features
+
+* **drive:** fluent mobile multi-select ([8867838](https://github.com/rafail3/ngig.cloud/commit/8867838649002dced50237e66d234cdf299493c5))
+* **drive:** fluent mobile multi-select ([ca7c6a6](https://github.com/rafail3/ngig.cloud/commit/ca7c6a6e80b319d47e32c73e6ad53fc8a2f423d6))
+
 ## [2.34.0](https://github.com/rafail3/ngig.cloud/compare/v2.33.1...v2.34.0) (2026-07-22)
 
 
