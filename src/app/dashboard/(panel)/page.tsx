@@ -7,9 +7,8 @@ import {
   getUploadsDaily,
   getLoginsDaily,
   getActiveUsers,
-  ACTIVE_USER_WINDOWS,
-  type ActiveUserWindow,
 } from "@/server/admin/stats";
+import { ACTIVE_USER_WINDOWS, type ActiveUserWindow } from "@/lib/active-users";
 import { formatBytes } from "@/lib/format";
 import {
   FileTypesChart,

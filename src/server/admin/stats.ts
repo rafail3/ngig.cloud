@@ -27,10 +27,6 @@ export type ActiveUser = {
   country: string | null;
 };
 
-// Windows the Overview leaderboard offers (days).
-export const ACTIVE_USER_WINDOWS = [7, 30, 90] as const;
-export type ActiveUserWindow = (typeof ACTIVE_USER_WINDOWS)[number];
-
 export async function getOverview(): Promise<Overview> {
   const admin = createAdminClient();
   const { data } = await admin.rpc("admin_overview");

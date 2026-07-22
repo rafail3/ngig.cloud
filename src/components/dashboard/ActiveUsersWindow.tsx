@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ACTIVE_USER_WINDOWS } from "@/server/admin/stats";
+import { ACTIVE_USER_WINDOWS } from "@/lib/active-users";
 
 // Rolling-window picker for the "most active users" leaderboard. The choice
 // lives in the URL (?au=) so the section is deep-linkable and the server
