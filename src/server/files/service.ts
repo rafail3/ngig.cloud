@@ -11,6 +11,7 @@ import { logEgress } from "@/server/billing/egress";
 import * as repo from "./repository";
 import { extensionOf } from "@/lib/file-type";
 import { fileTypeDenied } from "@/lib/upload-types";
+import { checkStorageAlert } from "@/server/account/storage-alert";
 import { formatBytes } from "@/lib/format";
 import {
   presignUpload,
@@ -106,6 +107,23 @@ async function enforceQuota(
   if (perFile != null && size > perFile) {
     await notifyUserEvent(userId, "quota_file", { limita: formatBytes(perFile) }, "/");
     throw new Error("Fișier prea mare.");
+  }
+
+  // The user's own per-file cap — only meaningful when no admin limit applies
+  // (an admin limit always wins; the profile UI hides the setting then).
+  if (perFile == null) {
+    const supabase = await createClient();
+    const { data: pref } = await supabase
+      .from("profiles")
+      .select("self_max_file_size")
+      .eq("id", userId)
+      .single();
+    const selfMax = pref?.self_max_file_size ?? null;
+    if (selfMax != null && size > selfMax) {
+      throw new Error(
+        `Fișierul depășește limita pe care ți-ai setat-o singur (${formatBytes(selfMax)}). O poți schimba din profil.`,
+      );
+    }
   }
 
   const quota = userMaxTotal ?? s.defaultUserQuota ?? null;
@@ -728,6 +746,7 @@ export async function confirmUpload(input: {
   }
 
   after(() => logEvent("upload", { ext: extensionOf(input.name) }));
+  after(() => checkStorageAlert(userId));
   return repo.insertFile({
     owner_id: userId,
     name: input.name,
@@ -965,6 +984,8 @@ export async function deleteFilePermanently(id: string): Promise<void> {
     // Object may already be gone from B2 — drop the row regardless.
   }
   await repo.deleteFileRow(id);
+  // Usage dropped — re-arm (or clear) the user's storage alert.
+  after(() => checkStorageAlert(userId));
 }
 
 // Permanently delete everything currently in the caller's trash.
@@ -975,6 +996,8 @@ export async function emptyTrash(): Promise<void> {
   for (const k of keys) assertOwnedKey(userId, k);
   await Promise.all(keys.map((k) => deleteObject(k).catch(() => {})));
   await repo.deleteFileRowsByKeys(keys);
+  // Usage dropped — re-arm (or clear) the user's storage alert.
+  after(() => checkStorageAlert(userId));
 }
 
 // Cron-only: permanently remove trashed files older than the retention window,
