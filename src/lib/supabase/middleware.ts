@@ -83,6 +83,13 @@ export async function updateSession(request: NextRequest) {
     const deleted = !error && !gate;
 
     if (blocked || signedOut || deleted) {
+      // Observability for the intermittent mobile logouts: every forced
+      // sign-out lands in the function logs with its reason. `signedOut` with
+      // no admin action around it = the refresh-token family was revoked
+      // (reuse detection after a lost rotation response on flaky networks).
+      console.warn(
+        `[auth-gate] kick user=${userId} blocked=${blocked} signedOut=${signedOut} deleted=${deleted} ua=${request.headers.get("user-agent") ?? "?"}`,
+      );
       await supabase.auth.signOut();
       const url = request.nextUrl.clone();
       url.pathname = "/login";
