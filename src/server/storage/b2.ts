@@ -389,3 +389,64 @@ export async function cleanupPrefix(
     uploadIdMarker = listed.IsTruncated ? listed.NextUploadIdMarker : undefined;
   } while (mpKeyMarker);
 }
+
+// Full object inventory (key + size + age) — the orphan sweeper's raw input.
+export type ObjectInfo = { key: string; size: number; lastModified: Date | null };
+
+export async function listObjectsDetailed(prefix = ""): Promise<ObjectInfo[]> {
+  const out: ObjectInfo[] = [];
+  let token: string | undefined;
+  do {
+    const res = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    for (const o of res.Contents ?? []) {
+      if (o.Key) {
+        out.push({ key: o.Key, size: o.Size ?? 0, lastModified: o.LastModified ?? null });
+      }
+    }
+    token = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (token);
+  return out;
+}
+
+// Abort multipart uploads older than the cutoff, bucket-wide. These never show
+// up as objects, but their uploaded parts bill storage until aborted. Returns
+// how many were aborted.
+export async function abortStaleMultiparts(olderThanMs: number): Promise<number> {
+  const cutoff = Date.now() - olderThanMs;
+  let aborted = 0;
+  let keyMarker: string | undefined;
+  let uploadIdMarker: string | undefined;
+  do {
+    const listed = await client.send(
+      new ListMultipartUploadsCommand({
+        Bucket: bucket,
+        KeyMarker: keyMarker,
+        UploadIdMarker: uploadIdMarker,
+      }),
+    );
+    const stale = (listed.Uploads ?? []).filter(
+      (u) => u.Key && u.UploadId && (!u.Initiated || u.Initiated.getTime() < cutoff),
+    );
+    await Promise.all(
+      stale.map((u) =>
+        client.send(
+          new AbortMultipartUploadCommand({
+            Bucket: bucket,
+            Key: u.Key!,
+            UploadId: u.UploadId!,
+          }),
+        ),
+      ),
+    );
+    aborted += stale.length;
+    keyMarker = listed.IsTruncated ? listed.NextKeyMarker : undefined;
+    uploadIdMarker = listed.IsTruncated ? listed.NextUploadIdMarker : undefined;
+  } while (keyMarker);
+  return aborted;
+}
