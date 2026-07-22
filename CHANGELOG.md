@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.29.0](https://github.com/rafail3/ngig.cloud/compare/v2.28.0...v2.29.0) (2026-07-22)
+
+
+### Features
+
+* **overview:** admin_active_users RPC + getActiveUsers ([a2224b4](https://github.com/rafail3/ngig.cloud/commit/a2224b4b0df618517e846ae3476fa680f49d0e83))
+* **overview:** most-active-users leaderboard section ([4179f7e](https://github.com/rafail3/ngig.cloud/commit/4179f7eade8a37a3493abf176b28a1477794712f))
+* **overview:** most-active-users leaderboard with score chart + per-user insights ([c48edcd](https://github.com/rafail3/ngig.cloud/commit/c48edcd5a8c81de3ea2fce9a9a9cf2bddbf2ec24))
+* **overview:** per-user insights modal + richer leaderboard visuals ([c0e18a1](https://github.com/rafail3/ngig.cloud/commit/c0e18a180fa68515f4fc1beaf6fe9c46c1b2c3c3))
+* **overview:** premium active-users leaderboard with score chart ([858cb83](https://github.com/rafail3/ngig.cloud/commit/858cb83caa58c49cde07b7ad213bd3b781431846))
+
+
+### Bug Fixes
+
+* **overview:** bare metallic rank numerals + surface RPC errors in the modal ([5d60dc8](https://github.com/rafail3/ngig.cloud/commit/5d60dc8f2865dc2114f1fcc8838b11cae1ec6e95))
+* **overview:** move active-users window constants to a client-safe module ([95a8097](https://github.com/rafail3/ngig.cloud/commit/95a80971f4eec42dfb45516d17fe105d7933ae35))
+
 ## [2.28.0](https://github.com/rafail3/ngig.cloud/compare/v2.27.0...v2.28.0) (2026-07-22)
 
 
