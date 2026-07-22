@@ -9,12 +9,19 @@ import {
   YAxis,
   Tooltip,
   Cell,
+  LabelList,
 } from "recharts";
 import type { ActiveUser } from "@/server/admin/stats";
 
-// Electric-blue → indigo ramp; the top scorer gets the brightest bar, the rest
-// step down so rank reads at a glance. Mirrors the Overview palette.
-const BAR_COLORS = ["#6366f1", "#4f46e5", "#4338ca", "#3730a3", "#312e81"];
+// Per-bar horizontal gradients (bright indigo→sky for #1, stepping darker down
+// the ranks) so the podium reads at a glance. Mirrors the Overview palette.
+const BAR_GRADIENTS: [string, string][] = [
+  ["#818cf8", "#38bdf8"],
+  ["#6366f1", "#4f46e5"],
+  ["#4f46e5", "#4338ca"],
+  ["#4338ca", "#3730a3"],
+  ["#3730a3", "#312e81"],
+];
 
 const tooltipStyle = {
   background: "#18181b",
@@ -88,26 +95,39 @@ export function ActiveUsersChart({ users }: { users: ActiveUser[] }) {
           <BarChart
             data={chart}
             layout="vertical"
-            margin={{ top: 4, right: 16, left: 4, bottom: 4 }}
-            barCategoryGap="28%"
+            margin={{ top: 4, right: 40, left: 4, bottom: 4 }}
+            barCategoryGap="26%"
           >
-            <XAxis type="number" hide domain={[0, (max: number) => Math.max(4, max)]} />
+            <defs>
+              {BAR_GRADIENTS.map(([from, to], i) => (
+                <linearGradient key={i} id={`au-bar-${i}`} x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor={from} />
+                  <stop offset="100%" stopColor={to} />
+                </linearGradient>
+              ))}
+            </defs>
+            <XAxis type="number" hide domain={[0, (max: number) => Math.max(4, max * 1.08)]} />
             <YAxis
               type="category"
               dataKey="name"
               width={96}
-              tick={{ fill: "#a1a1aa", fontSize: 12 }}
+              tick={{ fill: "#d4d4d8", fontSize: 12 }}
               tickLine={false}
               axisLine={false}
             />
-            <Tooltip
-              content={<ChartTooltip />}
-              cursor={{ fill: "#ffffff08" }}
-            />
-            <Bar dataKey="score" radius={[0, 6, 6, 0]} isAnimationActive animationDuration={900}>
+            <Tooltip content={<ChartTooltip />} cursor={{ fill: "#ffffff08" }} />
+            <Bar dataKey="score" radius={[0, 7, 7, 0]} isAnimationActive animationDuration={900} maxBarSize={26}>
               {chart.map((_, i) => (
-                <Cell key={i} fill={BAR_COLORS[Math.min(i, BAR_COLORS.length - 1)]} />
+                <Cell key={i} fill={`url(#au-bar-${Math.min(i, BAR_GRADIENTS.length - 1)})`} />
               ))}
+              <LabelList
+                dataKey="score"
+                position="right"
+                offset={8}
+                fill="#e4e4e7"
+                fontSize={12}
+                className="font-semibold tabular-nums"
+              />
             </Bar>
           </BarChart>
         </ResponsiveContainer>

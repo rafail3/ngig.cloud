@@ -46,7 +46,7 @@ async function ActiveUsersSection({ days }: { days: number }) {
         </h2>
         <ActiveUsersWindow selected={days} />
       </div>
-      <ActiveUsersLeaderboard users={users} />
+      <ActiveUsersLeaderboard users={users} days={days} />
     </section>
   );
 }

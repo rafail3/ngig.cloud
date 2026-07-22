@@ -1,0 +1,141 @@
+"use client";
+
+import { useState } from "react";
+import { Upload, Download, LogIn, HardDrive, MapPin, ChevronRight, Crown } from "lucide-react";
+import { Avatar } from "@/components/shell/Avatar";
+import { UserInsightsModal } from "@/components/dashboard/UserInsightsModal";
+import { formatBytes } from "@/lib/format";
+import { formatDateTime } from "@/lib/format-date";
+import { isOnline } from "@/lib/user-presence";
+import type { ActiveUser } from "@/server/admin/stats";
+
+// Podium accents for the top three ranks; the rest get a plain numeral tile.
+const MEDAL = [
+  "bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 ring-amber-300/50",
+  "bg-gradient-to-br from-zinc-300 to-zinc-500 text-zinc-900 ring-zinc-300/50",
+  "bg-gradient-to-br from-orange-400 to-orange-700 text-orange-950 ring-orange-400/50",
+];
+
+function Metric({
+  icon,
+  value,
+  label,
+  tint,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+  tint: string;
+}) {
+  return (
+    <span
+      title={`${value} ${label}`}
+      className="inline-flex items-center gap-1 rounded-md bg-zinc-800/50 px-1.5 py-0.5 text-xs tabular-nums text-zinc-300"
+    >
+      <span className={tint}>{icon}</span>
+      {value}
+    </span>
+  );
+}
+
+// A single leaderboard row. Clicking opens the per-user insights modal (activity
+// for the window) — not the users-page account controls.
+export function ActiveUserRow({
+  user,
+  rank,
+  top,
+  days,
+}: {
+  user: ActiveUser;
+  rank: number; // 0-based
+  top: number;
+  days: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const online = isOnline(user.lastActive);
+  const location = [user.city, user.country].filter(Boolean).join(", ");
+  const pct = Math.max(3, Math.round((user.score / top) * 100));
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="group flex w-full items-center gap-3 rounded-xl border border-transparent px-2 py-2.5 text-left transition hover:border-zinc-800 hover:bg-zinc-900/70 sm:gap-4 sm:px-3"
+      >
+        {/* Rank badge */}
+        <span
+          className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums ring-1 ring-inset ${
+            rank < 3 ? MEDAL[rank] : "bg-zinc-900 text-zinc-500 ring-zinc-800"
+          }`}
+        >
+          {rank === 0 && (
+            <Crown className="absolute -top-2 left-1/2 h-3.5 w-3.5 -translate-x-1/2 text-amber-300 drop-shadow" />
+          )}
+          {rank + 1}
+        </span>
+
+        {/* Identity */}
+        <span className="relative shrink-0">
+          <Avatar username={user.username} className="h-10 w-10 text-sm" />
+          <span
+            aria-hidden
+            title={online ? "Online" : "Offline"}
+            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-zinc-950 ${
+              online ? "bg-emerald-400" : "bg-zinc-600"
+            }`}
+          />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-semibold text-zinc-100 group-hover:text-white">
+              {user.username}
+            </p>
+            {location && (
+              <span className="hidden items-center gap-0.5 truncate text-[11px] text-zinc-500 sm:inline-flex">
+                <MapPin className="h-3 w-3" /> {location}
+              </span>
+            )}
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <Metric icon={<Upload className="h-3.5 w-3.5" />} value={user.uploads} label="încărcări" tint="text-blue-400" />
+            <Metric icon={<Download className="h-3.5 w-3.5" />} value={user.downloads} label="descărcări" tint="text-emerald-400" />
+            <Metric icon={<LogIn className="h-3.5 w-3.5" />} value={user.logins} label="logări" tint="text-violet-400" />
+            <span className="inline-flex items-center gap-1 rounded-md bg-zinc-800/50 px-1.5 py-0.5 text-xs tabular-nums text-zinc-400">
+              <HardDrive className="h-3.5 w-3.5 text-zinc-500" /> {formatBytes(user.storageBytes)}
+            </span>
+          </div>
+        </div>
+
+        {/* Score + bar + last active */}
+        <div className="flex w-24 shrink-0 flex-col items-end gap-1 sm:w-36">
+          <div className="flex items-baseline gap-1">
+            <span className="text-base font-bold tabular-nums text-indigo-300">{user.score}</span>
+            <span className="text-[10px] uppercase tracking-wide text-zinc-600">scor</span>
+          </div>
+          <span className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+            <span
+              className="block h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-400"
+              style={{ width: `${pct}%` }}
+            />
+          </span>
+          <span className="truncate text-[11px] text-zinc-500">
+            {user.lastActive ? formatDateTime(user.lastActive) : "—"}
+          </span>
+        </div>
+
+        <ChevronRight className="h-4 w-4 shrink-0 text-zinc-700 transition group-hover:translate-x-0.5 group-hover:text-zinc-400" />
+      </button>
+
+      {open && (
+        <UserInsightsModal
+          userId={user.userId}
+          username={user.username}
+          days={days}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
