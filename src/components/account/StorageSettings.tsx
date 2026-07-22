@@ -167,7 +167,7 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
           <form action={capAction} className="flex flex-col gap-3">
             <p className="flex items-start gap-2 text-xs text-zinc-500">
               <HardDrive className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Buget personal: upload-urile care ar depăși plafonul total sunt refuzate. Gol = fără plafon.
+              Buget personal: upload-urile care ar depăși plafonul total sunt refuzate.
             </p>
             <div className="flex items-end gap-2">
               <div className="w-40">
@@ -177,18 +177,28 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
                   name="value"
                   type="text"
                   inputMode="decimal"
-                  defaultValue={self.value}
-                  placeholder="nelimitat"
+                  placeholder="ex: 2"
                   className={inputCls}
                 />
               </div>
               <input type="hidden" name="unit" value={capUnit} />
               <UnitPicker value={capUnit} onChange={setCapUnit} />
             </div>
-            <div>
+            <div className="flex flex-wrap gap-2">
               <button type="submit" disabled={capPending} className={saveCls}>
                 {capPending ? "Se salvează…" : "Salvează"}
               </button>
+              {settings.selfMaxTotal != null && (
+                <button
+                  type="submit"
+                  name="reset"
+                  value="true"
+                  disabled={capPending}
+                  className="rounded-lg border border-zinc-800 px-3.5 py-1.5 text-sm text-zinc-300 transition hover:border-red-900/60 hover:text-red-200"
+                >
+                  Resetează
+                </button>
+              )}
             </div>
           </form>
         </Row>
@@ -254,13 +264,6 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
                 name="value"
                 type="text"
                 inputMode="decimal"
-                defaultValue={
-                  alert == null
-                    ? ""
-                    : alert.mode === "percent"
-                      ? String(alert.value)
-                      : alertSplit.value
-                }
                 placeholder={mode === "percent" ? "ex: 80" : "ex: 4"}
                 className={inputCls}
               />

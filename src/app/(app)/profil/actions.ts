@@ -107,19 +107,23 @@ export async function setSelfMaxTotalAction(
   _prev: AccountState,
   formData: FormData,
 ): Promise<AccountState> {
+  const reset = String(formData.get("reset")) === "true";
   const raw = String(formData.get("value") ?? "").trim();
   const unit = String(formData.get("unit") ?? "GB");
   try {
-    let bytes: number | null = null;
-    if (raw !== "") {
-      const n = Number(raw.replace(",", "."));
-      if (!Number.isFinite(n) || n <= 0) return { error: "Valoare invalidă (ex: 2 sau 0.5)." };
-      bytes = Math.round(n * (unit === "MB" ? 1024 ** 2 : 1024 ** 3));
-    }
     const { setMySelfMaxTotal } = await import("@/server/account/profile");
+    if (reset) {
+      await setMySelfMaxTotal(null);
+      revalidatePath("/profil");
+      return { ok: "Plafonul propriu a fost resetat — fără limită." };
+    }
+    if (raw === "") return { error: "Introdu o valoare (ex: 2) sau apasă Resetează." };
+    const n = Number(raw.replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0) return { error: "Valoare invalidă (ex: 2 sau 0.5)." };
+    const bytes = Math.round(n * (unit === "MB" ? 1024 ** 2 : 1024 ** 3));
     await setMySelfMaxTotal(bytes);
     revalidatePath("/profil");
-    return { ok: bytes == null ? "Plafonul propriu a fost șters." : "Plafonul propriu a fost salvat." };
+    return { ok: "Plafonul propriu a fost salvat." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Eroare la salvare." };
   }
