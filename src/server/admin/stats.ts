@@ -92,7 +92,9 @@ export type UserActivityDetail = {
 // admin_user_activity RPC). Everything for one user, one round-trip.
 export async function getUserActivity(userId: string, days = 30): Promise<UserActivityDetail> {
   const admin = createAdminClient();
-  const { data } = await admin.rpc("admin_user_activity", { uid: userId, days });
+  const { data, error } = await admin.rpc("admin_user_activity", { uid: userId, days });
+  // Surface failures (e.g. an unapplied migration) instead of silent zeros.
+  if (error) throw new Error(error.message);
   const d = (data ?? {}) as Partial<UserActivityDetail>;
   return {
     username: d.username ?? null,

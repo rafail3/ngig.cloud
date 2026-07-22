@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, Download, LogIn, HardDrive, MapPin, ChevronRight, Crown } from "lucide-react";
+import { Upload, Download, LogIn, HardDrive, MapPin, ChevronRight } from "lucide-react";
 import { Avatar } from "@/components/shell/Avatar";
 import { UserInsightsModal } from "@/components/dashboard/UserInsightsModal";
 import { formatBytes } from "@/lib/format";
@@ -9,11 +9,12 @@ import { formatDateTime } from "@/lib/format-date";
 import { isOnline } from "@/lib/user-presence";
 import type { ActiveUser } from "@/server/admin/stats";
 
-// Podium accents for the top three ranks; the rest get a plain numeral tile.
-const MEDAL = [
-  "bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 ring-amber-300/50",
-  "bg-gradient-to-br from-zinc-300 to-zinc-500 text-zinc-900 ring-zinc-300/50",
-  "bg-gradient-to-br from-orange-400 to-orange-700 text-orange-950 ring-orange-400/50",
+// Podium ranks are bare numerals with a metallic gradient (gold/silver/bronze
+// via bg-clip-text); the rest are plain muted numbers. No tiles, no bullets.
+const RANK_TEXT = [
+  "bg-gradient-to-b from-amber-200 to-amber-500 bg-clip-text text-transparent",
+  "bg-gradient-to-b from-zinc-100 to-zinc-400 bg-clip-text text-transparent",
+  "bg-gradient-to-b from-orange-300 to-orange-600 bg-clip-text text-transparent",
 ];
 
 function Metric({
@@ -63,15 +64,12 @@ export function ActiveUserRow({
         onClick={() => setOpen(true)}
         className="group flex w-full items-center gap-3 rounded-xl border border-transparent px-2 py-2.5 text-left transition hover:border-zinc-800 hover:bg-zinc-900/70 sm:gap-4 sm:px-3"
       >
-        {/* Rank badge */}
+        {/* Rank numeral */}
         <span
-          className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums ring-1 ring-inset ${
-            rank < 3 ? MEDAL[rank] : "bg-zinc-900 text-zinc-500 ring-zinc-800"
+          className={`w-8 shrink-0 text-center text-xl font-extrabold tabular-nums leading-none ${
+            rank < 3 ? RANK_TEXT[rank] : "text-zinc-600"
           }`}
         >
-          {rank === 0 && (
-            <Crown className="absolute -top-2 left-1/2 h-3.5 w-3.5 -translate-x-1/2 text-amber-300 drop-shadow" />
-          )}
           {rank + 1}
         </span>
 
