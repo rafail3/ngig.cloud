@@ -129,7 +129,7 @@ export function ManagerPermissions({
               : "border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50"
           }`}
         >
-          {open ? "Anulează" : "Editează"}
+          {open ? "Închide" : "Editează"}
         </button>
       </div>
 

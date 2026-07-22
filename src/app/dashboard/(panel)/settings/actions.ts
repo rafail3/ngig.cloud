@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "@/server/admin/guard";
-import { updateSettings, setSetting, type SettingKey } from "@/server/admin/settings";
+import { updateSettings, setSetting, setUploadTypes, type SettingKey } from "@/server/admin/settings";
+import { normalizeExtList } from "@/lib/upload-types";
 import { setUpdateNotifySettings, type UpdateRole } from "@/server/updates/service";
 import { setOfficeMode, recordOfficeState } from "@/server/office/config";
 import {
@@ -72,6 +73,36 @@ export async function resetSettingsAction(): Promise<void> {
   });
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
+}
+
+// Blocked upload extensions. `blocked` = comma list from the grid toggles,
+// `custom` = free-typed extensions not in the catalog. Empty = everything
+// allowed (the row is deleted).
+export async function saveUploadTypesAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  try {
+    await requireSuperAdmin();
+  } catch {
+    return { error: "Acces interzis." };
+  }
+
+  try {
+    const blockExt = normalizeExtList(
+      `${formData.get("blocked") ?? ""},${formData.get("custom") ?? ""}`,
+    );
+    await setUploadTypes(blockExt.length > 0 ? { blockExt } : null);
+    revalidatePath("/dashboard/settings");
+    return {
+      ok:
+        blockExt.length > 0
+          ? `${blockExt.length} ${blockExt.length === 1 ? "extensie blocată" : "extensii blocate"}.`
+          : "Toate extensiile sunt permise.",
+    };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Eroare la salvare." };
+  }
 }
 
 // Where the Document Server's address comes from: whatever the host announces on
