@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.33.0](https://github.com/rafail3/ngig.cloud/compare/v2.32.1...v2.33.0) (2026-07-22)
+
+
+### Features
+
+* **insights:** confidence-gated file suggestions ([028c5e6](https://github.com/rafail3/ngig.cloud/commit/028c5e658e562baa8bb566aa296fd09247ed01c9))
+* **insights:** confidence-gated file suggestions ([ca18b3a](https://github.com/rafail3/ngig.cloud/commit/ca18b3a28babf5984e6a744293fcc97edcd6731d))
+
 ## [2.32.1](https://github.com/rafail3/ngig.cloud/compare/v2.32.0...v2.32.1) (2026-07-22)
 
 
