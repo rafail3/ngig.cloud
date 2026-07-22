@@ -277,7 +277,7 @@ export function UserActions({
                 : "border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50"
             }`}
           >
-            {limitsOpen ? "Anulează" : "Editează"}
+            {limitsOpen ? "Închide" : "Editează"}
           </button>
         </div>
 
