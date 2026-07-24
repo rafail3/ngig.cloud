@@ -21,7 +21,6 @@ import { formatBytes } from "@/lib/format";
 import { type SharePreviewKind, type ShareLinkKind } from "@/lib/share";
 import { ShareThemeToggle } from "@/components/share/ShareThemeToggle";
 import { SharePreviewButton } from "@/components/share/SharePreviewButton";
-import { ShareBundleList } from "@/components/share/ShareBundleList";
 import { ShareFolderTree } from "@/components/share/ShareFolderTree";
 
 export const metadata: Metadata = {
@@ -65,7 +64,7 @@ export default function SharePage({
         <ShareThemeToggle />
       </header>
 
-      <main className="relative z-10 flex flex-1 items-start justify-center px-4 py-6 sm:items-center sm:py-10">
+      <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-6 sm:py-10">
         <Suspense fallback={<LoadingCard />}>
           <ShareResolved params={params} />
         </Suspense>
@@ -133,15 +132,9 @@ function ShareCard({ token, data }: { token: string; data: SharePageData }) {
           </div>
         </div>
 
-        {/* Bundle: the shared items, each previewable in place */}
-        {isBundle && data.items && (
-          <div className="border-t border-zinc-800/80 px-4 py-4 sm:px-5">
-            <ShareBundleList items={data.items} />
-          </div>
-        )}
-
-        {/* Folder: browsable contents (files + nested subfolders) */}
-        {data.kind === "folder" && data.tree && (
+        {/* Folder or bundle: browsable contents — enter subfolders, preview
+            files in place (nested files/folders included). */}
+        {data.tree && (
           <div className="border-t border-zinc-800/80 px-3 py-4 sm:px-4">
             <ShareFolderTree node={data.tree} />
           </div>

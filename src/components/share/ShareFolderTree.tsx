@@ -57,7 +57,7 @@ function FolderRow({
   depth: number;
   onPreview: (t: SharePreviewTarget) => void;
 }) {
-  const [open, setOpen] = useState(depth === 0);
+  const [open, setOpen] = useState(false);
   const count = node.folders.length + node.files.length;
 
   return (

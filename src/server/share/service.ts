@@ -16,7 +16,6 @@ import {
   type ShareLinkKind,
   type SharePreviewKind,
   type MyShareLinkView,
-  type ShareBundleItemView,
   type ShareFolderNode,
   type ShareFileNode,
 } from "@/lib/share";
@@ -420,14 +419,15 @@ async function bumpAccess(id: string): Promise<void> {
 
 export type SharePageData = {
   kind: ShareLinkKind;
-  label: string; // kicker, e.g. "Fișier partajat" / "2 fișiere partajate"
-  name: string; // H1, e.g. the filename or "2 fișiere"
+  label: string; // kicker, e.g. "Fișier partajat" / "Fișiere partajate"
+  name: string; // H1, e.g. the filename or "2 foldere și 1 fișier"
   size: number | null;
   expiryText: string;
   previewKind: SharePreviewKind;
   previewUrl: string | null; // previewable single file only
-  items: ShareBundleItemView[] | null; // bundle only
-  tree: ShareFolderNode | null; // folder only — browsable contents
+  // Browsable contents for a folder OR a bundle (bundle = a synthetic root node
+  // holding its folder members + file members). Null for a single file.
+  tree: ShareFolderNode | null;
 };
 
 // Guard: how many files at most we presign/render for a shared folder tree.
@@ -522,18 +522,30 @@ const SINGLE_LABEL: Record<"file" | "folder", string> = {
   folder: "Folder partajat",
 };
 
-// Name + kicker for a bundle, worded by what it contains (all files / all
-// folders / mixed) rather than the generic "elemente".
+// Romanian count phrases, e.g. "1 folder" / "2 foldere", "1 fișier" / "2 fișiere".
+function foldersPhrase(n: number): string {
+  return `${n} ${n === 1 ? "folder" : "foldere"}`;
+}
+function filesPhrase(n: number): string {
+  return `${n} ${n === 1 ? "fișier" : "fișiere"}`;
+}
+
+// Name + kicker for a bundle, worded by what it contains: all files, all
+// folders, or "X foldere și Y fișiere" when mixed.
 function bundleTitle(items: { kind: "file" | "folder" }[]): {
   label: string;
   name: string;
 } {
-  const n = items.length;
-  const allFiles = items.every((i) => i.kind === "file");
-  const allFolders = items.every((i) => i.kind === "folder");
-  if (allFiles) return { label: "Fișiere partajate", name: `${n} fișiere` };
-  if (allFolders) return { label: "Foldere partajate", name: `${n} foldere` };
-  return { label: "Elemente partajate", name: `${n} elemente` };
+  const nf = items.filter((i) => i.kind === "folder").length;
+  const ff = items.filter((i) => i.kind === "file").length;
+  if (nf > 0 && ff > 0) {
+    return {
+      label: "Elemente partajate",
+      name: `${foldersPhrase(nf)} și ${filesPhrase(ff)}`,
+    };
+  }
+  if (nf > 0) return { label: "Foldere partajate", name: foldersPhrase(nf) };
+  return { label: "Fișiere partajate", name: filesPhrase(ff) };
 }
 
 // Everything the public page needs. Counts as an access.
@@ -555,27 +567,27 @@ export async function getSharePage(token: string): Promise<SharePageData | null>
     );
   }
 
-  // Bundle → an inline URL per previewable file member (lazy-viewed on the page,
-  // so no egress logged here; the zip download is where the real cost lands).
-  let items: ShareBundleItemView[] | null = null;
-  if (share.kind === "bundle" && share.items) {
-    items = await Promise.all(
-      share.items.map(async (i): Promise<ShareBundleItemView> => {
-        let pk: SharePreviewKind = null;
-        let pu: string | null = null;
-        if (i.kind === "file" && i.storageKey) {
-          pk = sharePreviewKind(i.name);
-          if (pk) pu = await presignInline(i.storageKey);
-        }
-        return { kind: i.kind, name: i.name, size: i.size, previewKind: pk, previewUrl: pu };
-      }),
-    );
-  }
-
-  // Folder → a browsable tree of its contents.
+  // Browsable contents. A folder → its own tree. A bundle → a synthetic root
+  // whose folder members are full trees (so a visitor can enter them) and whose
+  // file members are previewable leaves.
   let tree: ShareFolderNode | null = null;
   if (share.kind === "folder" && share.folderId) {
     tree = await buildFolderTree(createAdminClient(), share.folderId, share.ownerId);
+  } else if (share.kind === "bundle" && share.items) {
+    const admin = createAdminClient();
+    const folders: ShareFolderNode[] = [];
+    const files: ShareFileNode[] = [];
+    for (const it of share.items) {
+      if (it.kind === "folder" && it.folderId) {
+        const sub = await buildFolderTree(admin, it.folderId, share.ownerId);
+        if (sub) folders.push(sub);
+      } else if (it.kind === "file" && it.storageKey) {
+        const pk = sharePreviewKind(it.name);
+        const pu = pk ? await presignInline(it.storageKey) : null;
+        files.push({ name: it.name, size: it.size, previewKind: pk, previewUrl: pu });
+      }
+    }
+    tree = { id: "bundle-root", name: "", folders, files };
   }
 
   const title =
@@ -591,7 +603,6 @@ export async function getSharePage(token: string): Promise<SharePageData | null>
     expiryText: expiryLabel(share.expiresAt, Date.now()),
     previewKind,
     previewUrl,
-    items,
     tree,
   };
 }
