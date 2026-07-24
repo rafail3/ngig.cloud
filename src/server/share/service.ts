@@ -207,16 +207,18 @@ export async function listMyShares(): Promise<MyShareLink[]> {
       const isBundle = r.target_type === "bundle";
       const members = r.share_link_items ?? [];
       const n = members.length;
-      // Name a bundle by what it holds — all files / all folders / mixed.
+      // Name a bundle by what it holds — all files / all folders / "X foldere
+      // și Y fișiere" when mixed.
       let name: string;
       if (isBundle) {
-        const allFiles = n > 0 && members.every((m) => m.file_id);
-        const allFolders = n > 0 && members.every((m) => m.folder_id);
-        name = allFiles
-          ? `${n} fișiere`
-          : allFolders
-            ? `${n} foldere`
-            : `${n} elemente`;
+        const nf = members.filter((m) => m.folder_id).length;
+        const ff = members.filter((m) => m.file_id).length;
+        name =
+          nf > 0 && ff > 0
+            ? `${foldersPhrase(nf)} și ${filesPhrase(ff)}`
+            : nf > 0
+              ? foldersPhrase(nf)
+              : filesPhrase(ff);
       } else {
         name = pickName(r.files) ?? pickName(r.folders) ?? "(indisponibil)";
       }
@@ -522,6 +524,14 @@ const SINGLE_LABEL: Record<"file" | "folder", string> = {
   folder: "Folder partajat",
 };
 
+// Total bytes of every file in a tree (recursive) — the shared item's size,
+// whatever its shape (folder, bundle of files+folders, etc).
+function sumTreeBytes(node: ShareFolderNode): number {
+  let bytes = node.files.reduce((s, f) => s + (f.size ?? 0), 0);
+  for (const sub of node.folders) bytes += sumTreeBytes(sub);
+  return bytes;
+}
+
 // Romanian count phrases, e.g. "1 folder" / "2 foldere", "1 fișier" / "2 fișiere".
 function foldersPhrase(n: number): string {
   return `${n} ${n === 1 ? "folder" : "foldere"}`;
@@ -599,7 +609,8 @@ export async function getSharePage(token: string): Promise<SharePageData | null>
     kind: share.kind,
     label: title.label,
     name: title.name,
-    size: share.size,
+    // Single file → its own size; folder/bundle → total bytes of all files.
+    size: tree ? sumTreeBytes(tree) : share.size,
     expiryText: expiryLabel(share.expiresAt, Date.now()),
     previewKind,
     previewUrl,
