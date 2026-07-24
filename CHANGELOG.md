@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.37.0](https://github.com/rafail3/ngig.cloud/compare/v2.36.0...v2.37.0) (2026-07-24)
+
+
+### Features
+
+* **share:** "Linkurile mele" management page + nav entry ([aab5a71](https://github.com/rafail3/ngig.cloud/commit/aab5a7168a94bb6824fa39298e62fc0ce762f9b4))
+* **share:** "Partajează" in the selection bar + preview modal ([dd3a98b](https://github.com/rafail3/ngig.cloud/commit/dd3a98b68abfc531cc9c155a6b1811ce70bf73e0))
+* **share:** "Partajează" modal + file/folder row-menu entry ([b1aeef1](https://github.com/rafail3/ngig.cloud/commit/b1aeef18c4f7f17c36a053079b68b4e5ef10eedd))
+* **share:** add share_links schema for public expiring links ([f2fbf76](https://github.com/rafail3/ngig.cloud/commit/f2fbf7686a6596d883952c627c1ba53d4bc280d2))
+* **share:** enter folders inside bundles + mixed count label + mobile centering ([2f17073](https://github.com/rafail3/ngig.cloud/commit/2f17073dcf148b70623016d7df7f73b7d1a370b9))
+* **share:** multi-item bundles + atomic access counter ([36206f2](https://github.com/rafail3/ngig.cloud/commit/36206f222d82040ff43e7673a1c38ae8393e5c0b))
+* **share:** multi-select share + modal redesign ([02cd98e](https://github.com/rafail3/ngig.cloud/commit/02cd98e1fa9b99ac5049e41128651ab97a17516d))
+* **share:** per-item download buttons in the folder/bundle tree ([e55e984](https://github.com/rafail3/ngig.cloud/commit/e55e98442387399594c843e3a5d47859ed2cf628))
+* **share:** preview in a pop-up + pdf via pdf.js + typed bundle names ([201b896](https://github.com/rafail3/ngig.cloud/commit/201b896e98d4604f4abd348d1fafaae9566fe574))
+* **share:** public expiring share links + QR-ready surface (Faza A) ([84212ba](https://github.com/rafail3/ngig.cloud/commit/84212ba671db76c99fc6311a814c1848b894db96))
+* **share:** public no-login share page + download route ([836f3b6](https://github.com/rafail3/ngig.cloud/commit/836f3b67abc04b747bfa7c6e0cf0f8441e857850))
+* **share:** purge expired share links on the daily cron ([a2b7b20](https://github.com/rafail3/ngig.cloud/commit/a2b7b20cfcfad84ae58f26359df0202ff54e6a98))
+* **share:** share-link vocabulary + secure service layer ([478d4a5](https://github.com/rafail3/ngig.cloud/commit/478d4a5c3d84ec3b44842ca3585bc5e9a000ac99))
+* **share:** total size for every share + mixed-count names on the links page ([4641364](https://github.com/rafail3/ngig.cloud/commit/4641364e88f50d964c9a6412cc3bdf73ee83406f))
+
+
+### Bug Fixes
+
+* **share:** allow target_type='bundle' on the column check ([4569e65](https://github.com/rafail3/ngig.cloud/commit/4569e654b44ef0e2a4bf5f84da29c5eebabd29e5))
+* **share:** portal preview modal + browsable shared folders + links redesign ([1cb748d](https://github.com/rafail3/ngig.cloud/commit/1cb748d477a945df7f863c5a1f979608dc9aafa6))
+* **share:** reliable theme toggle + public page polish ([0b4864e](https://github.com/rafail3/ngig.cloud/commit/0b4864ec38abdd726df45dd68182c2744689f64a))
+* **share:** resolve Blocking Route error + redesign public page ([a82fabe](https://github.com/rafail3/ngig.cloud/commit/a82fabe464129efef5b0eab7b65ac6df9bedb4b0))
+
 ## [2.36.0](https://github.com/rafail3/ngig.cloud/compare/v2.35.0...v2.36.0) (2026-07-22)
 
 
