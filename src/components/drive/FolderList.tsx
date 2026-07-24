@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { revalidateDrive } from "@/components/drive/useDriveData";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Folder, Trash2, Download, Info, Pencil, FolderInput, Loader2, CheckCircle2 } from "lucide-react";
+import { Folder, Trash2, Download, Info, Pencil, FolderInput, Loader2, CheckCircle2, Share2 } from "lucide-react";
 import {
   deleteFolderAction,
   renameFolderAction,
@@ -20,6 +20,7 @@ import { useSelection, selKey, type SelItem } from "./SelectionProvider";
 import { useLongPress } from "./useLongPress";
 import { FolderPickerModal } from "./FolderPickerModal";
 import { RenameModal } from "./RenameModal";
+import { ShareModal } from "./ShareModal";
 import { ModalShell, useMounted, useIsTouch, useRowClick } from "./anim";
 import { useDragActive, usePendingMove, type DragData, type DropData } from "./DriveDndProvider";
 import { useFilter } from "./FilterProvider";
@@ -33,6 +34,7 @@ export function FolderList({ folderId }: { folderId: string | null }) {
   const [toDelete, setToDelete] = useState<FolderItem | null>(null);
   const [toRename, setToRename] = useState<FolderItem | null>(null);
   const [toMove, setToMove] = useState<FolderItem | null>(null);
+  const [toShare, setToShare] = useState<FolderItem | null>(null);
   const [info, setInfo] = useState<FolderItem | null>(null);
   const [stats, setStats] = useState<{ size: number; count: number } | null>(null);
 
@@ -81,6 +83,7 @@ export function FolderList({ folderId }: { folderId: string | null }) {
               onInfo={() => openInfo(f)}
               onRename={() => setToRename(f)}
               onMove={() => setToMove(f)}
+              onShare={() => setToShare(f)}
               onDelete={() => setToDelete(f)}
             />
           ))}
@@ -136,6 +139,14 @@ export function FolderList({ folderId }: { folderId: string | null }) {
           />
         )}
 
+        {toShare && (
+          <ShareModal
+            key="share"
+            targets={[{ type: "folder", id: toShare.id, name: toShare.name }]}
+            onClose={() => setToShare(null)}
+          />
+        )}
+
         {toDelete && (
           <ConfirmDeleteFolder
             key="delete"
@@ -157,6 +168,7 @@ function FolderCard({
   onInfo,
   onRename,
   onMove,
+  onShare,
   onDelete,
 }: {
   folder: FolderItem;
@@ -166,6 +178,7 @@ function FolderCard({
   onInfo: () => void;
   onRename: () => void;
   onMove: () => void;
+  onShare: () => void;
   onDelete: () => void;
 }) {
   const router = useRouter();
@@ -206,6 +219,7 @@ function FolderCard({
 
   const actions: MenuAction[] = [
     { icon: Download, label: "Descarcă", onSelect: onDownload },
+    { icon: Share2, label: "Partajează", onSelect: onShare },
     { icon: Info, label: "Detalii", onSelect: onInfo },
     { icon: Pencil, label: "Redenumește", onSelect: onRename },
     { icon: FolderInput, label: "Mută", onSelect: onMove },

@@ -7,6 +7,13 @@ import { getUploadTypes } from "@/server/admin/settings";
 import { requireActiveUser } from "@/server/auth/active-user";
 import type { UploadTypesConfig } from "@/lib/upload-types";
 import {
+  createShareLink,
+  listMyShares,
+  revokeShare,
+  type MyShareLink,
+} from "@/server/share/service";
+import type { ShareTargetType } from "@/lib/share";
+import {
   buildEditorConfig,
   forceSave,
   type EditorConfig,
@@ -472,5 +479,47 @@ export async function getTrashAction(): Promise<
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     throw e;
+  }
+}
+
+// ---- Public share links (Faza A) ---------------------------------------------
+
+// Mint a share link for one or more of the caller's own files/folders (several
+// targets = a bundle link). `expiresAt` = null means never; the service
+// revalidates it against the server clock and ownership-checks every target, so
+// a stale/hostile client can't share a foreign object.
+export async function createShareLinkAction(input: {
+  targets: { type: ShareTargetType; id: string }[];
+  expiresAt: string | null;
+}): Promise<
+  { token: string; url: string; expiresAt: string | null } | { error: string } | Revoked
+> {
+  try {
+    const r = await createShareLink(input);
+    return { token: r.token, url: r.url, expiresAt: r.expiresAt };
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    return { error: errMsg(e) };
+  }
+}
+
+export async function listMySharesAction(): Promise<MyShareLink[] | Revoked> {
+  try {
+    return await listMyShares();
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function revokeShareAction(
+  id: string,
+): Promise<{ error?: string } | Revoked> {
+  try {
+    await revokeShare(id);
+    return {};
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    return { error: errMsg(e) };
   }
 }
