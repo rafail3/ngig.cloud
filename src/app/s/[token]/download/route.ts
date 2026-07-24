@@ -5,6 +5,7 @@ import { getObjectStream } from "@/server/storage/b2";
 import {
   getShareFileDownloadUrl,
   getShareFolderManifest,
+  getShareBundleManifest,
 } from "@/server/share/service";
 
 // Public download for a share token. No session — the token is the authority.
@@ -19,7 +20,9 @@ export async function GET(
   const file = await getShareFileDownloadUrl(token);
   if (file) return Response.redirect(file.url, 302);
 
-  const manifest = await getShareFolderManifest(token);
+  // Folder or bundle → a streamed zip.
+  const manifest =
+    (await getShareFolderManifest(token)) ?? (await getShareBundleManifest(token));
   if (!manifest) {
     return new Response("Link inexistent sau expirat.", { status: 404 });
   }

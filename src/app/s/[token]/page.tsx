@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -9,14 +10,17 @@ import {
   Music,
   Image as ImageIcon,
   Folder,
+  Layers,
   Clock,
   CloudOff,
   ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import { getSharePage, type SharePageData } from "@/server/share/service";
 import { formatBytes } from "@/lib/format";
-import { type SharePreviewKind } from "@/lib/share";
+import { type SharePreviewKind, type ShareLinkKind } from "@/lib/share";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { SharePreviewPanel } from "@/components/share/SharePreviewPanel";
 
 export const metadata: Metadata = {
   title: "Fișier partajat",
@@ -24,14 +28,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function SharePage({
+// The page shell is fully static (no dynamic data) so Cache Components can
+// prerender it instantly; the per-token lookup streams inside <Suspense>.
+export default function SharePage({
   params,
 }: {
   params: Promise<{ token: string }>;
 }) {
-  const { token } = await params;
-  const data = await getSharePage(token);
-
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-zinc-950 text-zinc-50">
       {/* subtle aurora — brand accent, works in both themes */}
@@ -57,12 +60,10 @@ export default async function SharePage({
         <ThemeToggle />
       </header>
 
-      <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-6 sm:py-10">
-        {data ? (
-          <ShareCard token={token} data={data} />
-        ) : (
-          <ExpiredCard />
-        )}
+      <main className="relative z-10 flex flex-1 items-start justify-center px-4 py-6 sm:items-center sm:py-10">
+        <Suspense fallback={<LoadingCard />}>
+          <ShareResolved params={params} />
+        </Suspense>
       </main>
 
       <footer className="relative z-10 px-4 pb-6 text-center text-xs text-zinc-500">
@@ -75,138 +76,145 @@ export default async function SharePage({
   );
 }
 
+async function ShareResolved({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+  const data = await getSharePage(token);
+  return data ? <ShareCard token={token} data={data} /> : <ExpiredCard />;
+}
+
+const KIND_LABEL: Record<ShareLinkKind, string> = {
+  file: "Fișier partajat",
+  folder: "Folder partajat",
+  bundle: "Elemente partajate",
+};
+
 function ShareCard({ token, data }: { token: string; data: SharePageData }) {
-  const isFolder = data.targetType === "folder";
+  const isBundle = data.kind === "bundle";
+  const downloadLabel =
+    data.kind === "file" ? "Descarcă" : isBundle ? "Descarcă tot (.zip)" : "Descarcă folderul (.zip)";
 
   return (
-    <div className="w-full max-w-2xl">
+    <div className="w-full max-w-xl">
       <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/70 shadow-2xl backdrop-blur-xl">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-50/15 to-transparent" />
 
-        {/* Header row: icon + name + meta */}
-        <div className="flex items-start gap-4 p-5 sm:p-7">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/60 text-indigo-400 shadow-inner sm:h-16 sm:w-16">
+        {/* Header */}
+        <div className="flex items-start gap-4 p-6 sm:p-8">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/15 to-violet-500/10 text-indigo-300 shadow-inner sm:h-[72px] sm:w-[72px]">
             <TargetIcon
-              isFolder={isFolder}
+              kind={data.kind}
               previewKind={data.previewKind}
-              className="h-7 w-7 sm:h-8 sm:w-8"
+              className="h-8 w-8 sm:h-9 sm:w-9"
             />
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-              {isFolder ? "Folder partajat" : "Fișier partajat"}
+          <div className="min-w-0 flex-1 pt-0.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400/80">
+              {KIND_LABEL[data.kind]}
             </p>
-            <h1 className="mt-1 break-words text-lg font-semibold leading-snug text-zinc-50 sm:text-xl">
+            <h1 className="mt-1.5 break-words text-xl font-bold leading-tight tracking-tight text-zinc-50 sm:text-2xl">
               {data.name}
             </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-400">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
               {data.size != null && (
-                <span className="tabular-nums">{formatBytes(data.size)}</span>
+                <span className="inline-flex items-center rounded-full border border-zinc-800 bg-zinc-950/50 px-2.5 py-1 font-medium tabular-nums text-zinc-300">
+                  {formatBytes(data.size)}
+                </span>
               )}
-              <span className="inline-flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" aria-hidden />
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-950/50 px-2.5 py-1 font-medium text-zinc-300">
+                <Clock className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
                 {data.expiryText}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Preview (when the type is renderable) */}
-        {data.previewUrl && data.previewKind && (
-          <div className="border-t border-zinc-800 bg-zinc-950/40 p-3 sm:p-4">
-            <SharePreview
-              kind={data.previewKind}
-              url={data.previewUrl}
-              name={data.name}
-            />
+        {/* Bundle: list the shared items */}
+        {isBundle && data.items && (
+          <div className="border-t border-zinc-800/80 px-5 py-4 sm:px-6">
+            <ul className="max-h-64 space-y-1 overflow-y-auto">
+              {data.items.map((item, i) => (
+                <li
+                  key={i}
+                  className="flex items-center gap-2.5 rounded-lg border border-zinc-800/70 bg-zinc-950/40 px-3 py-2"
+                >
+                  <span className="text-indigo-400" aria-hidden>
+                    {item.kind === "folder" ? (
+                      <Folder className="h-4 w-4" />
+                    ) : (
+                      <FileIcon className="h-4 w-4" />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">
+                    {item.name}
+                  </span>
+                  {item.size != null && (
+                    <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+                      {formatBytes(item.size)}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex flex-col gap-3 border-t border-zinc-800 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-          <p className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
+        {/* Actions: download primary; preview toggle when renderable (single file) */}
+        <div className="flex flex-col gap-3 border-t border-zinc-800/80 p-5 sm:p-6">
+          <a
+            href={`/s/${token}/download`}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-950/40 transition-colors hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
+          >
+            <Download className="h-4 w-4" aria-hidden />
+            {downloadLabel}
+          </a>
+
+          {data.previewUrl && data.previewKind && (
+            <SharePreviewPanel
+              url={data.previewUrl}
+              kind={data.previewKind}
+              name={data.name}
+            />
+          )}
+
+          <p className="mt-0.5 inline-flex items-center justify-center gap-1.5 text-center text-xs text-zinc-500">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
             Descărcare directă, fără cont
           </p>
-          <a
-            href={`/s/${token}/download`}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-950/40 transition-colors hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
-          >
-            <Download className="h-4 w-4" aria-hidden />
-            {isFolder ? "Descarcă (.zip)" : "Descarcă"}
-          </a>
         </div>
       </div>
     </div>
   );
 }
 
-function SharePreview({
-  kind,
-  url,
-  name,
-}: {
-  kind: Exclude<SharePreviewKind, null>;
-  url: string;
-  name: string;
-}) {
-  const frame = "overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950";
-
-  if (kind === "image") {
-    return (
-      <div className={`${frame} flex items-center justify-center`}>
-        {/* Presigned B2 URL of an unknown remote object — a plain <img> avoids
-            next/image's optimizer + host allow-list entirely. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={url}
-          alt={name}
-          className="max-h-[65vh] w-auto max-w-full object-contain"
-        />
-      </div>
-    );
-  }
-  if (kind === "video") {
-    return (
-      <div className={frame}>
-        <video src={url} controls className="max-h-[65vh] w-full" />
-      </div>
-    );
-  }
-  if (kind === "audio") {
-    return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
-        <audio src={url} controls className="w-full" />
-      </div>
-    );
-  }
-  // pdf + text render in a sandboxed frame (the browser's own viewer).
-  return (
-    <iframe
-      src={url}
-      title={name}
-      sandbox=""
-      className={`${frame} h-[70vh] w-full`}
-    />
-  );
-}
-
 function TargetIcon({
-  isFolder,
+  kind,
   previewKind,
   className,
 }: {
-  isFolder: boolean;
+  kind: ShareLinkKind;
   previewKind: SharePreviewKind;
   className?: string;
 }) {
-  if (isFolder) return <Folder className={className} aria-hidden />;
+  if (kind === "bundle") return <Layers className={className} aria-hidden />;
+  if (kind === "folder") return <Folder className={className} aria-hidden />;
   if (previewKind === "image") return <ImageIcon className={className} aria-hidden />;
   if (previewKind === "video") return <Film className={className} aria-hidden />;
   if (previewKind === "audio") return <Music className={className} aria-hidden />;
   if (previewKind === "pdf" || previewKind === "text")
     return <FileText className={className} aria-hidden />;
   return <FileIcon className={className} aria-hidden />;
+}
+
+function LoadingCard() {
+  return (
+    <div className="flex w-full max-w-xl items-center justify-center rounded-3xl border border-zinc-800 bg-zinc-900/70 py-20 shadow-2xl backdrop-blur-xl">
+      <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+    </div>
+  );
 }
 
 function ExpiredCard() {
