@@ -17,6 +17,8 @@ import {
   type SharePreviewKind,
   type MyShareLinkView,
   type ShareBundleItemView,
+  type ShareFolderNode,
+  type ShareFileNode,
 } from "@/lib/share";
 
 // ---------------------------------------------------------------------------
@@ -425,7 +427,95 @@ export type SharePageData = {
   previewKind: SharePreviewKind;
   previewUrl: string | null; // previewable single file only
   items: ShareBundleItemView[] | null; // bundle only
+  tree: ShareFolderNode | null; // folder only — browsable contents
 };
+
+// Guard: how many files at most we presign/render for a shared folder tree.
+const MAX_TREE_FILES = 1000;
+
+// Build a browsable tree for a shared folder: subfolders (recursive) + files,
+// presigning previewable files. Owner-scoped, service-role.
+async function buildFolderTree(
+  admin: ReturnType<typeof createAdminClient>,
+  rootId: string,
+  ownerId: string,
+): Promise<ShareFolderNode | null> {
+  const { data: folderRows } = await admin
+    .from("folders")
+    .select("id, name, parent_id")
+    .eq("owner_id", ownerId);
+  const all = (folderRows ?? []) as {
+    id: string;
+    name: string;
+    parent_id: string | null;
+  }[];
+  const byId = new Map(all.map((f) => [f.id, f]));
+  if (!byId.has(rootId)) return null;
+
+  const childFolders = new Map<string, typeof all>();
+  for (const f of all) {
+    if (!f.parent_id) continue;
+    const arr = childFolders.get(f.parent_id) ?? [];
+    arr.push(f);
+    childFolders.set(f.parent_id, arr);
+  }
+
+  // Subtree folder ids (root + descendants).
+  const subIds: string[] = [];
+  const stack = [rootId];
+  while (stack.length) {
+    const cur = stack.pop()!;
+    subIds.push(cur);
+    for (const c of childFolders.get(cur) ?? []) stack.push(c.id);
+  }
+
+  const { data: fileRows } = await admin
+    .from("files")
+    .select("id, name, size, storage_key, folder_id")
+    .eq("owner_id", ownerId)
+    .is("deleted_at", null)
+    .in("folder_id", subIds)
+    .limit(MAX_TREE_FILES);
+  const files = (fileRows ?? []) as {
+    id: string;
+    name: string;
+    size: number;
+    storage_key: string;
+    folder_id: string | null;
+  }[];
+
+  // Presign previewable files (best-effort, in parallel).
+  const filesByFolder = new Map<string, ShareFileNode[]>();
+  await Promise.all(
+    files.map(async (f) => {
+      const previewKind = sharePreviewKind(f.name);
+      const previewUrl = previewKind ? await presignInline(f.storage_key) : null;
+      const node: ShareFileNode = {
+        name: f.name,
+        size: Number(f.size ?? 0),
+        previewKind,
+        previewUrl,
+      };
+      const key = f.folder_id ?? "";
+      const arr = filesByFolder.get(key) ?? [];
+      arr.push(node);
+      filesByFolder.set(key, arr);
+    }),
+  );
+
+  const sortByName = <T extends { name: string }>(a: T, b: T) =>
+    a.name.localeCompare(b.name, "ro");
+
+  const build = (id: string): ShareFolderNode => {
+    const f = byId.get(id)!;
+    const folders = (childFolders.get(id) ?? [])
+      .map((c) => build(c.id))
+      .sort(sortByName);
+    const nodeFiles = (filesByFolder.get(id) ?? []).slice().sort(sortByName);
+    return { id, name: f.name, folders, files: nodeFiles };
+  };
+  return build(rootId);
+}
 
 const SINGLE_LABEL: Record<"file" | "folder", string> = {
   file: "Fișier partajat",
@@ -482,6 +572,12 @@ export async function getSharePage(token: string): Promise<SharePageData | null>
     );
   }
 
+  // Folder → a browsable tree of its contents.
+  let tree: ShareFolderNode | null = null;
+  if (share.kind === "folder" && share.folderId) {
+    tree = await buildFolderTree(createAdminClient(), share.folderId, share.ownerId);
+  }
+
   const title =
     share.kind === "bundle" && share.items
       ? bundleTitle(share.items)
@@ -496,6 +592,7 @@ export async function getSharePage(token: string): Promise<SharePageData | null>
     previewKind,
     previewUrl,
     items,
+    tree,
   };
 }
 

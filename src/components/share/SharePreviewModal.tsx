@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, lazy, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { X, Download, Loader2 } from "lucide-react";
 import type { SharePreviewKind } from "@/lib/share";
@@ -28,9 +29,11 @@ export type SharePreviewTarget = {
   name: string;
 };
 
-// A pop-up lightbox preview for a shared file. PDFs render via pdf.js (canvas,
-// no cross-origin iframe → not blocked by Brave/ad-blockers); text is fetched
-// and shown in the code viewer; image/video/audio use native elements.
+// A pop-up lightbox preview for a shared file, PORTALED to document.body so it
+// escapes the share card's backdrop-blur (which creates a containing block that
+// would otherwise trap `position: fixed` inside the card). PDFs render via
+// pdf.js (canvas, no cross-origin iframe → not blocked by Brave); text loads
+// into the code viewer; image/video/audio use native elements.
 export function SharePreviewModal({
   target,
   onClose,
@@ -38,11 +41,20 @@ export function SharePreviewModal({
   target: SharePreviewTarget | null;
   onClose: () => void;
 }) {
-  return (
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  const tree = (
     <AnimatePresence>
       {target && <Lightbox key="lightbox" target={target} onClose={onClose} />}
     </AnimatePresence>
   );
+
+  if (!mounted) return null;
+  return createPortal(tree, document.body);
 }
 
 function Lightbox({
@@ -64,13 +76,11 @@ function Lightbox({
     };
   }, [onClose]);
 
-  // Documents get a large, tall panel; media sizes to its content.
-  const big = kind === "pdf" || kind === "text";
   const download = () => window.open(url, "_blank", "noopener");
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6"
       role="dialog"
       aria-modal="true"
       initial={{ opacity: 0 }}
@@ -78,20 +88,16 @@ function Lightbox({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
     >
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" onClick={onClose} />
 
       <motion.div
-        className={`relative flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
-          big
-            ? "h-[92vh] w-[min(96vw,72rem)]"
-            : "max-h-[92vh] w-auto max-w-[min(94vw,60rem)]"
-        }`}
-        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        className="relative flex max-h-[96dvh] w-[min(96vw,80rem)] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl"
+        initial={{ opacity: 0, scale: 0.97, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.97, y: 6 }}
+        exit={{ opacity: 0, scale: 0.98, y: 6 }}
         transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.7 }}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-800 px-4 py-2.5">
           <p className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-100">
             {name}
           </p>
@@ -100,7 +106,7 @@ function Lightbox({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Deschide / descarcă"
+              aria-label="Deschide într-o filă nouă"
               title="Deschide"
               className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800"
             >
@@ -110,20 +116,14 @@ function Lightbox({
               type="button"
               onClick={onClose}
               aria-label="Închide"
-              className="rounded-md p-1.5 text-zinc-400 transition hover:text-zinc-100"
+              className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 hover:text-zinc-100"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        <div
-          className={
-            big
-              ? "min-h-0 flex-1 overflow-hidden bg-zinc-950/40"
-              : "flex flex-1 items-center justify-center overflow-auto bg-zinc-950/40 p-3"
-          }
-        >
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-zinc-950/50">
           <PreviewBody url={url} kind={kind} name={name} onDownload={download} />
         </div>
       </motion.div>
@@ -144,16 +144,25 @@ function PreviewBody({
 }) {
   if (kind === "image") {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={url}
-        alt={name}
-        className="max-h-[82vh] max-w-full rounded object-contain"
-      />
+      <div className="flex h-full w-full items-center justify-center overflow-auto p-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt={name}
+          className="max-h-[calc(96dvh-4rem)] max-w-full rounded object-contain"
+        />
+      </div>
     );
   }
   if (kind === "video") {
-    return <video src={url} controls autoPlay className="max-h-[82vh] max-w-full rounded" />;
+    return (
+      <video
+        src={url}
+        controls
+        autoPlay
+        className="max-h-[calc(96dvh-4rem)] max-w-full"
+      />
+    );
   }
   if (kind === "audio") {
     return (
@@ -164,12 +173,13 @@ function PreviewBody({
   }
   if (kind === "pdf") {
     return (
-      <Suspense fallback={<ViewerFallback />}>
-        <PdfViewer url={url} fileName={name} onDownload={onDownload} />
-      </Suspense>
+      <div className="h-[calc(96dvh-3.25rem)] w-full">
+        <Suspense fallback={<ViewerFallback />}>
+          <PdfViewer url={url} fileName={name} onDownload={onDownload} />
+        </Suspense>
+      </div>
     );
   }
-  // text
   return <TextBody url={url} name={name} />;
 }
 
@@ -189,21 +199,17 @@ function TextBody({ url, name }: { url: string; name: string }) {
     };
   }, [url]);
 
-  if (error) {
-    return <p className="p-6 text-sm text-red-400">Nu am putut încărca fișierul.</p>;
-  }
-  if (text === null) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-      </div>
-    );
-  }
   return (
-    <div className="h-full w-full overflow-auto">
-      <Suspense fallback={<ViewerFallback />}>
-        <CodeViewer code={text} fileName={name} />
-      </Suspense>
+    <div className="h-[calc(96dvh-3.25rem)] w-full overflow-auto">
+      {error ? (
+        <p className="p-6 text-sm text-red-400">Nu am putut încărca fișierul.</p>
+      ) : text === null ? (
+        <ViewerFallback />
+      ) : (
+        <Suspense fallback={<ViewerFallback />}>
+          <CodeViewer code={text} fileName={name} />
+        </Suspense>
+      )}
     </div>
   );
 }

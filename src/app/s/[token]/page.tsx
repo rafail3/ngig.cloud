@@ -22,6 +22,7 @@ import { type SharePreviewKind, type ShareLinkKind } from "@/lib/share";
 import { ShareThemeToggle } from "@/components/share/ShareThemeToggle";
 import { SharePreviewButton } from "@/components/share/SharePreviewButton";
 import { ShareBundleList } from "@/components/share/ShareBundleList";
+import { ShareFolderTree } from "@/components/share/ShareFolderTree";
 
 export const metadata: Metadata = {
   title: "Fișier partajat",
@@ -136,6 +137,13 @@ function ShareCard({ token, data }: { token: string; data: SharePageData }) {
         {isBundle && data.items && (
           <div className="border-t border-zinc-800/80 px-4 py-4 sm:px-5">
             <ShareBundleList items={data.items} />
+          </div>
+        )}
+
+        {/* Folder: browsable contents (files + nested subfolders) */}
+        {data.kind === "folder" && data.tree && (
+          <div className="border-t border-zinc-800/80 px-3 py-4 sm:px-4">
+            <ShareFolderTree node={data.tree} />
           </div>
         )}
 

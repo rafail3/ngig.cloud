@@ -21,6 +21,21 @@ export type ShareBundleItemView = {
   previewUrl: string | null;
 };
 
+// A browsable folder tree for a shared folder — subfolders (recursive) + files,
+// each previewable file carrying its inline URL. Client-safe.
+export type ShareFileNode = {
+  name: string;
+  size: number | null;
+  previewKind: SharePreviewKind;
+  previewUrl: string | null;
+};
+export type ShareFolderNode = {
+  id: string;
+  name: string;
+  folders: ShareFolderNode[];
+  files: ShareFileNode[];
+};
+
 // Client-safe shape of one of the user's own links, as shown in "Linkurile
 // mele". Defined here so client components can type the data without importing
 // the server-only service.
