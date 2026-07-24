@@ -484,12 +484,12 @@ export async function getTrashAction(): Promise<
 
 // ---- Public share links (Faza A) ---------------------------------------------
 
-// Mint a share link for one of the caller's own files/folders. `expiresAt` =
-// null means never; the service revalidates it against the server clock and
-// enforces ownership, so a stale/hostile client can't share a foreign object.
+// Mint a share link for one or more of the caller's own files/folders (several
+// targets = a bundle link). `expiresAt` = null means never; the service
+// revalidates it against the server clock and ownership-checks every target, so
+// a stale/hostile client can't share a foreign object.
 export async function createShareLinkAction(input: {
-  targetType: ShareTargetType;
-  targetId: string;
+  targets: { type: ShareTargetType; id: string }[];
   expiresAt: string | null;
 }): Promise<
   { token: string; url: string; expiresAt: string | null } | { error: string } | Revoked

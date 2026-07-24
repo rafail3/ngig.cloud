@@ -3,7 +3,12 @@
 // page, "Linkurile mele"). All token minting, DB access and presigning live in
 // `server/share/service.ts`.
 
+// An individual target the user can pick to share.
 export type ShareTargetType = "file" | "folder";
+
+// What a link actually points to — a single file/folder, or a bundle of several
+// items selected together.
+export type ShareLinkKind = "file" | "folder" | "bundle";
 
 // Client-safe shape of one of the user's own links, as shown in "Linkurile
 // mele". Defined here so client components can type the data without importing
@@ -12,8 +17,9 @@ export type MyShareLinkView = {
   id: string;
   token: string;
   url: string;
-  targetType: ShareTargetType;
-  name: string;
+  kind: ShareLinkKind;
+  name: string; // file/folder name, or "N elemente" for a bundle
+  itemCount: number; // 1 for a single target, N for a bundle
   expiresAt: string | null;
   accessCount: number;
   createdAt: string;
