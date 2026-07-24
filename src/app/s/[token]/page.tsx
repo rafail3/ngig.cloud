@@ -20,7 +20,7 @@ import { getSharePage, type SharePageData } from "@/server/share/service";
 import { formatBytes } from "@/lib/format";
 import { type SharePreviewKind, type ShareLinkKind } from "@/lib/share";
 import { ShareThemeToggle } from "@/components/share/ShareThemeToggle";
-import { SharePreviewPanel } from "@/components/share/SharePreviewPanel";
+import { SharePreviewButton } from "@/components/share/SharePreviewButton";
 import { ShareBundleList } from "@/components/share/ShareBundleList";
 
 export const metadata: Metadata = {
@@ -150,7 +150,7 @@ function ShareCard({ token, data }: { token: string; data: SharePageData }) {
           </a>
 
           {canPreviewSingle && (
-            <SharePreviewPanel
+            <SharePreviewButton
               url={data.previewUrl!}
               kind={data.previewKind!}
               name={data.name}

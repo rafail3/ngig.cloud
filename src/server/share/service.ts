@@ -179,7 +179,7 @@ export async function listMyShares(): Promise<MyShareLink[]> {
   const { data, error } = await supabase
     .from("share_links")
     .select(
-      "id, token, target_type, file_id, folder_id, expires_at, access_count, created_at, files(name), folders(name), share_link_items(count)",
+      "id, token, target_type, file_id, folder_id, expires_at, access_count, created_at, files(name), folders(name), share_link_items(file_id, folder_id)",
     )
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -195,7 +195,7 @@ export async function listMyShares(): Promise<MyShareLink[]> {
     created_at: string;
     files: NameRel;
     folders: NameRel;
-    share_link_items: { count: number }[] | null;
+    share_link_items: { file_id: string | null; folder_id: string | null }[] | null;
   };
   const pickName = (v: NameRel): string | null =>
     Array.isArray(v) ? (v[0]?.name ?? null) : (v?.name ?? null);
@@ -203,17 +203,29 @@ export async function listMyShares(): Promise<MyShareLink[]> {
   return ((data ?? []) as Row[])
     .filter((r) => !isExpired(r.expires_at, now))
     .map((r) => {
-      const bundleCount = r.share_link_items?.[0]?.count ?? 0;
       const isBundle = r.target_type === "bundle";
+      const members = r.share_link_items ?? [];
+      const n = members.length;
+      // Name a bundle by what it holds — all files / all folders / mixed.
+      let name: string;
+      if (isBundle) {
+        const allFiles = n > 0 && members.every((m) => m.file_id);
+        const allFolders = n > 0 && members.every((m) => m.folder_id);
+        name = allFiles
+          ? `${n} fișiere`
+          : allFolders
+            ? `${n} foldere`
+            : `${n} elemente`;
+      } else {
+        name = pickName(r.files) ?? pickName(r.folders) ?? "(indisponibil)";
+      }
       return {
         id: r.id,
         token: r.token,
         url: sharePath(r.token),
         kind: r.target_type,
-        name: isBundle
-          ? `${bundleCount} elemente`
-          : (pickName(r.files) ?? pickName(r.folders) ?? "(indisponibil)"),
-        itemCount: isBundle ? bundleCount : 1,
+        name,
+        itemCount: isBundle ? n : 1,
         expiresAt: r.expires_at,
         accessCount: r.access_count,
         createdAt: r.created_at,
