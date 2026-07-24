@@ -16,6 +16,7 @@ import {
   Trash2,
   Upload,
   CheckCircle2,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -42,6 +43,7 @@ import { useContextMenu } from "./ContextMenu";
 import { useSelection, selKey, type SelItem } from "./SelectionProvider";
 import { useLongPress } from "./useLongPress";
 import { RenameModal } from "./RenameModal";
+import { ShareModal } from "./ShareModal";
 import { useMounted, useIsTouch, useRowClick } from "./anim";
 import { useDragActive, usePendingMove, type DragData } from "./DriveDndProvider";
 import { useFilter } from "./FilterProvider";
@@ -119,6 +121,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
   const [info, setInfo] = useState<FileItem | null>(null);
   const [toRename, setToRename] = useState<FileItem | null>(null);
   const [toMove, setToMove] = useState<FileItem | null>(null);
+  const [toShare, setToShare] = useState<FileItem | null>(null);
   // Office documents open in the OnlyOffice editor instead of the text one.
   const [officeFile, setOfficeFile] = useState<FileItem | null>(null);
 
@@ -222,6 +225,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
               onInfo={() => setInfo(f)}
               onRename={() => setToRename(f)}
               onMove={() => setToMove(f)}
+              onShare={() => setToShare(f)}
               onCopy={() => copy(f)}
               onArchive={() => archive(f)}
               onDownload={() => download(f.id)}
@@ -302,6 +306,14 @@ export function FileList({ folderId }: { folderId: string | null }) {
             }}
           />
         )}
+
+        {toShare && (
+          <ShareModal
+            key="share"
+            target={{ type: "file", id: toShare.id, name: toShare.name }}
+            onClose={() => setToShare(null)}
+          />
+        )}
       </AnimatePresence>
     </>
   );
@@ -316,6 +328,7 @@ function FileRow({
   onInfo,
   onRename,
   onMove,
+  onShare,
   onCopy,
   onArchive,
   onDownload,
@@ -329,6 +342,7 @@ function FileRow({
   onInfo: () => void;
   onRename: () => void;
   onMove: () => void;
+  onShare: () => void;
   onCopy: () => void;
   onArchive: () => void;
   onDownload: () => void;
@@ -368,6 +382,7 @@ function FileRow({
 
   const actions: MenuAction[] = [
     { icon: Download, label: "Descarcă", onSelect: onDownload },
+    { icon: Share2, label: "Partajează", onSelect: onShare },
     ...(isTextEditable(file.name, file.mimeType) ||
     officeCanEdit(officeStatus, file.name)
       ? [{ icon: SquarePen, label: "Editează", onSelect: onEdit }]
