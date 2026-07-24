@@ -13,6 +13,7 @@ import {
   Pencil,
   Printer,
   Save,
+  Share2,
   Sun,
 } from "lucide-react";
 import {
@@ -37,6 +38,7 @@ import { formatBytes } from "@/lib/format";
 import { formatDateTime } from "@/lib/format-date";
 import { fileTypeLabel } from "@/lib/file-type";
 import { InfoModal } from "./InfoModal";
+import { ShareModal } from "./ShareModal";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { PdfViewer } from "./PdfViewer";
@@ -93,6 +95,7 @@ export function PreviewModal({
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
 
   // In-app text editing.
@@ -369,6 +372,13 @@ export function PreviewModal({
                 >
                   <Download className="h-3.5 w-3.5" /> Descarcă
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setSharing(true)}
+                  className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800"
+                >
+                  <Share2 className="h-3.5 w-3.5" /> Partajează
+                </button>
                 {canPrintOffice && (
                   <button
                     type="button"
@@ -546,6 +556,14 @@ export function PreviewModal({
       </motion.div>
 
       <AnimatePresence>
+        {sharing && (
+          <ShareModal
+            key="preview-share"
+            target={{ type: "file", id: file.id, name: file.name }}
+            onClose={() => setSharing(false)}
+          />
+        )}
+
         {showInfo && (
           <InfoModal
             key="preview-info"

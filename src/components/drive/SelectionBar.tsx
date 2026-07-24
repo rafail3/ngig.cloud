@@ -3,7 +3,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { revalidateDrive } from "@/components/drive/useDriveData";
-import { Archive, Copy, Download, FolderInput, Info, Pencil, SquarePen, Trash2, X } from "lucide-react";
+import { Archive, Copy, Download, FolderInput, Info, Pencil, Share2, SquarePen, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   getDownloadUrlAction,
@@ -25,6 +25,7 @@ import { useSelection, type SelItem } from "./SelectionProvider";
 import { useOfficeStatus } from "./OfficeStatusProvider";
 import { FolderPickerModal } from "./FolderPickerModal";
 import { RenameModal } from "./RenameModal";
+import { ShareModal } from "./ShareModal";
 import { InfoModal } from "./InfoModal";
 import { OfficeEditor } from "./OfficeEditor";
 import { PreviewModal, type PreviewFile } from "./PreviewModal";
@@ -57,6 +58,7 @@ export function SelectionBar() {
   const [moving, setMoving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [renaming, setRenaming] = useState<SelItem | null>(null);
+  const [sharing, setSharing] = useState<SelItem | null>(null);
   const [infoItem, setInfoItem] = useState<SelItem | null>(null);
   const [folderStats, setFolderStats] = useState<{ size: number; count: number } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -202,6 +204,7 @@ export function SelectionBar() {
   const singleActions: BarAction[] = single
     ? [
         { icon: Download, label: "Descarcă", onClick: downloadSelection },
+        { icon: Share2, label: "Partajează", onClick: () => setSharing(single) },
         { icon: Pencil, label: "Redenumește", onClick: () => setRenaming(single) },
         { icon: FolderInput, label: "Mută", onClick: () => setMoving(true) },
         ...(single.kind === "file"
@@ -313,6 +316,14 @@ export function SelectionBar() {
             title={single ? `Mută „${single.name}”` : `Mută ${count} elemente`}
             onClose={() => setMoving(false)}
             onPick={bulkMove}
+          />
+        )}
+
+        {sharing && (
+          <ShareModal
+            key="share"
+            target={{ type: sharing.kind, id: sharing.id, name: sharing.name }}
+            onClose={() => setSharing(null)}
           />
         )}
 
