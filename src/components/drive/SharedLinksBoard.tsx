@@ -11,6 +11,9 @@ import {
   ExternalLink,
   Trash2,
   Eye,
+  Lock,
+  Hash,
+  Bell,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -146,6 +149,33 @@ export function SharedLinksBoard() {
                     <Eye className="h-3 w-3" aria-hidden />
                     <span className="tabular-nums">{row.accessCount}</span>
                   </span>
+                  {row.hasPassword && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/5 px-2 py-0.5 text-[11px] font-medium text-amber-300"
+                      title="Protejat cu parolă"
+                    >
+                      <Lock className="h-3 w-3" aria-hidden />
+                    </span>
+                  )}
+                  {row.maxDownloads !== null && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/50 px-2 py-0.5 text-[11px] font-medium text-zinc-400"
+                      title="Descărcări folosite / limită"
+                    >
+                      <Hash className="h-3 w-3" aria-hidden />
+                      <span className="tabular-nums">
+                        {row.downloadCount}/{row.maxDownloads}
+                      </span>
+                    </span>
+                  )}
+                  {row.notifyOnAccess && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/50 px-2 py-0.5 text-[11px] font-medium text-zinc-400"
+                      title="Notificare la accesare activă"
+                    >
+                      <Bell className="h-3 w-3" aria-hidden />
+                    </span>
+                  )}
                   <span className="hidden text-[11px] text-zinc-600 sm:inline">
                     Creat {formatDateShort(row.createdAt)}
                   </span>

@@ -13,14 +13,13 @@ import {
   revokeShare,
   unlockSharePage,
   type MyShareLink,
-  type SharePageData,
 } from "@/server/share/service";
 import {
   unlockCookieName,
   unlockCookiePath,
   unlockCookieValue,
 } from "@/server/share/unlock-cookie";
-import type { ShareTargetType } from "@/lib/share";
+import type { ShareTargetType, SharePageData } from "@/lib/share";
 import {
   buildEditorConfig,
   forceSave,

@@ -26,6 +26,7 @@ import {
   type MyShareLinkView,
   type ShareFolderNode,
   type ShareFileNode,
+  type SharePageData,
 } from "@/lib/share";
 
 // ---------------------------------------------------------------------------
@@ -518,22 +519,6 @@ async function bumpAccess(id: string): Promise<void> {
     // non-critical
   }
 }
-
-export type SharePageData = {
-  kind: ShareLinkKind;
-  label: string; // kicker, e.g. "Fișier partajat" / "Fișiere partajate"
-  name: string; // H1, e.g. the filename or "2 foldere și 1 fișier"
-  size: number | null;
-  expiryText: string;
-  previewKind: SharePreviewKind;
-  previewUrl: string | null; // previewable single file only
-  // Browsable contents for a folder OR a bundle (bundle = a synthetic root node
-  // holding its folder members + file members). Null for a single file.
-  tree: ShareFolderNode | null;
-  // When true, the link is password-protected and this payload carries NO
-  // content (no name, urls or tree) until the visitor unlocks it.
-  locked: boolean;
-};
 
 // Minimal locked payload — reveals nothing about the shared item until unlocked.
 function lockedPage(): SharePageData {
