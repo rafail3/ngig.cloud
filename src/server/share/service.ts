@@ -14,6 +14,7 @@ import {
   sharePreviewKind,
   type ShareTargetType,
   type SharePreviewKind,
+  type MyShareLinkView,
 } from "@/lib/share";
 
 // ---------------------------------------------------------------------------
@@ -137,16 +138,7 @@ export async function createShareLink(input: {
   throw new Error("Nu am putut genera linkul. Încearcă din nou.");
 }
 
-export type MyShareLink = {
-  id: string;
-  token: string;
-  url: string;
-  targetType: ShareTargetType;
-  name: string;
-  expiresAt: string | null;
-  accessCount: number;
-  createdAt: string;
-};
+export type MyShareLink = MyShareLinkView;
 
 // The caller's active links, newest first. Expired links are omitted so they
 // vanish from "Linkurile mele" the instant they lapse (the cron only reclaims

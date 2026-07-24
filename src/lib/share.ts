@@ -5,6 +5,20 @@
 
 export type ShareTargetType = "file" | "folder";
 
+// Client-safe shape of one of the user's own links, as shown in "Linkurile
+// mele". Defined here so client components can type the data without importing
+// the server-only service.
+export type MyShareLinkView = {
+  id: string;
+  token: string;
+  url: string;
+  targetType: ShareTargetType;
+  name: string;
+  expiresAt: string | null;
+  accessCount: number;
+  createdAt: string;
+};
+
 // Fixed expiry choices offered in the share modal, plus "never".
 export type ExpiryPreset = "1h" | "24h" | "7d" | "30d" | "never";
 
