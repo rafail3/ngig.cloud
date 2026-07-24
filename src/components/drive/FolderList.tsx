@@ -142,7 +142,7 @@ export function FolderList({ folderId }: { folderId: string | null }) {
         {toShare && (
           <ShareModal
             key="share"
-            target={{ type: "folder", id: toShare.id, name: toShare.name }}
+            targets={[{ type: "folder", id: toShare.id, name: toShare.name }]}
             onClose={() => setToShare(null)}
           />
         )}

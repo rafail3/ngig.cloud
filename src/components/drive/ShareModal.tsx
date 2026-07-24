@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   Share2,
   Link2,
@@ -11,6 +12,7 @@ import {
   Clock,
   Loader2,
   RotateCcw,
+  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ModalShell } from "./anim";
@@ -27,16 +29,19 @@ import {
 type Target = { type: ShareTargetType; id: string; name: string };
 type Generated = { absoluteUrl: string; expiryText: string };
 
-// The "Partajează" dialog: generate a public, expiring link to one file/folder.
-// Structured with two tabs so Faza B (user-to-user transfer) slots in without a
-// redesign — that tab is present but disabled for now.
+// The "Partajează" dialog: generate a public, expiring link to one file/folder,
+// or a bundle when several items are shared at once. Structured with two tabs so
+// Faza B (user-to-user transfer) slots in without a redesign — that tab is
+// present but disabled for now.
 export function ShareModal({
-  target,
+  targets,
   onClose,
 }: {
-  target: Target;
+  targets: Target[];
   onClose: () => void;
 }) {
+  const subtitle =
+    targets.length === 1 ? targets[0].name : `${targets.length} elemente`;
   const [preset, setPreset] = useState<ExpiryPreset>(DEFAULT_EXPIRY);
   const [customOn, setCustomOn] = useState(false);
   const [customValue, setCustomValue] = useState("");
@@ -65,8 +70,7 @@ export function ShareModal({
 
     setBusy(true);
     const res = await createShareLinkAction({
-      targetType: target.type,
-      targetId: target.id,
+      targets: targets.map((t) => ({ type: t.type, id: t.id })),
       expiresAt,
     });
     setBusy(false);
@@ -98,29 +102,37 @@ export function ShareModal({
   }
 
   return (
-    <ModalShell onClose={onClose}>
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950/50 text-indigo-400">
+    <ModalShell
+      onClose={onClose}
+      className="max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl sm:p-7"
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/15 to-violet-500/10 text-indigo-300">
           <Share2 className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h3 className="text-base font-semibold text-zinc-100">Partajează</h3>
-          <p className="truncate text-xs text-zinc-500">{target.name}</p>
+          <h3 className="text-lg font-semibold tracking-tight text-zinc-100">
+            Partajează
+          </h3>
+          <p className="truncate text-xs text-zinc-500">{subtitle}</p>
         </div>
       </div>
 
       {/* Tabs — "Trimite utilizator" arrives in Faza B */}
-      <div className="mt-4 flex gap-1 rounded-xl border border-zinc-800 bg-zinc-950/40 p-1">
-        <span className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-2 text-sm font-medium text-zinc-100">
+      <div className="mt-5 flex gap-1.5 rounded-xl border border-zinc-800 bg-zinc-950/40 p-1.5">
+        <span className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-zinc-800 px-3 py-2.5 text-sm font-medium text-zinc-100 shadow-sm">
           <Link2 className="h-4 w-4" />
           Link public
         </span>
         <span
-          className="flex flex-1 cursor-not-allowed items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm text-zinc-600"
+          className="flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm text-zinc-600"
           title="Disponibil în curând"
         >
           <Send className="h-4 w-4" />
-          Trimite utilizator
+          Trimite
+          <span className="rounded bg-zinc-800/80 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
+            curând
+          </span>
         </span>
       </div>
 
@@ -136,11 +148,11 @@ export function ShareModal({
         />
       ) : (
         <>
-          <div className="mt-4">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+          <div className="mt-5">
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">
               Expiră după
             </p>
-            <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5">
+            <div className="flex flex-wrap gap-2">
               {EXPIRY_PRESETS.map((p) => {
                 const active = !customOn && preset === p.value;
                 return (
@@ -151,9 +163,9 @@ export function ShareModal({
                       setCustomOn(false);
                       setPreset(p.value);
                     }}
-                    className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+                    className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
                       active
-                        ? "border-indigo-400/70 bg-indigo-500/15 text-indigo-300"
+                        ? "border-indigo-400/70 bg-indigo-500/15 text-indigo-300 shadow-sm shadow-indigo-950/40"
                         : "border-zinc-800 bg-zinc-950/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                     }`}
                   >
@@ -161,26 +173,40 @@ export function ShareModal({
                   </button>
                 );
               })}
+              {/* Custom date reads as a real, pressable chip alongside the presets */}
+              <button
+                type="button"
+                onClick={() => setCustomOn((v) => !v)}
+                aria-pressed={customOn}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+                  customOn
+                    ? "border-indigo-400/70 bg-indigo-500/15 text-indigo-300 shadow-sm shadow-indigo-950/40"
+                    : "border-dashed border-zinc-700 bg-zinc-950/40 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100"
+                }`}
+              >
+                <CalendarClock className="h-4 w-4" />
+                Dată personalizată
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setCustomOn((v) => !v)}
-              className={`mt-2 text-xs font-medium transition-colors ${
-                customOn ? "text-indigo-300" : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              {customOn ? "− Ascunde data personalizată" : "+ Dată personalizată"}
-            </button>
-
-            {customOn && (
-              <input
-                type="datetime-local"
-                value={customValue}
-                onChange={(e) => setCustomValue(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40 [color-scheme:dark]"
-              />
-            )}
+            <AnimatePresence initial={false}>
+              {customOn && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="overflow-hidden"
+                >
+                  <input
+                    type="datetime-local"
+                    value={customValue}
+                    onChange={(e) => setCustomValue(e.target.value)}
+                    className="mt-3 w-full rounded-xl border border-zinc-800 bg-zinc-950/50 px-3.5 py-2.5 text-sm text-zinc-100 outline-none transition focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40 dark:[color-scheme:dark]"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="mt-5 flex justify-end gap-2">

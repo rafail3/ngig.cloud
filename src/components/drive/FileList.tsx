@@ -310,7 +310,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
         {toShare && (
           <ShareModal
             key="share"
-            target={{ type: "file", id: toShare.id, name: toShare.name }}
+            targets={[{ type: "file", id: toShare.id, name: toShare.name }]}
             onClose={() => setToShare(null)}
           />
         )}

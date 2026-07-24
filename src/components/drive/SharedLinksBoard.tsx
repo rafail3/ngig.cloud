@@ -5,6 +5,7 @@ import {
   Link2,
   File as FileIcon,
   Folder,
+  Layers,
   Copy,
   Check,
   ExternalLink,
@@ -117,7 +118,9 @@ export function SharedLinksBoard() {
               aria-hidden
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950/50 text-indigo-400"
             >
-              {row.targetType === "folder" ? (
+              {row.kind === "bundle" ? (
+                <Layers className="h-5 w-5" />
+              ) : row.kind === "folder" ? (
                 <Folder className="h-5 w-5" />
               ) : (
                 <FileIcon className="h-5 w-5" />

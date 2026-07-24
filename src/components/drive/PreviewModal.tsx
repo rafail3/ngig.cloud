@@ -559,7 +559,7 @@ export function PreviewModal({
         {sharing && (
           <ShareModal
             key="preview-share"
-            target={{ type: "file", id: file.id, name: file.name }}
+            targets={[{ type: "file", id: file.id, name: file.name }]}
             onClose={() => setSharing(false)}
           />
         )}

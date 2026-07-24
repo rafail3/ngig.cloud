@@ -58,7 +58,7 @@ export function SelectionBar() {
   const [moving, setMoving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [renaming, setRenaming] = useState<SelItem | null>(null);
-  const [sharing, setSharing] = useState<SelItem | null>(null);
+  const [sharing, setSharing] = useState<SelItem[] | null>(null);
   const [infoItem, setInfoItem] = useState<SelItem | null>(null);
   const [folderStats, setFolderStats] = useState<{ size: number; count: number } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -204,7 +204,7 @@ export function SelectionBar() {
   const singleActions: BarAction[] = single
     ? [
         { icon: Download, label: "Descarcă", onClick: downloadSelection },
-        { icon: Share2, label: "Partajează", onClick: () => setSharing(single) },
+        { icon: Share2, label: "Partajează", onClick: () => setSharing([single]) },
         { icon: Pencil, label: "Redenumește", onClick: () => setRenaming(single) },
         { icon: FolderInput, label: "Mută", onClick: () => setMoving(true) },
         ...(single.kind === "file"
@@ -236,6 +236,7 @@ export function SelectionBar() {
 
   const bulkActions: BarAction[] = [
     { icon: Download, label: "Descarcă", onClick: downloadSelection },
+    { icon: Share2, label: "Partajează", onClick: () => setSharing(items) },
     { icon: FolderInput, label: "Mută", onClick: () => setMoving(true) },
     // Archive only when the selection is files-only (folders aren't archivable).
     ...(folderCount === 0
@@ -322,7 +323,11 @@ export function SelectionBar() {
         {sharing && (
           <ShareModal
             key="share"
-            target={{ type: sharing.kind, id: sharing.id, name: sharing.name }}
+            targets={sharing.map((i) => ({
+              type: i.kind,
+              id: i.id,
+              name: i.name,
+            }))}
             onClose={() => setSharing(null)}
           />
         )}
