@@ -8,6 +8,7 @@ import * as repo from "@/server/files/repository";
 import { presignDownload, presignInline } from "@/server/storage/b2";
 import { logEgress } from "@/server/billing/egress";
 import {
+  expiryLabel,
   isExpired,
   sharePath,
   sharePreviewKind,
@@ -303,7 +304,7 @@ export type SharePageData = {
   targetType: ShareTargetType;
   name: string;
   size: number | null;
-  expiresAt: string | null;
+  expiryText: string; // human label, computed server-side (no clock in render)
   previewKind: SharePreviewKind;
   previewUrl: string | null; // presigned inline URL, only for previewable files
 };
@@ -328,7 +329,7 @@ export async function getSharePage(token: string): Promise<SharePageData | null>
     targetType: share.targetType,
     name: share.name,
     size: share.size,
-    expiresAt: share.expiresAt,
+    expiryText: expiryLabel(share.expiresAt, Date.now()),
     previewKind,
     previewUrl,
   };

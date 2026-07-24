@@ -55,6 +55,13 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Public share links (/s/<token> + its /download): reachable by anyone with
+  // the token, no session required, and never bounced home for logged-in users.
+  // The token is the sole authority; auth plays no part here.
+  if (path.startsWith("/s/")) {
+    return supabaseResponse;
+  }
+
   // Block + forced-sign-out enforcement: kick the user on their next request
   // even if their access token is still valid. account_gate reports the block
   // state and whether the session still exists (sign-out/block delete it).
