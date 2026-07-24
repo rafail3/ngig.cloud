@@ -7,17 +7,45 @@ import {
   getShareFolderManifest,
   getShareBundleManifest,
   getShareSubfolderManifest,
+  shareDownloadGate,
 } from "@/server/share/service";
+import { unlockCookieName, verifyUnlockValue } from "@/server/share/unlock-cookie";
+
+// Read one cookie value from the raw Cookie header.
+function readCookie(header: string | null, name: string): string | undefined {
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq < 0) continue;
+    if (part.slice(0, eq).trim() === name) return part.slice(eq + 1).trim();
+  }
+  return undefined;
+}
 
 // Public download for a share token. No session — the token is the authority.
 // File → 302 to a short-lived presigned URL (bytes stream straight from B2).
 // Folder / bundle / one sub-folder (?folder=<id>) → a zip streamed from B2.
+// Every path is gated once (password via unlock cookie + download limit).
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
   const subfolderId = new URL(req.url).searchParams.get("folder");
+
+  // Password + download-limit gate (once per request).
+  const cookieVal = readCookie(req.headers.get("cookie"), unlockCookieName(token));
+  const cookieOk = verifyUnlockValue(token, cookieVal);
+  const gate = await shareDownloadGate(token, cookieOk);
+  if ("status" in gate) {
+    const msg =
+      gate.status === 401
+        ? "Link protejat cu parolă."
+        : gate.status === 403
+          ? "Limita de descărcări a fost atinsă."
+          : "Link inexistent sau expirat.";
+    return new Response(msg, { status: gate.status });
+  }
 
   // ?folder=<id> → zip just that sub-folder (validated to be part of the share).
   if (subfolderId) {

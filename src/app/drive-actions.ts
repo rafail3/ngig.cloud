@@ -6,12 +6,20 @@ import { getSuggestedFiles } from "@/server/insights/engine";
 import { getUploadTypes } from "@/server/admin/settings";
 import { requireActiveUser } from "@/server/auth/active-user";
 import type { UploadTypesConfig } from "@/lib/upload-types";
+import { cookies } from "next/headers";
 import {
   createShareLink,
   listMyShares,
   revokeShare,
+  unlockSharePage,
   type MyShareLink,
+  type SharePageData,
 } from "@/server/share/service";
+import {
+  unlockCookieName,
+  unlockCookiePath,
+  unlockCookieValue,
+} from "@/server/share/unlock-cookie";
 import type { ShareTargetType } from "@/lib/share";
 import {
   buildEditorConfig,
@@ -491,6 +499,9 @@ export async function getTrashAction(): Promise<
 export async function createShareLinkAction(input: {
   targets: { type: ShareTargetType; id: string }[];
   expiresAt: string | null;
+  password?: string | null;
+  maxDownloads?: number | null;
+  notifyOnAccess?: boolean;
 }): Promise<
   { token: string; url: string; expiresAt: string | null } | { error: string } | Revoked
 > {
@@ -501,6 +512,27 @@ export async function createShareLinkAction(input: {
     if (isRevoked(e)) return { revoked: true };
     return { error: errMsg(e) };
   }
+}
+
+// Public: unlock a password-protected share. On success sets a short-lived,
+// path-scoped, signed cookie so the download route (a plain GET) stays gated by
+// the password, and returns the full page payload.
+export async function unlockShareAction(
+  token: string,
+  password: string,
+): Promise<{ data: SharePageData } | { error: string } | { gone: true }> {
+  const res = await unlockSharePage(token, password);
+  if (!res) return { gone: true };
+  if ("error" in res) return { error: res.error };
+  const jar = await cookies();
+  jar.set(unlockCookieName(token), unlockCookieValue(token), {
+    path: unlockCookiePath(token),
+    maxAge: 3600,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+  return { data: res };
 }
 
 export async function listMySharesAction(): Promise<MyShareLink[] | Revoked> {

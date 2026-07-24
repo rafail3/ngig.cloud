@@ -50,6 +50,10 @@ export type MyShareLinkView = {
   expiresAt: string | null;
   accessCount: number;
   createdAt: string;
+  hasPassword: boolean;
+  maxDownloads: number | null;
+  downloadCount: number;
+  notifyOnAccess: boolean;
 };
 
 // Fixed expiry choices offered in the share modal, plus "never".
