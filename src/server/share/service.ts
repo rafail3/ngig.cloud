@@ -16,6 +16,7 @@ import {
   type ShareLinkKind,
   type SharePreviewKind,
   type MyShareLinkView,
+  type ShareBundleItemView,
 } from "@/lib/share";
 
 // ---------------------------------------------------------------------------
@@ -403,23 +404,42 @@ async function bumpAccess(id: string): Promise<void> {
   }
 }
 
-export type ShareBundleItem = { kind: "file" | "folder"; name: string; size: number | null };
-
 export type SharePageData = {
   kind: ShareLinkKind;
-  name: string;
+  label: string; // kicker, e.g. "Fișier partajat" / "2 fișiere partajate"
+  name: string; // H1, e.g. the filename or "2 fișiere"
   size: number | null;
   expiryText: string;
   previewKind: SharePreviewKind;
   previewUrl: string | null; // previewable single file only
-  items: ShareBundleItem[] | null; // bundle only
+  items: ShareBundleItemView[] | null; // bundle only
 };
+
+const SINGLE_LABEL: Record<"file" | "folder", string> = {
+  file: "Fișier partajat",
+  folder: "Folder partajat",
+};
+
+// Name + kicker for a bundle, worded by what it contains (all files / all
+// folders / mixed) rather than the generic "elemente".
+function bundleTitle(items: { kind: "file" | "folder" }[]): {
+  label: string;
+  name: string;
+} {
+  const n = items.length;
+  const allFiles = items.every((i) => i.kind === "file");
+  const allFolders = items.every((i) => i.kind === "folder");
+  if (allFiles) return { label: "Fișiere partajate", name: `${n} fișiere` };
+  if (allFolders) return { label: "Foldere partajate", name: `${n} foldere` };
+  return { label: "Elemente partajate", name: `${n} elemente` };
+}
 
 // Everything the public page needs. Counts as an access.
 export async function getSharePage(token: string): Promise<SharePageData | null> {
   const share = await resolveShare(token, { bump: true });
   if (!share) return null;
 
+  // Single previewable file → one inline URL (and count it as egress).
   let previewKind: SharePreviewKind = null;
   let previewUrl: string | null = null;
   if (share.kind === "file" && share.storageKey) {
@@ -433,16 +453,37 @@ export async function getSharePage(token: string): Promise<SharePageData | null>
     );
   }
 
+  // Bundle → an inline URL per previewable file member (lazy-viewed on the page,
+  // so no egress logged here; the zip download is where the real cost lands).
+  let items: ShareBundleItemView[] | null = null;
+  if (share.kind === "bundle" && share.items) {
+    items = await Promise.all(
+      share.items.map(async (i): Promise<ShareBundleItemView> => {
+        let pk: SharePreviewKind = null;
+        let pu: string | null = null;
+        if (i.kind === "file" && i.storageKey) {
+          pk = sharePreviewKind(i.name);
+          if (pk) pu = await presignInline(i.storageKey);
+        }
+        return { kind: i.kind, name: i.name, size: i.size, previewKind: pk, previewUrl: pu };
+      }),
+    );
+  }
+
+  const title =
+    share.kind === "bundle" && share.items
+      ? bundleTitle(share.items)
+      : { label: SINGLE_LABEL[share.kind as "file" | "folder"], name: share.name };
+
   return {
     kind: share.kind,
-    name: share.name,
+    label: title.label,
+    name: title.name,
     size: share.size,
     expiryText: expiryLabel(share.expiresAt, Date.now()),
     previewKind,
     previewUrl,
-    items: share.items
-      ? share.items.map((i) => ({ kind: i.kind, name: i.name, size: i.size }))
-      : null,
+    items,
   };
 }
 

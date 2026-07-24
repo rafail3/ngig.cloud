@@ -10,6 +10,17 @@ export type ShareTargetType = "file" | "folder";
 // items selected together.
 export type ShareLinkKind = "file" | "folder" | "bundle";
 
+// One member of a bundle, as rendered on the public page. Client-safe so the
+// bundle list component can type it. Previewable files carry a short-lived
+// inline URL so a visitor can preview each one in place.
+export type ShareBundleItemView = {
+  kind: "file" | "folder";
+  name: string;
+  size: number | null;
+  previewKind: SharePreviewKind;
+  previewUrl: string | null;
+};
+
 // Client-safe shape of one of the user's own links, as shown in "Linkurile
 // mele". Defined here so client components can type the data without importing
 // the server-only service.

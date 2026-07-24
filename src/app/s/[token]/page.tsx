@@ -19,8 +19,9 @@ import {
 import { getSharePage, type SharePageData } from "@/server/share/service";
 import { formatBytes } from "@/lib/format";
 import { type SharePreviewKind, type ShareLinkKind } from "@/lib/share";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { ShareThemeToggle } from "@/components/share/ShareThemeToggle";
 import { SharePreviewPanel } from "@/components/share/SharePreviewPanel";
+import { ShareBundleList } from "@/components/share/ShareBundleList";
 
 export const metadata: Metadata = {
   title: "Fișier partajat",
@@ -36,28 +37,31 @@ export default function SharePage({
   params: Promise<{ token: string }>;
 }) {
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-zinc-950 text-zinc-50">
-      {/* subtle aurora — brand accent, works in both themes */}
-      <div className="pointer-events-none absolute -left-32 -top-32 h-[30rem] w-[30rem] rounded-full bg-indigo-600/20 blur-[130px]" />
-      <div className="pointer-events-none absolute -bottom-40 -right-24 h-[32rem] w-[32rem] rounded-full bg-violet-700/15 blur-[140px]" />
+    <div className="relative flex min-h-dvh flex-col bg-zinc-950 text-zinc-50">
+      {/* subtle aurora — kept in its own clipped layer so it never covers or
+          clips the header controls (the theme switch lives up there). */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-32 -top-32 h-[30rem] w-[30rem] rounded-full bg-indigo-600/20 blur-[130px]" />
+        <div className="absolute -bottom-40 -right-24 h-[32rem] w-[32rem] rounded-full bg-violet-700/15 blur-[140px]" />
+      </div>
 
-      <header className="relative z-10 flex items-center justify-between px-4 py-4 sm:px-8 sm:py-5">
+      <header className="relative z-30 flex items-center justify-between px-4 py-4 sm:px-8 sm:py-5">
         <Link
           href="https://ngig.cloud"
-          className="group flex items-center gap-2 text-sm font-semibold tracking-tight"
+          className="group flex items-center gap-2.5 text-lg font-semibold tracking-tight"
         >
           <Image
             src="/ngig-mark.png"
             alt="ngig.cloud"
-            width={64}
-            height={64}
-            className="h-7 w-7"
+            width={72}
+            height={72}
+            className="h-9 w-9"
           />
           <span>
             ngig<span className="text-indigo-400">.cloud</span>
           </span>
         </Link>
-        <ThemeToggle />
+        <ShareThemeToggle />
       </header>
 
       <main className="relative z-10 flex flex-1 items-start justify-center px-4 py-6 sm:items-center sm:py-10">
@@ -86,36 +90,35 @@ async function ShareResolved({
   return data ? <ShareCard token={token} data={data} /> : <ExpiredCard />;
 }
 
-const KIND_LABEL: Record<ShareLinkKind, string> = {
-  file: "Fișier partajat",
-  folder: "Folder partajat",
-  bundle: "Elemente partajate",
-};
-
 function ShareCard({ token, data }: { token: string; data: SharePageData }) {
   const isBundle = data.kind === "bundle";
+  const canPreviewSingle = data.previewUrl != null && data.previewKind != null;
   const downloadLabel =
-    data.kind === "file" ? "Descarcă" : isBundle ? "Descarcă tot (.zip)" : "Descarcă folderul (.zip)";
+    data.kind === "file"
+      ? "Descarcă"
+      : isBundle
+        ? "Descarcă tot (.zip)"
+        : "Descarcă folderul (.zip)";
 
   return (
     <div className="w-full max-w-xl">
       <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/70 shadow-2xl backdrop-blur-xl">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-50/15 to-transparent" />
 
-        {/* Header */}
-        <div className="flex items-start gap-4 p-6 sm:p-8">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/15 to-violet-500/10 text-indigo-300 shadow-inner sm:h-[72px] sm:w-[72px]">
+        {/* Header: title kicker + name + meta */}
+        <div className="flex items-start gap-4 p-6 sm:p-7">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/15 to-violet-500/10 text-indigo-300 shadow-inner sm:h-16 sm:w-16">
             <TargetIcon
               kind={data.kind}
               previewKind={data.previewKind}
-              className="h-8 w-8 sm:h-9 sm:w-9"
+              className="h-7 w-7 sm:h-8 sm:w-8"
             />
           </div>
           <div className="min-w-0 flex-1 pt-0.5">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400/80">
-              {KIND_LABEL[data.kind]}
+              {data.label}
             </p>
-            <h1 className="mt-1.5 break-words text-xl font-bold leading-tight tracking-tight text-zinc-50 sm:text-2xl">
+            <h1 className="mt-1.5 break-words text-lg font-bold leading-tight tracking-tight text-zinc-50 sm:text-xl">
               {data.name}
             </h1>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -124,58 +127,32 @@ function ShareCard({ token, data }: { token: string; data: SharePageData }) {
                   {formatBytes(data.size)}
                 </span>
               )}
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-950/50 px-2.5 py-1 font-medium text-zinc-300">
-                <Clock className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
-                {data.expiryText}
-              </span>
+              <ExpiryPill text={data.expiryText} />
             </div>
           </div>
         </div>
 
-        {/* Bundle: list the shared items */}
+        {/* Bundle: the shared items, each previewable in place */}
         {isBundle && data.items && (
-          <div className="border-t border-zinc-800/80 px-5 py-4 sm:px-6">
-            <ul className="max-h-64 space-y-1 overflow-y-auto">
-              {data.items.map((item, i) => (
-                <li
-                  key={i}
-                  className="flex items-center gap-2.5 rounded-lg border border-zinc-800/70 bg-zinc-950/40 px-3 py-2"
-                >
-                  <span className="text-indigo-400" aria-hidden>
-                    {item.kind === "folder" ? (
-                      <Folder className="h-4 w-4" />
-                    ) : (
-                      <FileIcon className="h-4 w-4" />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">
-                    {item.name}
-                  </span>
-                  {item.size != null && (
-                    <span className="shrink-0 text-xs tabular-nums text-zinc-500">
-                      {formatBytes(item.size)}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+          <div className="border-t border-zinc-800/80 px-4 py-4 sm:px-5">
+            <ShareBundleList items={data.items} />
           </div>
         )}
 
-        {/* Actions: download primary; preview toggle when renderable (single file) */}
-        <div className="flex flex-col gap-3 border-t border-zinc-800/80 p-5 sm:p-6">
+        {/* Actions */}
+        <div className="flex flex-col gap-2.5 border-t border-zinc-800/80 p-5 sm:p-6">
           <a
             href={`/s/${token}/download`}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-950/40 transition-colors hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-950/40 transition-colors hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
           >
             <Download className="h-4 w-4" aria-hidden />
             {downloadLabel}
           </a>
 
-          {data.previewUrl && data.previewKind && (
+          {canPreviewSingle && (
             <SharePreviewPanel
-              url={data.previewUrl}
-              kind={data.previewKind}
+              url={data.previewUrl!}
+              kind={data.previewKind!}
               name={data.name}
             />
           )}
@@ -187,6 +164,20 @@ function ShareCard({ token, data }: { token: string; data: SharePageData }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// A refined "still valid" pill: a live pulsing dot + the remaining-time label.
+function ExpiryPill({ text }: { text: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950/50 px-3 py-1 font-medium text-zinc-300">
+      <span className="relative flex h-1.5 w-1.5" aria-hidden>
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70 motion-reduce:hidden" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      </span>
+      <Clock className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
+      {text}
+    </span>
   );
 }
 
