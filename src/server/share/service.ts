@@ -486,17 +486,22 @@ async function buildFolderTree(
     folder_id: string | null;
   }[];
 
-  // Presign previewable files (best-effort, in parallel).
+  // Presign each file: a download URL for all, plus an inline URL for the
+  // previewable ones (best-effort, in parallel).
   const filesByFolder = new Map<string, ShareFileNode[]>();
   await Promise.all(
     files.map(async (f) => {
       const previewKind = sharePreviewKind(f.name);
-      const previewUrl = previewKind ? await presignInline(f.storage_key) : null;
+      const [downloadUrl, previewUrl] = await Promise.all([
+        presignDownload(f.storage_key, f.name),
+        previewKind ? presignInline(f.storage_key) : Promise.resolve(null),
+      ]);
       const node: ShareFileNode = {
         name: f.name,
         size: Number(f.size ?? 0),
         previewKind,
         previewUrl,
+        downloadUrl,
       };
       const key = f.folder_id ?? "";
       const arr = filesByFolder.get(key) ?? [];
@@ -593,8 +598,17 @@ export async function getSharePage(token: string): Promise<SharePageData | null>
         if (sub) folders.push(sub);
       } else if (it.kind === "file" && it.storageKey) {
         const pk = sharePreviewKind(it.name);
-        const pu = pk ? await presignInline(it.storageKey) : null;
-        files.push({ name: it.name, size: it.size, previewKind: pk, previewUrl: pu });
+        const [downloadUrl, pu] = await Promise.all([
+          presignDownload(it.storageKey, it.name),
+          pk ? presignInline(it.storageKey) : Promise.resolve(null),
+        ]);
+        files.push({
+          name: it.name,
+          size: it.size,
+          previewKind: pk,
+          previewUrl: pu,
+          downloadUrl,
+        });
       }
     }
     tree = { id: "bundle-root", name: "", folders, files };
@@ -742,6 +756,78 @@ export async function getShareBundleManifest(
   }
   after(() => logEgress(bytes, "folder", { userId: share.ownerId }));
   return { name: `partajare-${share.token.slice(0, 8)}`, files: entries };
+}
+
+// Every folder id reachable within a share: the shared folder's subtree, or the
+// union of a bundle's folder members' subtrees. Gates per-folder downloads.
+async function shareFolderIds(
+  admin: ReturnType<typeof createAdminClient>,
+  roots: string[],
+  ownerId: string,
+): Promise<Set<string>> {
+  const { data } = await admin
+    .from("folders")
+    .select("id, parent_id")
+    .eq("owner_id", ownerId);
+  const list = (data ?? []) as { id: string; parent_id: string | null }[];
+  const children = new Map<string, string[]>();
+  for (const f of list) {
+    if (!f.parent_id) continue;
+    const a = children.get(f.parent_id) ?? [];
+    a.push(f.id);
+    children.set(f.parent_id, a);
+  }
+  const set = new Set<string>();
+  const stack = [...roots];
+  while (stack.length) {
+    const cur = stack.pop()!;
+    if (set.has(cur)) continue;
+    set.add(cur);
+    for (const c of children.get(cur) ?? []) stack.push(c);
+  }
+  return set;
+}
+
+// Zip manifest for ONE sub-folder within a share (the per-folder download in the
+// tree). The folder must belong to the share — a visitor can never fetch a
+// folder outside what was actually shared.
+export async function getShareSubfolderManifest(
+  token: string,
+  folderId: string,
+): Promise<{ name: string; files: { key: string; path: string }[] } | null> {
+  if (typeof folderId !== "string" || !UUID_RE.test(folderId)) return null;
+  const share = await resolveShare(token);
+  if (!share) return null;
+
+  let roots: string[] = [];
+  if (share.kind === "folder" && share.folderId) {
+    roots = [share.folderId];
+  } else if (share.kind === "bundle" && share.items) {
+    roots = share.items
+      .filter((i) => i.kind === "folder" && i.folderId)
+      .map((i) => i.folderId!);
+  } else {
+    return null;
+  }
+
+  const admin = createAdminClient();
+  const allowed = await shareFolderIds(admin, roots, share.ownerId);
+  if (!allowed.has(folderId)) return null; // folder is not part of this share
+
+  const { data: folder } = await admin
+    .from("folders")
+    .select("name")
+    .eq("id", folderId)
+    .maybeSingle();
+  const name = (folder?.name as string) ?? "folder";
+  const { entries, bytes } = await folderSubtreeEntries(
+    admin,
+    folderId,
+    share.ownerId,
+    name,
+  );
+  after(() => logEgress(bytes, "folder", { userId: share.ownerId }));
+  return { name, files: entries };
 }
 
 // Cron backstop: hard-delete links already past expiry.

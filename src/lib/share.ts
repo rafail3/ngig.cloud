@@ -28,6 +28,7 @@ export type ShareFileNode = {
   size: number | null;
   previewKind: SharePreviewKind;
   previewUrl: string | null;
+  downloadUrl: string; // presigned attachment URL for this single file
 };
 export type ShareFolderNode = {
   id: string;

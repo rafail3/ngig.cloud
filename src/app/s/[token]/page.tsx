@@ -136,7 +136,7 @@ function ShareCard({ token, data }: { token: string; data: SharePageData }) {
             files in place (nested files/folders included). */}
         {data.tree && (
           <div className="border-t border-zinc-800/80 px-3 py-4 sm:px-4">
-            <ShareFolderTree node={data.tree} />
+            <ShareFolderTree node={data.tree} token={token} />
           </div>
         )}
 
