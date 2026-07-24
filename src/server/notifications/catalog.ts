@@ -66,6 +66,8 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultTitle: "✅ Ticket închis", defaultBody: "Ticketul „{subiect}” a fost închis. Îl poți redeschide oricând răspunzând.", vars: ["subiect"] },
   { key: "ticket_reopened", label: "Ticket redeschis", description: "Anunță utilizatorul când ticketul lui de suport a fost redeschis.", audience: "user",
     defaultTitle: "🔄 Ticket redeschis", defaultBody: "Ticketul „{subiect}” a fost redeschis.", vars: ["subiect"] },
+  { key: "share_accessed", label: "Link de partajare accesat", description: "Anunță utilizatorul când cineva deschide un link de partajare pentru care a activat notificarea la accesare (throttled la o notificare / 10 min per link).", audience: "user",
+    defaultTitle: "🔗 Link accesat", defaultBody: "Cineva a deschis linkul tău partajat: {nume}.", vars: ["nume"] },
   // --- Admin events --------------------------------------------------------
   { key: "invite_request", label: "Cerere de invitație", description: "Anunță administratorii când cineva cere o invitație din formularul public.", audience: "admin",
     defaultTitle: "📩 Cerere nouă de invitație", defaultBody: "{nume} ({email}) a cerut o invitație.", vars: ["nume", "email"] },

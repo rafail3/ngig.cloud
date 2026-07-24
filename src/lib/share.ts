@@ -37,6 +37,20 @@ export type ShareFolderNode = {
   files: ShareFileNode[];
 };
 
+// Everything the public share page renders. Client-safe so both the server
+// (getSharePage/unlockSharePage) and the client content component can use it.
+export type SharePageData = {
+  kind: ShareLinkKind;
+  label: string; // kicker, e.g. "Fișier partajat" / "Fișiere partajate"
+  name: string; // H1, e.g. the filename or "2 foldere și 1 fișier"
+  size: number | null;
+  expiryText: string;
+  previewKind: SharePreviewKind;
+  previewUrl: string | null; // previewable single file only
+  tree: ShareFolderNode | null; // folder/bundle browsable contents
+  locked: boolean; // password-protected + not yet unlocked → no content
+};
+
 // Client-safe shape of one of the user's own links, as shown in "Linkurile
 // mele". Defined here so client components can type the data without importing
 // the server-only service.
@@ -50,6 +64,10 @@ export type MyShareLinkView = {
   expiresAt: string | null;
   accessCount: number;
   createdAt: string;
+  hasPassword: boolean;
+  maxDownloads: number | null;
+  downloadCount: number;
+  notifyOnAccess: boolean;
 };
 
 // Fixed expiry choices offered in the share modal, plus "never".
