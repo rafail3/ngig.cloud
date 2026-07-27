@@ -760,36 +760,53 @@ async function buildFullPageData(share: ResolvedShare): Promise<SharePageData> {
   };
 }
 
-// Gate a download request: enforce the password (via the unlock cookie the
-// route passes as `cookieOk`) and the download limit (consumed atomically), in
-// one place before any bytes are served. Returns { ok } to proceed or a status
-// to reject with. Every download — file, folder, bundle, sub-folder — passes
-// through here exactly once.
-export async function shareDownloadGate(
+export type ShareDownloadResult =
+  | { status: number }
+  | { redirect: string }
+  | { zip: { name: string; files: { key: string; path: string }[] } };
+
+// Single entry point for every public download (file / folder / bundle /
+// sub-folder). Resolves the token ONCE, gates (password cookie + atomic
+// download-limit consume), then serves from that same resolved share.
+//
+// ⚠️ Serving must NOT re-resolve the token: consuming the LAST allowed
+// download pushes the counter to its cap, and a fresh resolve would then see
+// the link as dead and wrongly refuse the very download it just permitted
+// (an off-by-one that ate the final download). One resolve, one gate, serve.
+export async function resolveShareDownload(
   token: string,
   cookieOk: boolean,
-): Promise<{ ok: true } | { status: number }> {
+  subfolderId: string | null,
+): Promise<ShareDownloadResult> {
   const share = await resolveShare(token);
   if (!share) return { status: 404 };
   if (share.hasPassword && !cookieOk) return { status: 401 };
+
+  // Consume one download atomically — false = the limit is already used up.
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("try_consume_share_download", {
+  const { data: allowed, error } = await admin.rpc("try_consume_share_download", {
     p_id: share.id,
   });
   if (error) return { status: 500 };
-  if (data !== true) return { status: 403 }; // download limit reached
-  return { ok: true };
-}
+  if (allowed !== true) return { status: 403 };
 
-// Presigned download URL for a shared FILE (the public route redirects to it).
-export async function getShareFileDownloadUrl(
-  token: string,
-): Promise<{ url: string; name: string } | null> {
-  const share = await resolveShare(token);
-  if (!share || share.kind !== "file" || !share.storageKey) return null;
-  const url = await presignDownload(share.storageKey, share.name);
-  after(() => logEgress(share.size ?? 0, "download", { userId: share.ownerId }));
-  return { url, name: share.name };
+  // ?folder=<id> → zip just that sub-folder (validated to be part of the share).
+  if (subfolderId) {
+    const zip = await subfolderManifestOf(admin, share, subfolderId);
+    return zip ? { zip } : { status: 404 };
+  }
+
+  if (share.kind === "file" && share.storageKey) {
+    const url = await presignDownload(share.storageKey, share.name);
+    after(() => logEgress(share.size ?? 0, "download", { userId: share.ownerId }));
+    return { redirect: url };
+  }
+
+  const zip =
+    share.kind === "folder"
+      ? await folderManifestOf(admin, share)
+      : await bundleManifestOf(admin, share);
+  return zip ? { zip } : { status: 404 };
 }
 
 // Every file in a folder's subtree — owner-scoped, service-role. Shared by the
@@ -854,14 +871,13 @@ async function folderSubtreeEntries(
   return { entries, bytes };
 }
 
-// Zip manifest for a shared FOLDER.
-export async function getShareFolderManifest(
-  token: string,
+// Zip manifest for a shared FOLDER (share already resolved + gated).
+async function folderManifestOf(
+  admin: ReturnType<typeof createAdminClient>,
+  share: ResolvedShare,
 ): Promise<{ name: string; files: { key: string; path: string }[] } | null> {
-  const share = await resolveShare(token);
-  if (!share || share.kind !== "folder" || !share.folderId) return null;
+  if (share.kind !== "folder" || !share.folderId) return null;
 
-  const admin = createAdminClient();
   const { data: folder } = await admin
     .from("folders")
     .select("name")
@@ -878,14 +894,14 @@ export async function getShareFolderManifest(
   return { name, files: entries };
 }
 
-// Zip manifest for a BUNDLE: files at the root by name, folders as subtrees.
-export async function getShareBundleManifest(
-  token: string,
+// Zip manifest for a BUNDLE: files at the root by name, folders as subtrees
+// (share already resolved + gated).
+async function bundleManifestOf(
+  admin: ReturnType<typeof createAdminClient>,
+  share: ResolvedShare,
 ): Promise<{ name: string; files: { key: string; path: string }[] } | null> {
-  const share = await resolveShare(token);
-  if (!share || share.kind !== "bundle" || !share.items) return null;
+  if (share.kind !== "bundle" || !share.items) return null;
 
-  const admin = createAdminClient();
   const entries: { key: string; path: string }[] = [];
   let bytes = 0;
   for (const item of share.items) {
@@ -937,16 +953,15 @@ async function shareFolderIds(
   return set;
 }
 
-// Zip manifest for ONE sub-folder within a share (the per-folder download in the
-// tree). The folder must belong to the share — a visitor can never fetch a
-// folder outside what was actually shared.
-export async function getShareSubfolderManifest(
-  token: string,
+// Zip manifest for ONE sub-folder within a share (the per-folder download in
+// the tree; share already resolved + gated). The folder must belong to the
+// share — a visitor can never fetch a folder outside what was actually shared.
+async function subfolderManifestOf(
+  admin: ReturnType<typeof createAdminClient>,
+  share: ResolvedShare,
   folderId: string,
 ): Promise<{ name: string; files: { key: string; path: string }[] } | null> {
   if (typeof folderId !== "string" || !UUID_RE.test(folderId)) return null;
-  const share = await resolveShare(token);
-  if (!share) return null;
 
   let roots: string[] = [];
   if (share.kind === "folder" && share.folderId) {
@@ -959,7 +974,6 @@ export async function getShareSubfolderManifest(
     return null;
   }
 
-  const admin = createAdminClient();
   const allowed = await shareFolderIds(admin, roots, share.ownerId);
   if (!allowed.has(folderId)) return null; // folder is not part of this share
 
