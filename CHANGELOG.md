@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.39.0](https://github.com/rafail3/ngig.cloud/compare/v2.38.0...v2.39.0) (2026-07-27)
+
+
+### Features
+
+* **transfer:** backend — user-to-user file/folder transfers ([c9f55f5](https://github.com/rafail3/ngig.cloud/commit/c9f55f5c841515bd3cd920cef089be3940322865))
+* **transfer:** email the sender on accept/decline ([f0c0e27](https://github.com/rafail3/ngig.cloud/commit/f0c0e272c88a59ba22b751b4b1a6f1f28a34e064))
+* **transfer:** preview contents, multi-recipient send, live accept progress ([a525912](https://github.com/rafail3/ngig.cloud/commit/a525912e14278716f2915a5a308e73fb644ec153))
+* **transfer:** redesign /transfers with per-status visual distinction ([445c711](https://github.com/rafail3/ngig.cloud/commit/445c7116ee1db63741ad115b47514980679c9400))
+* **transfer:** UI — send-to-user tab, /transfers inbox, nav badge ([54e7de8](https://github.com/rafail3/ngig.cloud/commit/54e7de8edf87bf370fc8ae3b16ecbef5afbdfe71))
+* **transfer:** user-to-user file/folder transfers ([53f59b4](https://github.com/rafail3/ngig.cloud/commit/53f59b4bfd1389bf9ff43e2f20196aeab6647927))
+
+
+### Bug Fixes
+
+* **transfer:** faster user search + prune stale selection ([bba018c](https://github.com/rafail3/ngig.cloud/commit/bba018c35aa2394964c29450af1f172fc07eef1c))
+* **transfer:** make the redesign actually land on both tabs ([4271831](https://github.com/rafail3/ngig.cloud/commit/427183140eb1114e12f0cc72057efc02941e5a42))
+* **transfer:** put actions back in the same row on desktop ([6cb9d95](https://github.com/rafail3/ngig.cloud/commit/6cb9d95406f59eab3bfa0b54b466606a747cea63))
+
 ## [2.38.0](https://github.com/rafail3/ngig.cloud/compare/v2.37.0...v2.38.0) (2026-07-27)
 
 
