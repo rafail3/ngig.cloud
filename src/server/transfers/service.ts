@@ -7,7 +7,11 @@ import * as filesRepo from "@/server/files/repository";
 import { myUsage } from "@/server/files/service";
 import { copyObject, deleteObject } from "@/server/storage/b2";
 import { notifyUserEvent } from "@/server/notifications/service";
-import { sendTransferRequest } from "@/server/email/resend";
+import {
+  sendTransferRequest,
+  sendTransferAccepted,
+  sendTransferDeclined,
+} from "@/server/email/resend";
 import { formatBytes } from "@/lib/format";
 import {
   transferItemLabel,
@@ -589,12 +593,27 @@ export async function acceptTransfer(
     .select("username")
     .eq("id", recipientId)
     .maybeSingle();
+  const recipientUsername =
+    (recipientProfile?.username as string | undefined) ?? "Destinatarul";
+  const itemLabel = transferItemLabel(
+    resolved.filter((it) => it.kind === "folder").length,
+    resolved.filter((it) => it.kind === "file").length,
+  );
+
   await notifyUserEvent(
     transfer.sender_id,
     "transfer_accepted",
-    { utilizator: (recipientProfile?.username as string | undefined) ?? "Destinatarul" },
-    "/links",
+    { utilizator: recipientUsername },
+    "/transfers",
   );
+  const { data: senderAuth } = await admin.auth.admin.getUserById(transfer.sender_id);
+  if (senderAuth.user?.email) {
+    void sendTransferAccepted({
+      email: senderAuth.user.email,
+      recipientUsername,
+      itemLabel,
+    }).catch(() => {});
+  }
 
   return {};
 }
@@ -613,8 +632,24 @@ export async function declineTransfer(transferId: string): Promise<{ error?: str
     .select("id, sender_id")
     .maybeSingle();
   if (!row) return { error: "Cerere de transfer inexistentă sau deja rezolvată." };
+  const senderId = row.sender_id as string;
 
-  await notifyUserEvent(row.sender_id as string, "transfer_declined", {}, "/links");
+  await notifyUserEvent(senderId, "transfer_declined", {}, "/transfers");
+
+  const { data: itemRows } = await admin
+    .from("transfer_items")
+    .select("file_id, folder_id")
+    .eq("transfer_id", transferId);
+  const items = (itemRows ?? []) as { file_id: string | null; folder_id: string | null }[];
+  const itemLabel = transferItemLabel(
+    items.filter((i) => i.folder_id).length,
+    items.filter((i) => i.file_id).length,
+  );
+  const { data: senderAuth } = await admin.auth.admin.getUserById(senderId);
+  if (senderAuth.user?.email) {
+    void sendTransferDeclined({ email: senderAuth.user.email, itemLabel }).catch(() => {});
+  }
+
   return {};
 }
 
@@ -646,7 +681,7 @@ export async function purgeExpiredTransfers(): Promise<number> {
     .select("id, sender_id");
   const rows = (data ?? []) as { id: string; sender_id: string }[];
   for (const r of rows) {
-    await notifyUserEvent(r.sender_id, "transfer_expired", {}, "/links");
+    await notifyUserEvent(r.sender_id, "transfer_expired", {}, "/transfers");
   }
   return rows.length;
 }
