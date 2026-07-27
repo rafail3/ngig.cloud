@@ -269,47 +269,49 @@ export function TransfersBoard() {
                 >
                   <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-50/15 to-transparent" />
 
-                  <div className="flex items-start gap-4 p-5">
-                    <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
-                    <div className="min-w-0 flex-1">
-                      <p className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-indigo-400/80">
-                        <Avatar username={row.senderUsername} className="h-4 w-4 text-[9px]" />
-                        <span className="normal-case text-sm text-zinc-100">
-                          {row.senderUsername}
-                        </span>
-                        <span className="font-medium normal-case text-zinc-500">
-                          vrea să-ți trimită
-                        </span>
-                      </p>
-                      <h3 className="mt-1 truncate text-base font-bold leading-tight text-zinc-50">
-                        {row.itemLabel}
-                      </h3>
-                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                        <ModeBadge mode={row.mode} />
-                        <LiveExpiryChip text={row.expiryText} />
+                  <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+                    <div className="flex min-w-0 flex-1 items-start gap-4">
+                      <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
+                      <div className="min-w-0 flex-1">
+                        <p className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-indigo-400/80">
+                          <Avatar username={row.senderUsername} className="h-4 w-4 text-[9px]" />
+                          <span className="normal-case text-sm text-zinc-100">
+                            {row.senderUsername}
+                          </span>
+                          <span className="font-medium normal-case text-zinc-500">
+                            vrea să-ți trimită
+                          </span>
+                        </p>
+                        <h3 className="mt-1 truncate text-base font-bold leading-tight text-zinc-50">
+                          {row.itemLabel}
+                        </h3>
+                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                          <ModeBadge mode={row.mode} />
+                          <LiveExpiryChip text={row.expiryText} />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-wrap justify-end gap-2 border-t border-zinc-800/80 bg-zinc-950/30 p-4">
-                    <button
-                      type="button"
-                      onClick={() => decline(row)}
-                      disabled={busyId === row.id}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
-                    >
-                      <X className="h-4 w-4" />
-                      Refuză
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAccepting(row)}
-                      disabled={busyId === row.id}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500 disabled:opacity-60"
-                    >
-                      <Check className="h-4 w-4" />
-                      Acceptă
-                    </button>
+                    <div className="flex shrink-0 gap-2 sm:pl-2">
+                      <button
+                        type="button"
+                        onClick={() => decline(row)}
+                        disabled={busyId === row.id}
+                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60 sm:flex-none"
+                      >
+                        <X className="h-4 w-4" />
+                        Refuză
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAccepting(row)}
+                        disabled={busyId === row.id}
+                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500 disabled:opacity-60 sm:flex-none"
+                      >
+                        <Check className="h-4 w-4" />
+                        Acceptă
+                      </button>
+                    </div>
                   </div>
                 </motion.li>
               ))}
@@ -344,42 +346,42 @@ export function TransfersBoard() {
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-50/15 to-transparent" />
                   )}
 
-                  <div className="flex items-start gap-4 p-5">
-                    <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
-                    <div className="min-w-0 flex-1">
-                      <p className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                        <Avatar username={row.recipientUsername} className="h-4 w-4 text-[9px]" />
-                        <span className="normal-case text-sm text-zinc-100">
-                          {row.recipientUsername}
-                        </span>
-                      </p>
-                      <h3 className="mt-1 truncate text-base font-bold leading-tight text-zinc-50">
-                        {row.itemLabel}
-                      </h3>
-                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                        <ModeBadge mode={row.mode} />
-                        <StatusBadge status={row.status} />
-                        {row.status === "pending" ? (
-                          <LiveExpiryChip text={row.expiryText} />
-                        ) : (
-                          row.resolvedAt && (
-                            <span className="text-[11px] text-zinc-600">
-                              {TRANSFER_STATUS_LABEL[row.status]} pe{" "}
-                              {formatDateShort(row.resolvedAt)}
-                            </span>
-                          )
-                        )}
+                  <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+                    <div className="flex min-w-0 flex-1 items-start gap-4">
+                      <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
+                      <div className="min-w-0 flex-1">
+                        <p className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                          <Avatar username={row.recipientUsername} className="h-4 w-4 text-[9px]" />
+                          <span className="normal-case text-sm text-zinc-100">
+                            {row.recipientUsername}
+                          </span>
+                        </p>
+                        <h3 className="mt-1 truncate text-base font-bold leading-tight text-zinc-50">
+                          {row.itemLabel}
+                        </h3>
+                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                          <ModeBadge mode={row.mode} />
+                          <StatusBadge status={row.status} />
+                          {row.status === "pending" ? (
+                            <LiveExpiryChip text={row.expiryText} />
+                          ) : (
+                            row.resolvedAt && (
+                              <span className="text-[11px] text-zinc-600">
+                                {TRANSFER_STATUS_LABEL[row.status]} pe{" "}
+                                {formatDateShort(row.resolvedAt)}
+                              </span>
+                            )
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {row.status === "pending" && (
-                    <div className="flex justify-end border-t border-zinc-800/80 bg-zinc-950/30 p-4">
+                    {row.status === "pending" && (
                       <button
                         type="button"
                         onClick={() => cancel(row)}
                         disabled={busyId === row.id}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
+                        className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
                       >
                         {busyId === row.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -387,8 +389,8 @@ export function TransfersBoard() {
                           "Anulează cererea"
                         )}
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </motion.li>
               );
             })}
