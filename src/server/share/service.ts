@@ -7,6 +7,14 @@ import { requireActiveUser } from "@/server/auth/active-user";
 import * as repo from "@/server/files/repository";
 import { presignDownload, presignInline } from "@/server/storage/b2";
 import { logEgress } from "@/server/billing/egress";
+import { notifyUserEvent } from "@/server/notifications/service";
+import { appOrigin } from "@/lib/dashboard";
+import {
+  hashSharePassword,
+  verifySharePassword,
+  SHARE_PASSWORD_MIN,
+  SHARE_PASSWORD_MAX,
+} from "./password";
 import {
   expiryLabel,
   isExpired,
@@ -18,6 +26,7 @@ import {
   type MyShareLinkView,
   type ShareFolderNode,
   type ShareFileNode,
+  type SharePageData,
 } from "@/lib/share";
 
 // ---------------------------------------------------------------------------
@@ -46,10 +55,25 @@ type ShareLinkRow = {
   expires_at: string | null;
   access_count: number;
   created_at: string;
+  password_hash: string | null;
+  max_downloads: number | null;
+  download_count: number;
+  notify_on_access: boolean;
+  last_notified_at: string | null;
 };
 
 // Cap on how many items one bundle link can carry (guards a hostile client).
 const MAX_BUNDLE_ITEMS = 100;
+
+// A link is dead (treated as non-existent) when it has expired or its download
+// limit is used up. Both cases: hide from the owner's list, 404 the public page,
+// reclaim on the cron.
+function isLinkDead(row: ShareLinkRow, nowMs: number): boolean {
+  if (isExpired(row.expires_at, nowMs)) return true;
+  if (row.max_downloads !== null && row.download_count >= row.max_downloads)
+    return true;
+  return false;
+}
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -104,6 +128,9 @@ function validateExpiry(expiresAt: string | null): string | null {
 export async function createShareLink(input: {
   targets: { type: ShareTargetType; id: string }[];
   expiresAt: string | null;
+  password?: string | null;
+  maxDownloads?: number | null;
+  notifyOnAccess?: boolean;
 }): Promise<{ id: string; token: string; url: string; expiresAt: string | null }> {
   const { id: userId } = await requireActiveUser();
 
@@ -117,6 +144,30 @@ export async function createShareLink(input: {
   for (const t of targets) await assertOwnsTarget(t);
 
   const expiresAt = validateExpiry(input.expiresAt);
+
+  // Optional password → hashed server-side (never stored or sent in the clear).
+  let passwordHash: string | null = null;
+  if (input.password != null && input.password !== "") {
+    const pw = input.password;
+    if (pw.length < SHARE_PASSWORD_MIN || pw.length > SHARE_PASSWORD_MAX) {
+      throw new Error(
+        `Parola trebuie să aibă între ${SHARE_PASSWORD_MIN} și ${SHARE_PASSWORD_MAX} caractere.`,
+      );
+    }
+    passwordHash = await hashSharePassword(pw);
+  }
+
+  // Optional download limit.
+  let maxDownloads: number | null = null;
+  if (input.maxDownloads != null) {
+    const n = Math.floor(input.maxDownloads);
+    if (!Number.isFinite(n) || n < 1 || n > 1_000_000) {
+      throw new Error("Limita de descărcări trebuie să fie un număr pozitiv.");
+    }
+    maxDownloads = n;
+  }
+
+  const notifyOnAccess = input.notifyOnAccess === true;
   const supabase = await createClient();
 
   const single = targets.length === 1 ? targets[0] : null;
@@ -132,6 +183,9 @@ export async function createShareLink(input: {
         file_id: single?.type === "file" ? single.id : null,
         folder_id: single?.type === "folder" ? single.id : null,
         expires_at: expiresAt,
+        password_hash: passwordHash,
+        max_downloads: maxDownloads,
+        notify_on_access: notifyOnAccess,
       })
       .select("id, token, expires_at")
       .single();
@@ -180,7 +234,7 @@ export async function listMyShares(): Promise<MyShareLink[]> {
   const { data, error } = await supabase
     .from("share_links")
     .select(
-      "id, token, target_type, file_id, folder_id, expires_at, access_count, created_at, files(name), folders(name), share_link_items(file_id, folder_id)",
+      "id, token, target_type, file_id, folder_id, expires_at, access_count, created_at, password_hash, max_downloads, download_count, notify_on_access, files(name), folders(name), share_link_items(file_id, folder_id)",
     )
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -194,6 +248,10 @@ export async function listMyShares(): Promise<MyShareLink[]> {
     expires_at: string | null;
     access_count: number;
     created_at: string;
+    password_hash: string | null;
+    max_downloads: number | null;
+    download_count: number;
+    notify_on_access: boolean;
     files: NameRel;
     folders: NameRel;
     share_link_items: { file_id: string | null; folder_id: string | null }[] | null;
@@ -201,8 +259,12 @@ export async function listMyShares(): Promise<MyShareLink[]> {
   const pickName = (v: NameRel): string | null =>
     Array.isArray(v) ? (v[0]?.name ?? null) : (v?.name ?? null);
 
+  const dead = (r: Row): boolean =>
+    isExpired(r.expires_at, now) ||
+    (r.max_downloads !== null && r.download_count >= r.max_downloads);
+
   return ((data ?? []) as Row[])
-    .filter((r) => !isExpired(r.expires_at, now))
+    .filter((r) => !dead(r))
     .map((r) => {
       const isBundle = r.target_type === "bundle";
       const members = r.share_link_items ?? [];
@@ -232,6 +294,10 @@ export async function listMyShares(): Promise<MyShareLink[]> {
         expiresAt: r.expires_at,
         accessCount: r.access_count,
         createdAt: r.created_at,
+        hasPassword: r.password_hash !== null,
+        maxDownloads: r.max_downloads,
+        downloadCount: r.download_count,
+        notifyOnAccess: r.notify_on_access,
       };
     });
 }
@@ -269,12 +335,16 @@ type ResolvedShare = {
   folderId: string | null;
   storageKey: string | null;
   items: BundleItem[] | null; // bundle only
+  passwordHash: string | null;
+  hasPassword: boolean;
+  notifyOnAccess: boolean;
+  lastNotifiedAt: string | null;
 };
 
-async function resolveShare(
-  token: string,
-  opts?: { bump?: boolean },
-): Promise<ResolvedShare | null> {
+// Resolve a token to its live target. Returns null for a missing, expired,
+// download-exhausted or dangling link. Does NOT count an access or check the
+// password — callers decide when to register access / require unlocking.
+async function resolveShare(token: string): Promise<ResolvedShare | null> {
   if (!isTokenShape(token)) return null;
   const admin = createAdminClient();
 
@@ -286,7 +356,8 @@ async function resolveShare(
   if (!link) return null;
   const row = link as ShareLinkRow;
 
-  if (isExpired(row.expires_at, Date.now())) {
+  if (isLinkDead(row, Date.now())) {
+    // Expired or its download limit is used up → gone on sight.
     await admin.from("share_links").delete().eq("id", row.id);
     return null;
   }
@@ -296,6 +367,10 @@ async function resolveShare(
     token: row.token,
     expiresAt: row.expires_at,
     ownerId: row.owner_id,
+    passwordHash: row.password_hash,
+    hasPassword: row.password_hash !== null,
+    notifyOnAccess: row.notify_on_access,
+    lastNotifiedAt: row.last_notified_at,
   };
 
   if (row.target_type === "file") {
@@ -305,7 +380,6 @@ async function resolveShare(
       .eq("id", row.file_id!)
       .maybeSingle();
     if (!file || file.deleted_at) return null;
-    if (opts?.bump) await bumpAccess(row.id);
     return {
       ...base,
       kind: "file",
@@ -326,7 +400,6 @@ async function resolveShare(
       .eq("id", row.folder_id!)
       .maybeSingle();
     if (!folder) return null;
-    if (opts?.bump) await bumpAccess(row.id);
     return {
       ...base,
       kind: "folder",
@@ -343,7 +416,6 @@ async function resolveShare(
   // bundle
   const items = await loadBundleItems(admin, row.id);
   if (items.length === 0) return null; // every member gone → dead link
-  if (opts?.bump) await bumpAccess(row.id);
   return {
     ...base,
     kind: "bundle",
@@ -355,6 +427,35 @@ async function resolveShare(
     storageKey: null,
     items,
   };
+}
+
+// Register an access: bump the counter atomically, and — if the owner asked to
+// be notified and we haven't pinged recently for this link — send a bell notif.
+// Throttled to at most once per link per NOTIFY_THROTTLE_MS to avoid flooding.
+const NOTIFY_THROTTLE_MS = 10 * 60 * 1000;
+async function registerAccess(share: ResolvedShare): Promise<void> {
+  await bumpAccess(share.id);
+  if (!share.notifyOnAccess) return;
+  const now = Date.now();
+  const last = share.lastNotifiedAt ? new Date(share.lastNotifiedAt).getTime() : 0;
+  if (now - last < NOTIFY_THROTTLE_MS) return;
+  try {
+    const admin = createAdminClient();
+    // Claim the notify slot first (best-effort throttle) so concurrent hits
+    // don't all fire.
+    await admin
+      .from("share_links")
+      .update({ last_notified_at: new Date(now).toISOString() })
+      .eq("id", share.id);
+    await notifyUserEvent(
+      share.ownerId,
+      "share_accessed",
+      { nume: share.name },
+      `${appOrigin()}/links`,
+    );
+  } catch {
+    // non-critical
+  }
 }
 
 // A bundle's live members (skips files that were trashed/removed).
@@ -419,18 +520,20 @@ async function bumpAccess(id: string): Promise<void> {
   }
 }
 
-export type SharePageData = {
-  kind: ShareLinkKind;
-  label: string; // kicker, e.g. "Fișier partajat" / "Fișiere partajate"
-  name: string; // H1, e.g. the filename or "2 foldere și 1 fișier"
-  size: number | null;
-  expiryText: string;
-  previewKind: SharePreviewKind;
-  previewUrl: string | null; // previewable single file only
-  // Browsable contents for a folder OR a bundle (bundle = a synthetic root node
-  // holding its folder members + file members). Null for a single file.
-  tree: ShareFolderNode | null;
-};
+// Minimal locked payload — reveals nothing about the shared item until unlocked.
+function lockedPage(): SharePageData {
+  return {
+    kind: "file",
+    label: "",
+    name: "",
+    size: null,
+    expiryText: "",
+    previewKind: null,
+    previewUrl: null,
+    tree: null,
+    locked: true,
+  };
+}
 
 // Guard: how many files at most we presign/render for a shared folder tree.
 const MAX_TREE_FILES = 1000;
@@ -563,11 +666,35 @@ function bundleTitle(items: { kind: "file" | "folder" }[]): {
   return { label: "Fișiere partajate", name: filesPhrase(ff) };
 }
 
-// Everything the public page needs. Counts as an access.
+// Everything the public page needs. A password-protected link returns a locked
+// payload (no content) and is NOT counted as an access until unlocked.
 export async function getSharePage(token: string): Promise<SharePageData | null> {
-  const share = await resolveShare(token, { bump: true });
+  const share = await resolveShare(token);
   if (!share) return null;
+  if (share.hasPassword) return lockedPage();
+  await registerAccess(share);
+  return buildFullPageData(share);
+}
 
+// Verify a password for a protected link; on success return the full content
+// (and count the access). Returns { error } on a wrong password, null if the
+// link is gone.
+export async function unlockSharePage(
+  token: string,
+  password: string,
+): Promise<SharePageData | { error: string } | null> {
+  const share = await resolveShare(token);
+  if (!share) return null;
+  if (share.hasPassword) {
+    const ok = await verifySharePassword(password ?? "", share.passwordHash!);
+    if (!ok) return { error: "Parolă greșită." };
+  }
+  await registerAccess(share);
+  return buildFullPageData(share);
+}
+
+// Build the full (unlocked) page payload for an already-resolved share.
+async function buildFullPageData(share: ResolvedShare): Promise<SharePageData> {
   // Single previewable file → one inline URL (and count it as egress).
   let previewKind: SharePreviewKind = null;
   let previewUrl: string | null = null;
@@ -629,18 +756,57 @@ export async function getSharePage(token: string): Promise<SharePageData | null>
     previewKind,
     previewUrl,
     tree,
+    locked: false,
   };
 }
 
-// Presigned download URL for a shared FILE (the public route redirects to it).
-export async function getShareFileDownloadUrl(
+export type ShareDownloadResult =
+  | { status: number }
+  | { redirect: string }
+  | { zip: { name: string; files: { key: string; path: string }[] } };
+
+// Single entry point for every public download (file / folder / bundle /
+// sub-folder). Resolves the token ONCE, gates (password cookie + atomic
+// download-limit consume), then serves from that same resolved share.
+//
+// ⚠️ Serving must NOT re-resolve the token: consuming the LAST allowed
+// download pushes the counter to its cap, and a fresh resolve would then see
+// the link as dead and wrongly refuse the very download it just permitted
+// (an off-by-one that ate the final download). One resolve, one gate, serve.
+export async function resolveShareDownload(
   token: string,
-): Promise<{ url: string; name: string } | null> {
+  cookieOk: boolean,
+  subfolderId: string | null,
+): Promise<ShareDownloadResult> {
   const share = await resolveShare(token);
-  if (!share || share.kind !== "file" || !share.storageKey) return null;
-  const url = await presignDownload(share.storageKey, share.name);
-  after(() => logEgress(share.size ?? 0, "download", { userId: share.ownerId }));
-  return { url, name: share.name };
+  if (!share) return { status: 404 };
+  if (share.hasPassword && !cookieOk) return { status: 401 };
+
+  // Consume one download atomically — false = the limit is already used up.
+  const admin = createAdminClient();
+  const { data: allowed, error } = await admin.rpc("try_consume_share_download", {
+    p_id: share.id,
+  });
+  if (error) return { status: 500 };
+  if (allowed !== true) return { status: 403 };
+
+  // ?folder=<id> → zip just that sub-folder (validated to be part of the share).
+  if (subfolderId) {
+    const zip = await subfolderManifestOf(admin, share, subfolderId);
+    return zip ? { zip } : { status: 404 };
+  }
+
+  if (share.kind === "file" && share.storageKey) {
+    const url = await presignDownload(share.storageKey, share.name);
+    after(() => logEgress(share.size ?? 0, "download", { userId: share.ownerId }));
+    return { redirect: url };
+  }
+
+  const zip =
+    share.kind === "folder"
+      ? await folderManifestOf(admin, share)
+      : await bundleManifestOf(admin, share);
+  return zip ? { zip } : { status: 404 };
 }
 
 // Every file in a folder's subtree — owner-scoped, service-role. Shared by the
@@ -705,14 +871,13 @@ async function folderSubtreeEntries(
   return { entries, bytes };
 }
 
-// Zip manifest for a shared FOLDER.
-export async function getShareFolderManifest(
-  token: string,
+// Zip manifest for a shared FOLDER (share already resolved + gated).
+async function folderManifestOf(
+  admin: ReturnType<typeof createAdminClient>,
+  share: ResolvedShare,
 ): Promise<{ name: string; files: { key: string; path: string }[] } | null> {
-  const share = await resolveShare(token);
-  if (!share || share.kind !== "folder" || !share.folderId) return null;
+  if (share.kind !== "folder" || !share.folderId) return null;
 
-  const admin = createAdminClient();
   const { data: folder } = await admin
     .from("folders")
     .select("name")
@@ -729,14 +894,14 @@ export async function getShareFolderManifest(
   return { name, files: entries };
 }
 
-// Zip manifest for a BUNDLE: files at the root by name, folders as subtrees.
-export async function getShareBundleManifest(
-  token: string,
+// Zip manifest for a BUNDLE: files at the root by name, folders as subtrees
+// (share already resolved + gated).
+async function bundleManifestOf(
+  admin: ReturnType<typeof createAdminClient>,
+  share: ResolvedShare,
 ): Promise<{ name: string; files: { key: string; path: string }[] } | null> {
-  const share = await resolveShare(token);
-  if (!share || share.kind !== "bundle" || !share.items) return null;
+  if (share.kind !== "bundle" || !share.items) return null;
 
-  const admin = createAdminClient();
   const entries: { key: string; path: string }[] = [];
   let bytes = 0;
   for (const item of share.items) {
@@ -788,16 +953,15 @@ async function shareFolderIds(
   return set;
 }
 
-// Zip manifest for ONE sub-folder within a share (the per-folder download in the
-// tree). The folder must belong to the share — a visitor can never fetch a
-// folder outside what was actually shared.
-export async function getShareSubfolderManifest(
-  token: string,
+// Zip manifest for ONE sub-folder within a share (the per-folder download in
+// the tree; share already resolved + gated). The folder must belong to the
+// share — a visitor can never fetch a folder outside what was actually shared.
+async function subfolderManifestOf(
+  admin: ReturnType<typeof createAdminClient>,
+  share: ResolvedShare,
   folderId: string,
 ): Promise<{ name: string; files: { key: string; path: string }[] } | null> {
   if (typeof folderId !== "string" || !UUID_RE.test(folderId)) return null;
-  const share = await resolveShare(token);
-  if (!share) return null;
 
   let roots: string[] = [];
   if (share.kind === "folder" && share.folderId) {
@@ -810,7 +974,6 @@ export async function getShareSubfolderManifest(
     return null;
   }
 
-  const admin = createAdminClient();
   const allowed = await shareFolderIds(admin, roots, share.ownerId);
   if (!allowed.has(folderId)) return null; // folder is not part of this share
 

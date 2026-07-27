@@ -13,9 +13,15 @@ import {
   Loader2,
   RotateCcw,
   CalendarClock,
+  Lock,
+  Hash,
+  Bell,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ModalShell } from "./anim";
+import { ShareQr } from "@/components/share/ShareQr";
 import { createShareLinkAction } from "@/app/drive-actions";
 import {
   EXPIRY_PRESETS,
@@ -49,6 +55,14 @@ export function ShareModal({
   const [generated, setGenerated] = useState<Generated | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Faza B options.
+  const [pwOn, setPwOn] = useState(false);
+  const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [limitOn, setLimitOn] = useState(false);
+  const [limit, setLimit] = useState("");
+  const [notify, setNotify] = useState(false);
+
   async function generate() {
     // Compute expiry inside the handler (never during render — a clock read
     // there is impure). The server revalidates this against its own clock.
@@ -68,10 +82,27 @@ export function ShareModal({
       expiresAt = presetToExpiry(preset, Date.now());
     }
 
+    if (pwOn && pw.trim().length < 4) {
+      toast.error("Parola trebuie să aibă minim 4 caractere.");
+      return;
+    }
+    let maxDownloads: number | null = null;
+    if (limitOn) {
+      const n = parseInt(limit, 10);
+      if (!Number.isFinite(n) || n < 1) {
+        toast.error("Limita de descărcări trebuie să fie un număr pozitiv.");
+        return;
+      }
+      maxDownloads = n;
+    }
+
     setBusy(true);
     const res = await createShareLinkAction({
       targets: targets.map((t) => ({ type: t.type, id: t.id })),
       expiresAt,
+      password: pwOn ? pw : null,
+      maxDownloads,
+      notifyOnAccess: notify,
     });
     setBusy(false);
 
@@ -209,6 +240,64 @@ export function ShareModal({
             </AnimatePresence>
           </div>
 
+          {/* Faza B — security & options */}
+          <div className="mt-5 space-y-2">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Securitate & opțiuni
+            </p>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-3">
+              <SwitchRow icon={Lock} label="Protejează cu parolă" checked={pwOn} onChange={setPwOn} />
+              <Reveal show={pwOn}>
+                <div className="relative mt-2.5">
+                  <input
+                    type={showPw ? "text" : "password"}
+                    value={pw}
+                    onChange={(e) => setPw(e.target.value)}
+                    placeholder="Parolă (min. 4 caractere)"
+                    className="w-full rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 pr-10 text-sm text-zinc-100 outline-none transition focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((v) => !v)}
+                    aria-label={showPw ? "Ascunde parola" : "Arată parola"}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-zinc-500 transition hover:text-zinc-200"
+                  >
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </Reveal>
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-3">
+              <SwitchRow
+                icon={Hash}
+                label="Limitează descărcările"
+                checked={limitOn}
+                onChange={setLimitOn}
+              />
+              <Reveal show={limitOn}>
+                <input
+                  type="number"
+                  min={1}
+                  value={limit}
+                  onChange={(e) => setLimit(e.target.value)}
+                  placeholder="Număr maxim (ex. 5)"
+                  className="mt-2.5 w-full rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
+                />
+              </Reveal>
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 px-3.5 py-3">
+              <SwitchRow
+                icon={Bell}
+                label="Anunță-mă la accesare"
+                checked={notify}
+                onChange={setNotify}
+              />
+            </div>
+          </div>
+
           <div className="mt-5 flex justify-end gap-2">
             <button
               type="button"
@@ -273,6 +362,11 @@ function GeneratedView({
         {generated.expiryText}
       </p>
 
+      {/* QR code for the link */}
+      <div className="mt-4 flex justify-center rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
+        <ShareQr url={generated.absoluteUrl} />
+      </div>
+
       <div className="mt-4 flex items-center justify-between gap-2">
         <button
           type="button"
@@ -293,5 +387,63 @@ function GeneratedView({
         </a>
       </div>
     </div>
+  );
+}
+
+// A labeled toggle switch used for the share options.
+function SwitchRow({
+  icon: Icon,
+  label,
+  checked,
+  onChange,
+}: {
+  icon: typeof Lock;
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center gap-2.5 text-left"
+    >
+      <Icon
+        className={`h-4 w-4 shrink-0 transition-colors ${checked ? "text-indigo-400" : "text-zinc-500"}`}
+      />
+      <span className="flex-1 text-sm font-medium text-zinc-200">{label}</span>
+      <span
+        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+          checked ? "bg-indigo-500" : "bg-zinc-700"
+        }`}
+      >
+        <span
+          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+            checked ? "translate-x-4" : "translate-x-1"
+          }`}
+        />
+      </span>
+    </button>
+  );
+}
+
+// Animated show/hide for a revealed input under a switch.
+function Reveal({ show, children }: { show: boolean; children: React.ReactNode }) {
+  return (
+    <AnimatePresence initial={false}>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="overflow-hidden"
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
