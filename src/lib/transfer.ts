@@ -1,6 +1,8 @@
 // Client-safe vocabulary for user-to-user transfers ("Trimite utilizator").
 // No server imports — pulled into the share modal and the /transfers page.
 
+import type { SharePreviewKind } from "./share";
+
 export type TransferMode = "copy" | "move";
 export type TransferStatus =
   | "pending"
@@ -46,6 +48,10 @@ export type ReceivedTransferView = {
   fileCount: number;
   createdAt: string;
   expiresAt: string;
+  // Non-null only while acceptTransfer is actively copying — a live progress
+  // bar replaces the Refuză/Acceptă buttons for as long as it's set.
+  progressDone: number;
+  progressTotal: number | null;
 };
 
 export type SentTransferView = {
@@ -59,4 +65,28 @@ export type SentTransferView = {
   createdAt: string;
   expiresAt: string;
   resolvedAt: string | null;
+  progressDone: number;
+  progressTotal: number | null;
+};
+
+// Browsable contents of a still-pending transfer — same shape as the public
+// share tree (see lib/share.ts's ShareFolderNode/ShareFileNode), reused by
+// TransferContentsModal + the SharePreviewModal it hands previews off to.
+// Visible to sender AND recipient, preview-only (no download URLs) — the
+// items only actually land in the recipient's drive on Accept.
+export type TransferFileNode = {
+  name: string;
+  size: number;
+  previewKind: SharePreviewKind;
+  previewUrl: string | null;
+};
+export type TransferFolderNode = {
+  id: string;
+  name: string;
+  folders: TransferFolderNode[];
+  files: TransferFileNode[];
+};
+export type TransferContents = {
+  folders: TransferFolderNode[];
+  files: TransferFileNode[];
 };

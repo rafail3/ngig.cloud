@@ -3,8 +3,10 @@
 import {
   searchUsers,
   createTransfer,
+  getFrequentRecipients,
   listReceivedTransfers,
   listSentTransfers,
+  getTransferContents,
   acceptTransfer,
   declineTransfer,
   cancelTransfer,
@@ -15,6 +17,7 @@ import type {
   UserSearchResult,
   ReceivedTransferView,
   SentTransferView,
+  TransferContents,
 } from "@/lib/transfer";
 import type { ShareTargetType } from "@/lib/share";
 import { SESSION_REVOKED } from "@/server/auth/active-user";
@@ -45,14 +48,25 @@ export async function searchUsersAction(
 
 export async function createTransferAction(input: {
   targets: { type: ShareTargetType; id: string }[];
-  recipientId: string;
+  recipientIds: string[];
   mode: TransferMode;
-}): Promise<{ id: string } | { error: string } | Revoked> {
+}): Promise<{ ids: string[] } | { error: string } | Revoked> {
   try {
     return await createTransfer(input);
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     return { error: errMsg(e) };
+  }
+}
+
+export async function getFrequentRecipientsAction(): Promise<
+  UserSearchResult[] | Revoked
+> {
+  try {
+    return await getFrequentRecipients();
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
   }
 }
 
@@ -73,6 +87,17 @@ export async function listSentTransfersAction(): Promise<SentTransferView[] | Re
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     throw e;
+  }
+}
+
+export async function getTransferContentsAction(
+  transferId: string,
+): Promise<TransferContents | { error: string } | Revoked> {
+  try {
+    return await getTransferContents(transferId);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    return { error: errMsg(e) };
   }
 }
 

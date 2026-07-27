@@ -12,7 +12,7 @@ import {
   File as FileIcon,
   Layers,
   Copy as CopyIcon,
-  Scissors,
+  ArrowRightLeft,
   Check,
   X,
   Loader2,
@@ -21,6 +21,7 @@ import {
   XCircle,
   Ban,
   History,
+  FolderOpen,
 } from "lucide-react";
 import {
   listReceivedTransfersAction,
@@ -31,6 +32,7 @@ import {
 } from "@/app/(app)/transfers/actions";
 import { revalidateDrive } from "@/components/drive/useDriveData";
 import { FolderPickerModal } from "@/components/drive/FolderPickerModal";
+import { TransferContentsModal } from "@/components/transfer/TransferContentsModal";
 import { Avatar } from "@/components/shell/Avatar";
 import { expiryLabel } from "@/lib/share";
 import { formatDateShort } from "@/lib/format-date";
@@ -73,7 +75,7 @@ function StatusBadge({ status }: { status: TransferStatus }) {
 function ModeBadge({ mode }: { mode: "copy" | "move" }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/50 px-2 py-0.5 text-[11px] font-medium text-zinc-400">
-      {mode === "copy" ? <CopyIcon className="h-3 w-3" /> : <Scissors className="h-3 w-3" />}
+      {mode === "copy" ? <CopyIcon className="h-3 w-3" /> : <ArrowRightLeft className="h-3 w-3" />}
       {mode === "copy" ? "Copie" : "Mutare"}
     </span>
   );
@@ -92,6 +94,85 @@ function LiveExpiryChip({ text }: { text: string }) {
       <Clock className="h-3 w-3" />
       {text}
     </span>
+  );
+}
+
+// Opens TransferContentsModal — shown only on pending transfers (either tab),
+// where the sender's original items still exist to browse. A real bordered
+// button (not a text link) so it doesn't get lost next to the mode/expiry
+// chips — especially noticeable on folder transfers, the main use case.
+function ViewContentsButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950/40 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-indigo-400/50 hover:bg-indigo-500/10 hover:text-indigo-300"
+    >
+      <FolderOpen className="h-3.5 w-3.5" />
+      Vezi conținutul
+    </button>
+  );
+}
+
+// Bytes copied so far vs. the total, streamed in via Realtime while
+// acceptTransfer is actively running — replaces the action buttons for as
+// long as it's in flight, on BOTH sides (recipient watches their own accept,
+// sender can watch a recipient's acceptance happen live too).
+function TransferProgressBar({ done, total }: { done: number; total: number | null }) {
+  const indeterminate = total == null;
+  const pct = indeterminate
+    ? 0
+    : total > 0
+      ? Math.min(100, Math.round((done / total) * 100))
+      : 100;
+  return (
+    <div className="mt-3 w-full">
+      <div className="mb-1.5 flex items-center justify-between text-[11px]">
+        <span className="flex items-center gap-1.5 font-medium text-indigo-300">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          {indeterminate ? "Se pregătește…" : "Se copiază…"}
+        </span>
+        {!indeterminate && (
+          <span className="font-semibold tabular-nums text-zinc-300">{pct}%</span>
+        )}
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+        <motion.div
+          className={`h-full rounded-full bg-indigo-500 ${indeterminate ? "animate-pulse" : ""}`}
+          initial={{ width: 0 }}
+          animate={{ width: indeterminate ? "35%" : `${pct}%` }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Transient success state shown right after THIS client's own accept
+// resolves — a real checkmark instead of the row just silently vanishing
+// once the reload catches up with the now-"accepted" status.
+function CompletedRow({ itemLabel }: { itemLabel: string }) {
+  return (
+    <motion.li
+      key="completed"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
+      layout
+      className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-emerald-500/10 shadow-lg shadow-black/10"
+    >
+      <div className="flex items-center gap-4 p-5">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400">
+          <CheckCircle2 className="h-6 w-6" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-base font-bold leading-tight text-zinc-50">{itemLabel}</h3>
+          <p className="mt-1 text-sm font-medium text-emerald-300">
+            Transfer finalizat — fișierele sunt acum în drive-ul tău.
+          </p>
+        </div>
+      </div>
+    </motion.li>
   );
 }
 
@@ -119,6 +200,9 @@ export function TransfersBoard() {
   const [received, setReceived] = useState<ReceivedRow[] | null>(null);
   const [sent, setSent] = useState<SentRow[] | null>(null);
   const [accepting, setAccepting] = useState<ReceivedRow | null>(null);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [completedRow, setCompletedRow] = useState<ReceivedRow | null>(null);
+  const [viewing, setViewing] = useState<{ id: string; itemLabel: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   async function loadReceived() {
@@ -200,6 +284,29 @@ export function TransfersBoard() {
     void loadReceived();
   }
 
+  // Runs after FolderPickerModal already closed (see below) — decoupled from
+  // its lifecycle so a long copy never leaves it frozen open with no feedback.
+  async function startAccept(row: ReceivedRow, dest: string | null) {
+    setAcceptingId(row.id);
+    const res = await acceptTransferAction(row.id, dest);
+    setAcceptingId(null);
+    if ("revoked" in res) {
+      window.location.assign("/login");
+      return;
+    }
+    if (res.error) {
+      toast.error(res.error);
+      void loadReceived();
+      return;
+    }
+    revalidateDrive();
+    setCompletedRow(received?.find((r) => r.id === row.id) ?? row);
+    window.setTimeout(() => {
+      setCompletedRow(null);
+      void loadReceived();
+    }, 1100);
+  }
+
   async function cancel(row: SentRow) {
     setBusyId(row.id);
     const res = await cancelTransferAction(row.id);
@@ -251,12 +358,19 @@ export function TransfersBoard() {
       {tab === "received" ? (
         received === null ? (
           <Loading />
-        ) : received.length === 0 ? (
+        ) : received.length === 0 && !completedRow ? (
           <Empty icon={Inbox} text="Nicio cerere primită în așteptare." />
         ) : (
           <ul className="space-y-3.5">
             <AnimatePresence initial={false} mode="popLayout">
-              {received.map((row, i) => (
+              {completedRow && (
+                <CompletedRow key="completed" itemLabel={completedRow.itemLabel} />
+              )}
+              {received
+                .filter((r) => r.id !== completedRow?.id)
+                .map((row, i) => {
+                const inProgress = row.id === acceptingId || row.progressTotal != null;
+                return (
                 <motion.li
                   key={row.id}
                   custom={i}
@@ -289,32 +403,44 @@ export function TransfersBoard() {
                           <ModeBadge mode={row.mode} />
                           <LiveExpiryChip text={row.expiryText} />
                         </div>
+                        {!inProgress && (
+                          <div className="mt-2">
+                            <ViewContentsButton
+                              onClick={() => setViewing({ id: row.id, itemLabel: row.itemLabel })}
+                            />
+                          </div>
+                        )}
+                        {inProgress && (
+                          <TransferProgressBar done={row.progressDone} total={row.progressTotal} />
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex shrink-0 gap-2 sm:pl-2">
-                      <button
-                        type="button"
-                        onClick={() => decline(row)}
-                        disabled={busyId === row.id}
-                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60 sm:flex-none"
-                      >
-                        <X className="h-4 w-4" />
-                        Refuză
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAccepting(row)}
-                        disabled={busyId === row.id}
-                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500 disabled:opacity-60 sm:flex-none"
-                      >
-                        <Check className="h-4 w-4" />
-                        Acceptă
-                      </button>
-                    </div>
+                    {!inProgress && (
+                      <div className="flex shrink-0 gap-2 sm:pl-2">
+                        <button
+                          type="button"
+                          onClick={() => decline(row)}
+                          disabled={busyId === row.id}
+                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60 sm:flex-none"
+                        >
+                          <X className="h-4 w-4" />
+                          Refuză
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAccepting(row)}
+                          disabled={busyId === row.id}
+                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500 disabled:opacity-60 sm:flex-none"
+                        >
+                          <Check className="h-4 w-4" />
+                          Acceptă
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </motion.li>
-              ))}
+              );})}
             </AnimatePresence>
           </ul>
         )
@@ -327,6 +453,7 @@ export function TransfersBoard() {
           <AnimatePresence initial={false} mode="popLayout">
             {sent.map((row, i) => {
               const resolved = row.status !== "pending";
+              const inProgress = row.status === "pending" && row.progressTotal != null;
               return (
                 <motion.li
                   key={row.id}
@@ -373,10 +500,20 @@ export function TransfersBoard() {
                             )
                           )}
                         </div>
+                        {row.status === "pending" && !inProgress && (
+                          <div className="mt-2">
+                            <ViewContentsButton
+                              onClick={() => setViewing({ id: row.id, itemLabel: row.itemLabel })}
+                            />
+                          </div>
+                        )}
+                        {inProgress && (
+                          <TransferProgressBar done={row.progressDone} total={row.progressTotal} />
+                        )}
                       </div>
                     </div>
 
-                    {row.status === "pending" && (
+                    {row.status === "pending" && !inProgress && (
                       <button
                         type="button"
                         onClick={() => cancel(row)}
@@ -403,19 +540,23 @@ export function TransfersBoard() {
           title={`Salvează „${accepting.itemLabel}" în…`}
           onClose={() => setAccepting(null)}
           onPick={async (dest) => {
-            const res = await acceptTransferAction(accepting.id, dest);
-            if ("revoked" in res) {
-              window.location.assign("/login");
-              return {};
-            }
-            if (!res.error) {
-              setAccepting(null);
-              toast.success("Transfer acceptat — fișierele sunt acum în drive-ul tău.");
-              void loadReceived();
-              revalidateDrive();
-            }
-            return res;
+            // Close the picker immediately and hand off to startAccept, which
+            // runs independently — a big file/folder can take a while, and
+            // freezing the modal open with no feedback is exactly the "ghost
+            // card" behavior this progress bar replaces.
+            const row = accepting;
+            setAccepting(null);
+            void startAccept(row, dest);
+            return {};
           }}
+        />
+      )}
+
+      {viewing && (
+        <TransferContentsModal
+          transferId={viewing.id}
+          title={viewing.itemLabel}
+          onClose={() => setViewing(null)}
         />
       )}
     </div>

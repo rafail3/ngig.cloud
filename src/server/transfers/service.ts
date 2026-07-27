@@ -13,12 +13,19 @@ import {
   sendTransferDeclined,
 } from "@/server/email/resend";
 import { formatBytes } from "@/lib/format";
+import { after } from "next/server";
+import { presignInline } from "@/server/storage/b2";
+import { logEgress } from "@/server/billing/egress";
+import { sharePreviewKind } from "@/lib/share";
 import {
   transferItemLabel,
   type TransferMode,
   type UserSearchResult,
   type ReceivedTransferView,
   type SentTransferView,
+  type TransferContents,
+  type TransferFolderNode,
+  type TransferFileNode,
 } from "@/lib/transfer";
 
 // ---------------------------------------------------------------------------
@@ -58,6 +65,11 @@ function isUniqueViolation(e: unknown): boolean {
 
 // Cap on how many items one transfer can carry (guards a hostile client).
 const MAX_TRANSFER_ITEMS = 100;
+// Cap on how many recipients a single "send" can fan out to.
+const MAX_TRANSFER_RECIPIENTS = 10;
+// How many of the sender's own past transfers to scan when ranking frequent
+// recipients — recent history is what matters, not the whole lifetime log.
+const FREQUENT_RECIPIENTS_SCAN = 200;
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -87,11 +99,15 @@ async function assertOwnsTarget(t: { type: "file" | "folder"; id: string }) {
   }
 }
 
+// One transfer row + its items, per recipient — every recipient gets an
+// independent request they accept/decline on their own; the underlying
+// file/folder ids are simply referenced by more than one transfer_items set
+// (the source stays owned by the sender until whichever recipient accepts).
 export async function createTransfer(input: {
   targets: { type: "file" | "folder"; id: string }[];
-  recipientId: string;
+  recipientIds: string[];
   mode: TransferMode;
-}): Promise<{ id: string }> {
+}): Promise<{ ids: string[] }> {
   const { id: senderId } = await requireActiveUser();
 
   const targets = input.targets ?? [];
@@ -99,51 +115,41 @@ export async function createTransfer(input: {
   if (targets.length > MAX_TRANSFER_ITEMS) {
     throw new Error(`Poți trimite cel mult ${MAX_TRANSFER_ITEMS} elemente.`);
   }
-  assertId(input.recipientId, "Destinatar invalid.");
-  if (input.recipientId === senderId) {
+  const recipientIds = [...new Set(input.recipientIds ?? [])];
+  if (recipientIds.length === 0) throw new Error("Alege cel puțin un destinatar.");
+  if (recipientIds.length > MAX_TRANSFER_RECIPIENTS) {
+    throw new Error(`Poți trimite cel mult către ${MAX_TRANSFER_RECIPIENTS} utilizatori odată.`);
+  }
+  for (const id of recipientIds) assertId(id, "Destinatar invalid.");
+  if (recipientIds.includes(senderId)) {
     throw new Error("Nu poți trimite un transfer către tine însuți.");
   }
   if (input.mode !== "copy" && input.mode !== "move") {
     throw new Error("Mod de transfer invalid.");
   }
+  // A move deletes the sender's originals the instant ONE recipient accepts —
+  // with several recipients, everyone else's pending request would then point
+  // at files that no longer exist. Copy has no such conflict.
+  if (input.mode === "move" && recipientIds.length > 1) {
+    throw new Error("Mutarea definitivă este permisă doar către un singur destinatar.");
+  }
 
   for (const t of targets) await assertOwnsTarget(t);
 
-  // profiles RLS is self-or-admin-only, so the sender can't read the
-  // recipient's row through their own session — verify existence + grab the
-  // username (for the notification) via the service role.
+  // profiles RLS is self-or-admin-only, so the sender can't read another
+  // user's row through their own session — verify existence + grab
+  // usernames (for notifications) via the service role, in one batch.
   const admin = createAdminClient();
-  const { data: recipient } = await admin
+  const { data: recipientRows } = await admin
     .from("profiles")
-    .select("username")
-    .eq("id", input.recipientId)
-    .maybeSingle();
-  if (!recipient) throw new Error("Utilizator inexistent.");
-
-  const supabase = await createClient();
-  const { data: transfer, error } = await supabase
-    .from("transfers")
-    .insert({ sender_id: senderId, recipient_id: input.recipientId, mode: input.mode })
-    .select("id")
-    .single();
-  if (error) throw error;
-
-  const rows = targets.map((t) => ({
-    transfer_id: transfer.id as string,
-    file_id: t.type === "file" ? t.id : null,
-    folder_id: t.type === "folder" ? t.id : null,
-  }));
-  const { error: itemsError } = await supabase.from("transfer_items").insert(rows);
-  if (itemsError) {
-    // Roll back the orphan transfer row so we never leave an empty request.
-    await supabase.from("transfers").delete().eq("id", transfer.id);
-    throw itemsError;
+    .select("id, username")
+    .in("id", recipientIds);
+  const recipients = (recipientRows ?? []) as { id: string; username: string }[];
+  if (recipients.length !== recipientIds.length) {
+    throw new Error("Unul sau mai mulți utilizatori nu există.");
   }
 
-  const folderCount = targets.filter((t) => t.type === "folder").length;
-  const fileCount = targets.filter((t) => t.type === "file").length;
-  const label = transferItemLabel(folderCount, fileCount);
-
+  const supabase = await createClient();
   const { data: sender } = await supabase
     .from("profiles")
     .select("username")
@@ -151,22 +157,82 @@ export async function createTransfer(input: {
     .single();
   const senderUsername = (sender?.username as string | undefined) ?? "Un utilizator";
 
-  await notifyUserEvent(
-    input.recipientId,
-    "transfer_request",
-    { utilizator: senderUsername, elemente: label },
-    "/transfers",
-  );
-  const { data: authUser } = await admin.auth.admin.getUserById(input.recipientId);
-  if (authUser.user?.email) {
-    void sendTransferRequest({
-      email: authUser.user.email,
-      senderUsername,
-      itemLabel: label,
-    }).catch(() => {});
+  const folderCount = targets.filter((t) => t.type === "folder").length;
+  const fileCount = targets.filter((t) => t.type === "file").length;
+  const label = transferItemLabel(folderCount, fileCount);
+
+  const ids: string[] = [];
+  for (const recipient of recipients) {
+    const { data: transfer, error } = await supabase
+      .from("transfers")
+      .insert({ sender_id: senderId, recipient_id: recipient.id, mode: input.mode })
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    const rows = targets.map((t) => ({
+      transfer_id: transfer.id as string,
+      file_id: t.type === "file" ? t.id : null,
+      folder_id: t.type === "folder" ? t.id : null,
+    }));
+    const { error: itemsError } = await supabase.from("transfer_items").insert(rows);
+    if (itemsError) {
+      // Roll back this one orphan transfer row so we never leave it empty —
+      // any recipients already created before it stay valid.
+      await supabase.from("transfers").delete().eq("id", transfer.id);
+      throw itemsError;
+    }
+    ids.push(transfer.id as string);
+
+    await notifyUserEvent(
+      recipient.id,
+      "transfer_request",
+      { utilizator: senderUsername, elemente: label },
+      "/transfers",
+    );
+    const { data: authUser } = await admin.auth.admin.getUserById(recipient.id);
+    if (authUser.user?.email) {
+      void sendTransferRequest({
+        email: authUser.user.email,
+        senderUsername,
+        itemLabel: label,
+      }).catch(() => {});
+    }
   }
 
-  return { id: transfer.id as string };
+  return { ids };
+}
+
+// Recipients the caller has sent to most often, most-recent-first among ties
+// — lets the picker surface "usually sent to X" without the user searching
+// again. Reads only the caller's own transfers (their own RLS session).
+export async function getFrequentRecipients(): Promise<UserSearchResult[]> {
+  const { id: senderId } = await requireActiveUser();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("transfers")
+    .select("recipient_id")
+    .eq("sender_id", senderId)
+    .order("created_at", { ascending: false })
+    .limit(FREQUENT_RECIPIENTS_SCAN);
+  const rows = (data ?? []) as { recipient_id: string }[];
+  if (rows.length === 0) return [];
+
+  const order: string[] = []; // first-seen order == most-recent order
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    if (!counts.has(r.recipient_id)) order.push(r.recipient_id);
+    counts.set(r.recipient_id, (counts.get(r.recipient_id) ?? 0) + 1);
+  }
+  const ranked = order
+    .sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0))
+    .slice(0, 5);
+
+  const admin = createAdminClient();
+  const usernames = await usernamesOf(admin, ranked);
+  return ranked
+    .filter((id) => usernames.has(id))
+    .map((id) => ({ id, username: usernames.get(id)! }));
 }
 
 // ---- Lists ---------------------------------------------------------------
@@ -198,7 +264,7 @@ export async function listReceivedTransfers(): Promise<ReceivedTransferView[]> {
   const supabase = await createClient();
   const { data: rows, error } = await supabase
     .from("transfers")
-    .select("id, sender_id, mode, created_at, expires_at")
+    .select("id, sender_id, mode, created_at, expires_at, progress_done, progress_total")
     .eq("recipient_id", userId)
     .eq("status", "pending")
     .order("created_at", { ascending: false });
@@ -209,6 +275,8 @@ export async function listReceivedTransfers(): Promise<ReceivedTransferView[]> {
     mode: TransferMode;
     created_at: string;
     expires_at: string;
+    progress_done: number;
+    progress_total: number | null;
   }[];
   if (transfers.length === 0) return [];
 
@@ -233,6 +301,8 @@ export async function listReceivedTransfers(): Promise<ReceivedTransferView[]> {
       fileCount: c.files,
       createdAt: t.created_at,
       expiresAt: t.expires_at,
+      progressDone: t.progress_done,
+      progressTotal: t.progress_total,
     };
   });
 }
@@ -243,7 +313,9 @@ export async function listSentTransfers(): Promise<SentTransferView[]> {
   const supabase = await createClient();
   const { data: rows, error } = await supabase
     .from("transfers")
-    .select("id, recipient_id, mode, status, created_at, expires_at, resolved_at")
+    .select(
+      "id, recipient_id, mode, status, created_at, expires_at, resolved_at, progress_done, progress_total",
+    )
     .eq("sender_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -255,6 +327,8 @@ export async function listSentTransfers(): Promise<SentTransferView[]> {
     created_at: string;
     expires_at: string;
     resolved_at: string | null;
+    progress_done: number;
+    progress_total: number | null;
   }[];
   if (transfers.length === 0) return [];
 
@@ -281,6 +355,8 @@ export async function listSentTransfers(): Promise<SentTransferView[]> {
       createdAt: t.created_at,
       expiresAt: t.expires_at,
       resolvedAt: t.resolved_at,
+      progressDone: t.progress_done,
+      progressTotal: t.progress_total,
     };
   });
 }
@@ -439,11 +515,14 @@ async function insertFolderDeduped(
 // Copy every resolved item into the recipient's drive. Writes go through the
 // RECIPIENT's own session (repo.insertFile/insertFolder) — the caller of
 // acceptTransfer IS the recipient, so the normal owner-scoped insert policy
-// covers it; only the reads above needed the service role.
+// covers it; only the reads above needed the service role. `onFileDone` fires
+// after each individual file lands, with its byte size — acceptTransfer uses
+// it to stream progress into the transfers row.
 async function copyResolvedItems(
   items: ResolvedItem[],
   recipientId: string,
   destFolderId: string | null,
+  onFileDone: (bytes: number) => void,
 ): Promise<void> {
   for (const it of items) {
     if (it.kind === "file") {
@@ -457,8 +536,9 @@ async function copyResolvedItems(
         storage_key: destKey,
         folder_id: destFolderId,
       });
+      onFileDone(it.file.size);
     } else {
-      await copyTreeRecursive(it.tree, recipientId, destFolderId);
+      await copyTreeRecursive(it.tree, recipientId, destFolderId, onFileDone);
     }
   }
 }
@@ -466,6 +546,7 @@ async function copyTreeRecursive(
   node: SrcFolder,
   recipientId: string,
   destParentId: string | null,
+  onFileDone: (bytes: number) => void,
 ): Promise<void> {
   const created = await insertFolderDeduped(recipientId, node.name, destParentId);
   for (const f of node.files) {
@@ -479,8 +560,11 @@ async function copyTreeRecursive(
       storage_key: destKey,
       folder_id: created.id,
     });
+    onFileDone(f.size);
   }
-  for (const sub of node.folders) await copyTreeRecursive(sub, recipientId, created.id);
+  for (const sub of node.folders) {
+    await copyTreeRecursive(sub, recipientId, created.id, onFileDone);
+  }
 }
 
 // Move mode: delete the sender's originals — ONLY called after every item has
@@ -505,6 +589,72 @@ async function deleteSenderOriginals(
       await admin.from("folders").delete().eq("owner_id", senderId).eq("id", it.folderId);
     }
   }
+}
+
+// ---- Browsable contents (preview-only, pending transfers) ----------------
+
+// Mirrors buildFolderTree/buildFullPageData in server/share/service.ts:
+// presign an inline URL for every previewable file, best-effort in parallel,
+// and log the read as egress under the SENDER (the file's actual owner) —
+// browsing a pending transfer reads the sender's B2 objects same as a share
+// preview would.
+async function buildContentFileNode(senderId: string, f: SrcFile): Promise<TransferFileNode> {
+  const previewKind = sharePreviewKind(f.name);
+  const previewUrl = previewKind ? await presignInline(f.storageKey) : null;
+  if (previewUrl) {
+    after(() => logEgress(f.size, "preview", { userId: senderId, fileId: f.id }));
+  }
+  return { name: f.name, size: f.size, previewKind, previewUrl };
+}
+
+async function buildContentFolderNode(senderId: string, node: SrcFolder): Promise<TransferFolderNode> {
+  const [files, folders] = await Promise.all([
+    Promise.all(node.files.map((f) => buildContentFileNode(senderId, f))),
+    Promise.all(node.folders.map((sub) => buildContentFolderNode(senderId, sub))),
+  ]);
+  return { id: node.id, name: node.name, files, folders };
+}
+
+// Preview-only browsable contents of a still-PENDING transfer, visible to
+// either party (sender re-checking what they sent, recipient deciding
+// whether to accept) — never on a resolved transfer, and never a download
+// URL: items only actually land in the recipient's drive via acceptTransfer.
+export async function getTransferContents(transferId: string): Promise<TransferContents> {
+  const { id: userId } = await requireActiveUser();
+  assertId(transferId, "Transfer invalid.");
+  const admin = createAdminClient();
+
+  const { data: row } = await admin
+    .from("transfers")
+    .select("id, sender_id, recipient_id, status")
+    .eq("id", transferId)
+    .maybeSingle();
+  if (!row) throw new Error("Cerere de transfer inexistentă.");
+  const transfer = row as { id: string; sender_id: string; recipient_id: string; status: string };
+  if (transfer.sender_id !== userId && transfer.recipient_id !== userId) {
+    throw new Error("Cerere de transfer inexistentă.");
+  }
+  if (transfer.status !== "pending") {
+    throw new Error("Conținutul nu mai este disponibil pentru o cerere rezolvată.");
+  }
+
+  const { data: itemRows } = await admin
+    .from("transfer_items")
+    .select("file_id, folder_id")
+    .eq("transfer_id", transfer.id);
+  const resolved = await resolveTransferItems(
+    admin,
+    transfer.sender_id,
+    (itemRows ?? []) as { file_id: string | null; folder_id: string | null }[],
+  );
+
+  const files: TransferFileNode[] = [];
+  const folders: TransferFolderNode[] = [];
+  for (const it of resolved) {
+    if (it.kind === "file") files.push(await buildContentFileNode(transfer.sender_id, it.file));
+    else folders.push(await buildContentFolderNode(transfer.sender_id, it.tree));
+  }
+  return { files, folders };
 }
 
 // ---- Accept / decline / cancel --------------------------------------------
@@ -577,7 +727,30 @@ export async function acceptTransfer(
     };
   }
 
-  await copyResolvedItems(resolved, recipientId, destinationFolderId);
+  // Mark the row as actively processing — both parties' clients are already
+  // subscribed to `transfers` via Realtime, so this flips their UI from
+  // Refuză/Acceptă straight into a live progress bar for the whole copy.
+  await admin
+    .from("transfers")
+    .update({ progress_total: totalBytes, progress_done: 0 })
+    .eq("id", transfer.id);
+
+  // Stream progress as files land, throttled so a folder with hundreds of
+  // small files doesn't turn into hundreds of writes — one every ~400ms is
+  // plenty smooth for a progress bar, plus we always flush the final value.
+  let doneBytes = 0;
+  let lastWriteAt = 0;
+  const PROGRESS_THROTTLE_MS = 400;
+  const onFileDone = (bytes: number) => {
+    doneBytes += bytes;
+    const now = Date.now();
+    if (now - lastWriteAt < PROGRESS_THROTTLE_MS) return;
+    lastWriteAt = now;
+    void admin.from("transfers").update({ progress_done: doneBytes }).eq("id", transfer.id);
+  };
+
+  await copyResolvedItems(resolved, recipientId, destinationFolderId, onFileDone);
+  await admin.from("transfers").update({ progress_done: doneBytes }).eq("id", transfer.id);
 
   if (transfer.mode === "move") {
     await deleteSenderOriginals(admin, transfer.sender_id, resolved);
