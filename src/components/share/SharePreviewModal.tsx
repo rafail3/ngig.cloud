@@ -37,9 +37,13 @@ export type SharePreviewTarget = {
 export function SharePreviewModal({
   target,
   onClose,
+  lockScroll = true,
 }: {
   target: SharePreviewTarget | null;
   onClose: () => void;
+  // False when the caller already owns the body scroll lock (e.g. this modal
+  // is nested inside another modal) — see InfoModal's identical prop.
+  lockScroll?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -49,7 +53,9 @@ export function SharePreviewModal({
 
   const tree = (
     <AnimatePresence>
-      {target && <Lightbox key="lightbox" target={target} onClose={onClose} />}
+      {target && (
+        <Lightbox key="lightbox" target={target} onClose={onClose} lockScroll={lockScroll} />
+      )}
     </AnimatePresence>
   );
 
@@ -60,21 +66,23 @@ export function SharePreviewModal({
 function Lightbox({
   target,
   onClose,
+  lockScroll,
 }: {
   target: SharePreviewTarget;
   onClose: () => void;
+  lockScroll: boolean;
 }) {
   const { url, kind, name } = target;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
+    if (lockScroll) document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      if (lockScroll) document.body.style.overflow = "";
     };
-  }, [onClose]);
+  }, [onClose, lockScroll]);
 
   const download = () => window.open(url, "_blank", "noopener");
 

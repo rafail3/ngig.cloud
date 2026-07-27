@@ -706,3 +706,112 @@ export async function sendStorageAlert(input: {
 
   if (error) throw new Error("Nu am putut trimite alerta.");
 }
+
+// Sent to a recipient when someone sends them a direct file/folder transfer —
+// they must accept or decline it from /transfers.
+export async function sendTransferRequest(input: {
+  email: string;
+  senderUsername: string;
+  itemLabel: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const url = `${appOrigin()}/transfers`;
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Salut,<br/><strong style="color:#fafafa">${escapeHtml(input.senderUsername)}</strong>
+      vrea să-ți trimită <strong style="color:#fafafa">${escapeHtml(input.itemLabel)}</strong>.
+      Poți accepta sau refuza cererea din contul tău.
+    </p>
+    ${button(url, "Vezi cererea")}
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: `${input.senderUsername} vrea să-ți trimită fișiere — ngig.cloud`,
+    text: [
+      "Salut,",
+      `${input.senderUsername} vrea să-ți trimită ${input.itemLabel}.`,
+      "Poți accepta sau refuza cererea din contul tău.",
+      "",
+      `Vezi cererea: ${url}`,
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Cerere de transfer", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite emailul.");
+}
+
+// Sent to the SENDER when the recipient accepts their transfer.
+export async function sendTransferAccepted(input: {
+  email: string;
+  recipientUsername: string;
+  itemLabel: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const url = `${appOrigin()}/transfers`;
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Salut,<br/><strong style="color:#fafafa">${escapeHtml(input.recipientUsername)}</strong>
+      a acceptat transferul tău (${escapeHtml(input.itemLabel)}).
+    </p>
+    ${button(url, "Vezi transferurile")}
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: `${input.recipientUsername} a acceptat transferul tău — ngig.cloud`,
+    text: [
+      "Salut,",
+      `${input.recipientUsername} a acceptat transferul tău (${input.itemLabel}).`,
+      "",
+      `Vezi transferurile: ${url}`,
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Transfer acceptat", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite emailul.");
+}
+
+// Sent to the SENDER when the recipient declines their transfer.
+export async function sendTransferDeclined(input: {
+  email: string;
+  itemLabel: string;
+}): Promise<void> {
+  if (!API_KEY) throw new Error("Email indisponibil (config lipsă).");
+  const resend = new Resend(API_KEY);
+
+  const url = `${appOrigin()}/transfers`;
+  const inner = `
+    <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.5">
+      Salut,<br/>Destinatarul a refuzat transferul tău (${escapeHtml(input.itemLabel)}).
+    </p>
+    ${button(url, "Vezi transferurile")}
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: input.email,
+    subject: "Transferul tău a fost refuzat — ngig.cloud",
+    text: [
+      "Salut,",
+      `Destinatarul a refuzat transferul tău (${input.itemLabel}).`,
+      "",
+      `Vezi transferurile: ${url}`,
+      "",
+      "— ngig.cloud",
+    ].join("\n"),
+    html: shell("Transfer refuzat", inner),
+  });
+
+  if (error) throw new Error("Nu am putut trimite emailul.");
+}

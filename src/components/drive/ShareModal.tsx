@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { ModalShell } from "./anim";
 import { ShareQr } from "@/components/share/ShareQr";
+import { SendTransferPanel } from "@/components/transfer/SendTransferPanel";
 import { createShareLinkAction } from "@/app/drive-actions";
 import {
   EXPIRY_PRESETS,
@@ -48,6 +49,7 @@ export function ShareModal({
 }) {
   const subtitle =
     targets.length === 1 ? targets[0].name : `${targets.length} elemente`;
+  const [tab, setTab] = useState<"link" | "send">("link");
   const [preset, setPreset] = useState<ExpiryPreset>(DEFAULT_EXPIRY);
   const [customOn, setCustomOn] = useState(false);
   const [customValue, setCustomValue] = useState("");
@@ -149,25 +151,36 @@ export function ShareModal({
         </div>
       </div>
 
-      {/* Tabs — "Trimite utilizator" arrives in Faza B */}
+      {/* Tabs */}
       <div className="mt-5 flex gap-1.5 rounded-xl border border-zinc-800 bg-zinc-950/40 p-1.5">
-        <span className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-zinc-800 px-3 py-2.5 text-sm font-medium text-zinc-100 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setTab("link")}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+            tab === "link" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+          }`}
+        >
           <Link2 className="h-4 w-4" />
           Link public
-        </span>
-        <span
-          className="flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm text-zinc-600"
-          title="Disponibil în curând"
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("send")}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+            tab === "send" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+          }`}
         >
           <Send className="h-4 w-4" />
           Trimite
-          <span className="rounded bg-zinc-800/80 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
-            curând
-          </span>
-        </span>
+        </button>
       </div>
 
-      {generated ? (
+      {tab === "send" ? (
+        <SendTransferPanel
+          targets={targets.map((t) => ({ type: t.type, id: t.id }))}
+          onClose={onClose}
+        />
+      ) : generated ? (
         <GeneratedView
           generated={generated}
           copied={copied}

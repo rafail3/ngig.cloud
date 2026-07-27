@@ -5,7 +5,7 @@ import { MotionConfig } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, ShieldCheck, UserRound, Trash2, Archive, LifeBuoy, Link2 } from "lucide-react";
+import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, ShieldCheck, UserRound, Trash2, Archive, LifeBuoy, Link2, Send } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { dashboardOrigin } from "@/lib/dashboard";
 import { formatBytes } from "@/lib/format";
@@ -30,6 +30,7 @@ type NavItem = {
   icon: React.ReactNode;
   adminOnly?: boolean;
   soon?: boolean;
+  badge?: number;
 };
 
 const NAV: NavItem[] = [
@@ -37,6 +38,7 @@ const NAV: NavItem[] = [
   { href: "/archive", label: "Arhivă", icon: <Archive className="h-[18px] w-[18px]" /> },
   { href: "/trash", label: "Coș", icon: <Trash2 className="h-[18px] w-[18px]" /> },
   { href: "/links", label: "Linkuri", icon: <Link2 className="h-[18px] w-[18px]" /> },
+  { href: "/transfers", label: "Transferuri", icon: <Send className="h-[18px] w-[18px]" /> },
   { href: "/profil", label: "Profil", icon: <UserRound className="h-[18px] w-[18px]" /> },
   { href: "/support", label: "Suport", icon: <LifeBuoy className="h-[18px] w-[18px]" /> },
   {
@@ -77,9 +79,11 @@ function DrawerStorage() {
 
 export function AppShell({
   user,
+  pendingTransfers = 0,
   children,
 }: {
   user: ShellUser;
+  pendingTransfers?: number;
   children: React.ReactNode;
 }) {
   // The sidebar is an overlay drawer on every screen size, opened by the burger
@@ -89,7 +93,9 @@ export function AppShell({
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
   const pathname = usePathname();
-  const items = NAV.filter((i) => !i.adminOnly || user.role === "admin");
+  const items = NAV.filter((i) => !i.adminOnly || user.role === "admin").map((i) =>
+    i.href === "/transfers" ? { ...i, badge: pendingTransfers } : i,
+  );
 
   // Warm the drive data caches in the background once per session. (The Office
   // editor's api.js is warmed by OfficeStatusProvider, which is what learns the
@@ -263,6 +269,11 @@ export function AppShell({
                   {item.icon}
                 </span>
                 <span>{item.label}</span>
+                {!!item.badge && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-500 px-1.5 text-[11px] font-semibold tabular-nums text-white">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
