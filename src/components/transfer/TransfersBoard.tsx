@@ -33,6 +33,7 @@ import { revalidateDrive } from "@/components/drive/useDriveData";
 import { FolderPickerModal } from "@/components/drive/FolderPickerModal";
 import { Avatar } from "@/components/shell/Avatar";
 import { expiryLabel } from "@/lib/share";
+import { formatDateShort } from "@/lib/format-date";
 import {
   TRANSFER_STATUS_LABEL,
   type ReceivedTransferView,
@@ -74,6 +75,22 @@ function ModeBadge({ mode }: { mode: "copy" | "move" }) {
     <span className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/50 px-2 py-0.5 text-[11px] font-medium text-zinc-400">
       {mode === "copy" ? <CopyIcon className="h-3 w-3" /> : <Scissors className="h-3 w-3" />}
       {mode === "copy" ? "Copie" : "Mutare"}
+    </span>
+  );
+}
+
+// A live "still pending" chip — pulsing dot + remaining time, matching the
+// public share page's expiry pill so the same visual language carries across
+// the whole sharing/transfer surface.
+function LiveExpiryChip({ text }: { text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-950/50 px-2.5 py-1 text-[11px] font-medium text-zinc-400">
+      <span className="relative flex h-1.5 w-1.5" aria-hidden>
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70 motion-reduce:hidden" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400" />
+      </span>
+      <Clock className="h-3 w-3" />
+      {text}
     </span>
   );
 }
@@ -237,7 +254,7 @@ export function TransfersBoard() {
         ) : received.length === 0 ? (
           <Empty icon={Inbox} text="Nicio cerere primită în așteptare." />
         ) : (
-          <ul className="space-y-3">
+          <ul className="space-y-3.5">
             <AnimatePresence initial={false} mode="popLayout">
               {received.map((row, i) => (
                 <motion.li
@@ -248,36 +265,38 @@ export function TransfersBoard() {
                   animate="show"
                   exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
                   layout
-                  className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 shadow-sm transition-colors hover:border-zinc-700 hover:bg-zinc-900/60"
+                  className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 shadow-lg shadow-black/10 backdrop-blur-sm transition-colors hover:border-zinc-700"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-50/15 to-transparent" />
+
+                  <div className="flex items-start gap-4 p-5">
                     <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
                     <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1.5 text-sm text-zinc-400">
-                        <Avatar username={row.senderUsername} className="h-5 w-5 text-[10px]" />
-                        <span className="truncate font-semibold text-zinc-100">
+                      <p className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-indigo-400/80">
+                        <Avatar username={row.senderUsername} className="h-4 w-4 text-[9px]" />
+                        <span className="normal-case text-sm text-zinc-100">
                           {row.senderUsername}
                         </span>
-                        <span className="shrink-0">vrea să-ți trimită</span>
-                      </p>
-                      <p className="mt-0.5 truncate text-sm font-medium text-zinc-200">
-                        {row.itemLabel}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <ModeBadge mode={row.mode} />
-                        <span className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/50 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
-                          <Clock className="h-3 w-3" />
-                          {row.expiryText}
+                        <span className="font-medium normal-case text-zinc-500">
+                          vrea să-ți trimită
                         </span>
+                      </p>
+                      <h3 className="mt-1 truncate text-base font-bold leading-tight text-zinc-50">
+                        {row.itemLabel}
+                      </h3>
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                        <ModeBadge mode={row.mode} />
+                        <LiveExpiryChip text={row.expiryText} />
                       </div>
                     </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+
+                  <div className="flex flex-wrap justify-end gap-2 border-t border-zinc-800/80 bg-zinc-950/30 p-4">
                     <button
                       type="button"
                       onClick={() => decline(row)}
                       disabled={busyId === row.id}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
                     >
                       <X className="h-4 w-4" />
                       Refuză
@@ -286,7 +305,7 @@ export function TransfersBoard() {
                       type="button"
                       onClick={() => setAccepting(row)}
                       disabled={busyId === row.id}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3.5 py-2 text-sm font-medium text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-400 disabled:opacity-60"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500 disabled:opacity-60"
                     >
                       <Check className="h-4 w-4" />
                       Acceptă
@@ -302,63 +321,77 @@ export function TransfersBoard() {
       ) : sent.length === 0 ? (
         <Empty icon={SendIcon} text="Niciun transfer trimis." />
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-3.5">
           <AnimatePresence initial={false} mode="popLayout">
-            {sent.map((row, i) => (
-              <motion.li
-                key={row.id}
-                custom={i}
-                variants={cardEnter}
-                initial="hidden"
-                animate="show"
-                exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
-                layout
-                className={`rounded-2xl border p-4 shadow-sm transition-colors ${
-                  row.status === "pending"
-                    ? "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/60"
-                    : "border-zinc-800/70 bg-zinc-900/20"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
-                  <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-1.5 text-sm text-zinc-400">
-                      <Avatar username={row.recipientUsername} className="h-5 w-5 text-[10px]" />
-                      <span className="truncate font-semibold text-zinc-100">
-                        {row.recipientUsername}
-                      </span>
-                    </p>
-                    <p className="mt-0.5 truncate text-sm font-medium text-zinc-200">
-                      {row.itemLabel}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      <ModeBadge mode={row.mode} />
-                      <StatusBadge status={row.status} />
-                      {row.status === "pending" && (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/50 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
-                          <Clock className="h-3 w-3" />
-                          {row.expiryText}
+            {sent.map((row, i) => {
+              const resolved = row.status !== "pending";
+              return (
+                <motion.li
+                  key={row.id}
+                  custom={i}
+                  variants={cardEnter}
+                  initial="hidden"
+                  animate="show"
+                  exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
+                  layout
+                  className={`relative overflow-hidden rounded-2xl border shadow-lg shadow-black/10 backdrop-blur-sm transition-colors ${
+                    resolved
+                      ? "border-zinc-800/60 bg-zinc-900/30 opacity-80"
+                      : "border-zinc-800 bg-zinc-900/60 hover:border-zinc-700"
+                  }`}
+                >
+                  {!resolved && (
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-50/15 to-transparent" />
+                  )}
+
+                  <div className="flex items-start gap-4 p-5">
+                    <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                        <Avatar username={row.recipientUsername} className="h-4 w-4 text-[9px]" />
+                        <span className="normal-case text-sm text-zinc-100">
+                          {row.recipientUsername}
                         </span>
-                      )}
+                      </p>
+                      <h3 className="mt-1 truncate text-base font-bold leading-tight text-zinc-50">
+                        {row.itemLabel}
+                      </h3>
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                        <ModeBadge mode={row.mode} />
+                        <StatusBadge status={row.status} />
+                        {row.status === "pending" ? (
+                          <LiveExpiryChip text={row.expiryText} />
+                        ) : (
+                          row.resolvedAt && (
+                            <span className="text-[11px] text-zinc-600">
+                              {TRANSFER_STATUS_LABEL[row.status]} pe{" "}
+                              {formatDateShort(row.resolvedAt)}
+                            </span>
+                          )
+                        )}
+                      </div>
                     </div>
                   </div>
+
                   {row.status === "pending" && (
-                    <button
-                      type="button"
-                      onClick={() => cancel(row)}
-                      disabled={busyId === row.id}
-                      className="shrink-0 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
-                    >
-                      {busyId === row.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "Anulează"
-                      )}
-                    </button>
+                    <div className="flex justify-end border-t border-zinc-800/80 bg-zinc-950/30 p-4">
+                      <button
+                        type="button"
+                        onClick={() => cancel(row)}
+                        disabled={busyId === row.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
+                      >
+                        {busyId === row.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Anulează cererea"
+                        )}
+                      </button>
+                    </div>
                   )}
-                </div>
-              </motion.li>
-            ))}
+                </motion.li>
+              );
+            })}
           </AnimatePresence>
         </ul>
       )}
