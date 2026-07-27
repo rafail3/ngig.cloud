@@ -69,6 +69,29 @@ export function SelectionProvider({
     setPrevFolder(folderId);
     setSelected(new Map());
   }
+
+  // Prune any selected item that no longer exists in the current folder — e.g.
+  // it was moved out from under the user because a "move" transfer they'd sent
+  // got accepted. `items` is the full (unfiltered) folder listing, so this only
+  // reacts to real data changes, never to the search filter. Same
+  // adjust-during-render pattern as the folder reset above: comparing the
+  // `items` array's own identity (stable across re-renders unless the
+  // underlying SWR data actually changed) avoids re-running on every render.
+  const [prevItems, setPrevItems] = useState(items);
+  if (items !== prevItems) {
+    setPrevItems(items);
+    const validKeys = new Set(items.map(selKey));
+    setSelected((prev) => {
+      if (prev.size === 0) return prev;
+      let changed = false;
+      const next = new Map<string, SelItem>();
+      for (const [k, v] of prev) {
+        if (validKeys.has(k)) next.set(k, v);
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }
   const anchor = useRef<string | null>(null);
   // Mirror the latest items + selection size into refs so the click handler reads
   // current values without being recreated on every render.

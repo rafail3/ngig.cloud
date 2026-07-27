@@ -31,6 +31,8 @@ export function UserSearchInput({
     // A too-short query is handled synchronously in the change handler below —
     // nothing to do here (setState directly in an effect body is disallowed).
     if (q.length < 2) return;
+    // Short debounce — just enough to skip a fetch per keystroke while still
+    // feeling close to instant.
     const t = setTimeout(async () => {
       const res = await searchUsersAction(q);
       if ("revoked" in res) {
@@ -39,7 +41,7 @@ export function UserSearchInput({
       }
       setResults(res);
       setLoading(false);
-    }, 250);
+    }, 100);
     return () => clearTimeout(t);
   }, [query]);
 
