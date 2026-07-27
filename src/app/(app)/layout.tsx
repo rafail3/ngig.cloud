@@ -29,15 +29,25 @@ async function Shell({ children }: { children: React.ReactNode }) {
   let username = "";
   let role = "";
   let isSuperAdmin = false;
+  let pendingTransfers = 0;
 
   if (userId) {
-    const profile = (
-      await supabase
+    const [profileRes, transfersRes] = await Promise.all([
+      supabase
         .from("profiles")
         .select("username, role, last_seen_at, is_super_admin")
         .eq("id", userId)
-        .single()
-    ).data;
+        .single(),
+      // Nav badge: how many transfer requests are waiting for this user to
+      // accept/decline. RLS-scoped (recipient reading their own count).
+      supabase
+        .from("transfers")
+        .select("id", { count: "exact", head: true })
+        .eq("recipient_id", userId)
+        .eq("status", "pending"),
+    ]);
+    const profile = profileRes.data;
+    pendingTransfers = transfersRes.count ?? 0;
 
     // Heartbeat for "online" status (throttled inside the helper).
     if (profile) {
@@ -53,7 +63,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AppShell user={{ username, role, email, isSuperAdmin }}>
+    <AppShell user={{ username, role, email, isSuperAdmin }} pendingTransfers={pendingTransfers}>
       {children}
     </AppShell>
   );
