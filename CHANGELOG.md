@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.38.0](https://github.com/rafail3/ngig.cloud/compare/v2.37.0...v2.38.0) (2026-07-27)
+
+
+### Features
+
+* **share:** faza B — password, download limit, QR, access notifications ([e3a68ef](https://github.com/rafail3/ngig.cloud/commit/e3a68ef754315061c165e7ccbc22ff69df4a11ef))
+* **share:** Faza B backend — password, download limit, access notif ([1b34a61](https://github.com/rafail3/ngig.cloud/commit/1b34a61a3f7820f9706c0a09a80d6461ae6dd3a0))
+* **share:** Faza B UI — password/limit/notify options, QR, unlock gate ([69ab3b9](https://github.com/rafail3/ngig.cloud/commit/69ab3b9b61869f6763c504b327b0b2c3d216d5cd))
+
+
+### Bug Fixes
+
+* **share:** off-by-one on the last allowed download + polished refusal page ([ad482fe](https://github.com/rafail3/ngig.cloud/commit/ad482fec59d910fa08aed8628116da03f5148d7a))
+
 ## [2.37.0](https://github.com/rafail3/ngig.cloud/compare/v2.36.0...v2.37.0) (2026-07-24)
 
 
