@@ -3,17 +3,24 @@
 import { useEffect, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import {
   Inbox,
   Send as SendIcon,
   Folder,
   File as FileIcon,
+  Layers,
   Copy as CopyIcon,
   Scissors,
   Check,
   X,
   Loader2,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Ban,
+  History,
 } from "lucide-react";
 import {
   listReceivedTransfersAction,
@@ -36,13 +43,31 @@ import {
 type ReceivedRow = ReceivedTransferView & { expiryText: string };
 type SentRow = SentTransferView & { expiryText: string };
 
-const STATUS_STYLE: Record<TransferStatus, string> = {
-  pending: "border-amber-500/20 bg-amber-500/5 text-amber-300",
-  accepted: "border-emerald-500/20 bg-emerald-500/5 text-emerald-300",
-  declined: "border-red-500/20 bg-red-500/5 text-red-300",
-  cancelled: "border-zinc-800 bg-zinc-950/50 text-zinc-500",
-  expired: "border-zinc-800 bg-zinc-950/50 text-zinc-500",
+const STATUS_META: Record<
+  TransferStatus,
+  { icon: typeof Clock; className: string }
+> = {
+  pending: { icon: Clock, className: "border-amber-500/25 bg-amber-500/10 text-amber-300" },
+  accepted: {
+    icon: CheckCircle2,
+    className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300",
+  },
+  declined: { icon: XCircle, className: "border-red-500/25 bg-red-500/10 text-red-300" },
+  cancelled: { icon: Ban, className: "border-zinc-700/60 bg-zinc-900/60 text-zinc-500" },
+  expired: { icon: History, className: "border-zinc-700/60 bg-zinc-900/60 text-zinc-500" },
 };
+
+function StatusBadge({ status }: { status: TransferStatus }) {
+  const { icon: Icon, className } = STATUS_META[status];
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${className}`}
+    >
+      <Icon className="h-3 w-3" />
+      {TRANSFER_STATUS_LABEL[status]}
+    </span>
+  );
+}
 
 function ModeBadge({ mode }: { mode: "copy" | "move" }) {
   return (
@@ -54,13 +79,23 @@ function ModeBadge({ mode }: { mode: "copy" | "move" }) {
 }
 
 function ItemIcon({ folderCount, fileCount }: { folderCount: number; fileCount: number }) {
-  const Icon = folderCount > 0 && fileCount === 0 ? Folder : FileIcon;
+  const Icon =
+    folderCount > 0 && fileCount > 0 ? Layers : folderCount > 0 ? Folder : FileIcon;
   return (
-    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/15 to-violet-500/10 text-indigo-300">
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/15 to-violet-500/10 text-indigo-300 shadow-inner">
       <Icon className="h-5 w-5" />
     </span>
   );
 }
+
+const cardEnter = {
+  hidden: { opacity: 0, y: 8 },
+  show: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const, delay: Math.min(i, 6) * 0.04 },
+  }),
+};
 
 export function TransfersBoard() {
   const [tab, setTab] = useState<"received" | "sent">("received");
@@ -168,7 +203,7 @@ export function TransfersBoard() {
 
   return (
     <div>
-      <div className="mb-5 flex gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-1.5">
+      <div className="mb-5 flex gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-1.5 shadow-sm">
         <button
           type="button"
           onClick={() => setTab("received")}
@@ -200,98 +235,131 @@ export function TransfersBoard() {
         received === null ? (
           <Loading />
         ) : received.length === 0 ? (
-          <Empty text="Nicio cerere primită în așteptare." />
+          <Empty icon={Inbox} text="Nicio cerere primită în așteptare." />
         ) : (
           <ul className="space-y-3">
-            {received.map((row) => (
-              <li
-                key={row.id}
-                className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
-                  <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-zinc-100">
-                      <Avatar username={row.senderUsername} className="h-5 w-5 text-[10px]" />
-                      {row.senderUsername}
-                    </p>
-                    <p className="mt-0.5 truncate text-sm text-zinc-400">
-                      vrea să-ți trimită {row.itemLabel}
-                    </p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <ModeBadge mode={row.mode} />
-                      <span className="text-[11px] text-zinc-600">{row.expiryText}</span>
+            <AnimatePresence initial={false} mode="popLayout">
+              {received.map((row, i) => (
+                <motion.li
+                  key={row.id}
+                  custom={i}
+                  variants={cardEnter}
+                  initial="hidden"
+                  animate="show"
+                  exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
+                  layout
+                  className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 shadow-sm transition-colors hover:border-zinc-700 hover:bg-zinc-900/60"
+                >
+                  <div className="flex items-start gap-3">
+                    <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 text-sm text-zinc-400">
+                        <Avatar username={row.senderUsername} className="h-5 w-5 text-[10px]" />
+                        <span className="truncate font-semibold text-zinc-100">
+                          {row.senderUsername}
+                        </span>
+                        <span className="shrink-0">vrea să-ți trimită</span>
+                      </p>
+                      <p className="mt-0.5 truncate text-sm font-medium text-zinc-200">
+                        {row.itemLabel}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <ModeBadge mode={row.mode} />
+                        <span className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/50 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
+                          <Clock className="h-3 w-3" />
+                          {row.expiryText}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="mt-3 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => decline(row)}
-                    disabled={busyId === row.id}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
-                  >
-                    <X className="h-4 w-4" />
-                    Refuză
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAccepting(row)}
-                    disabled={busyId === row.id}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
-                  >
-                    <Check className="h-4 w-4" />
-                    Acceptă
-                  </button>
-                </div>
-              </li>
-            ))}
+                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => decline(row)}
+                      disabled={busyId === row.id}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
+                    >
+                      <X className="h-4 w-4" />
+                      Refuză
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAccepting(row)}
+                      disabled={busyId === row.id}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3.5 py-2 text-sm font-medium text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-400 disabled:opacity-60"
+                    >
+                      <Check className="h-4 w-4" />
+                      Acceptă
+                    </button>
+                  </div>
+                </motion.li>
+              ))}
+            </AnimatePresence>
           </ul>
         )
       ) : sent === null ? (
         <Loading />
       ) : sent.length === 0 ? (
-        <Empty text="Niciun transfer trimis." />
+        <Empty icon={SendIcon} text="Niciun transfer trimis." />
       ) : (
         <ul className="space-y-3">
-          {sent.map((row) => (
-            <li
-              key={row.id}
-              className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 shadow-sm"
-            >
-              <div className="flex items-center gap-3">
-                <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-zinc-100">
-                    <Avatar username={row.recipientUsername} className="h-5 w-5 text-[10px]" />
-                    {row.recipientUsername}
-                  </p>
-                  <p className="mt-0.5 truncate text-sm text-zinc-400">{row.itemLabel}</p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <ModeBadge mode={row.mode} />
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLE[row.status]}`}
-                    >
-                      {TRANSFER_STATUS_LABEL[row.status]}
-                    </span>
-                    {row.status === "pending" && (
-                      <span className="text-[11px] text-zinc-600">{row.expiryText}</span>
-                    )}
+          <AnimatePresence initial={false} mode="popLayout">
+            {sent.map((row, i) => (
+              <motion.li
+                key={row.id}
+                custom={i}
+                variants={cardEnter}
+                initial="hidden"
+                animate="show"
+                exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
+                layout
+                className={`rounded-2xl border p-4 shadow-sm transition-colors ${
+                  row.status === "pending"
+                    ? "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/60"
+                    : "border-zinc-800/70 bg-zinc-900/20"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1.5 text-sm text-zinc-400">
+                      <Avatar username={row.recipientUsername} className="h-5 w-5 text-[10px]" />
+                      <span className="truncate font-semibold text-zinc-100">
+                        {row.recipientUsername}
+                      </span>
+                    </p>
+                    <p className="mt-0.5 truncate text-sm font-medium text-zinc-200">
+                      {row.itemLabel}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <ModeBadge mode={row.mode} />
+                      <StatusBadge status={row.status} />
+                      {row.status === "pending" && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/50 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
+                          <Clock className="h-3 w-3" />
+                          {row.expiryText}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  {row.status === "pending" && (
+                    <button
+                      type="button"
+                      onClick={() => cancel(row)}
+                      disabled={busyId === row.id}
+                      className="shrink-0 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
+                    >
+                      {busyId === row.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Anulează"
+                      )}
+                    </button>
+                  )}
                 </div>
-                {row.status === "pending" && (
-                  <button
-                    type="button"
-                    onClick={() => cancel(row)}
-                    disabled={busyId === row.id}
-                    className="shrink-0 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
-                  >
-                    Anulează
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
+              </motion.li>
+            ))}
+          </AnimatePresence>
         </ul>
       )}
 
@@ -327,9 +395,12 @@ function Loading() {
   );
 }
 
-function Empty({ text }: { text: string }) {
+function Empty({ icon: Icon, text }: { icon: typeof Inbox; text: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-14 text-center">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/50 text-zinc-500">
+        <Icon className="h-7 w-7" />
+      </div>
       <p className="text-sm text-zinc-500">{text}</p>
     </div>
   );
