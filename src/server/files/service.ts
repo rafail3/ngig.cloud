@@ -679,6 +679,29 @@ export async function createUpload(input: {
   return { mode: "multipart", key, uploadId, partSize: PART_SIZE, partUrls };
 }
 
+// Longest side of a generated thumbnail is 320px at JPEG q0.72, which lands
+// well under this. The cap is a guard against a hostile client parking real
+// files under the thumbs prefix, where nothing counts them against quota.
+const MAX_THUMB_BYTES = 512 * 1024;
+
+// Presign the upload of a browser-generated thumbnail. Kept separate from
+// createUpload on purpose: thumbnails skip the quota check and the blocked-type
+// gate (they are ours, not the user's file), so they must NOT be able to reuse
+// the path that grants those exemptions to an arbitrary name and size.
+export async function createThumbUpload(input: {
+  size: number;
+}): Promise<{ key: string; url: string }> {
+  const { id: userId } = await requireActiveUser();
+  if (input.size <= 0 || input.size > MAX_THUMB_BYTES) {
+    throw new Error("Miniatură invalidă.");
+  }
+  // Own prefix under the user, so the account-wipe prefix sweep still catches
+  // it and it is trivially distinguishable from real uploads.
+  const key = `${userId}/thumbs/${randomUUID()}`;
+  const url = await presignUpload(key, "image/jpeg");
+  return { key, url };
+}
+
 // Resume a multipart upload after a page refresh: re-presign every part (the
 // original URLs may have expired) and report which parts B2 already has so the
 // client only re-uploads the missing ones.
@@ -738,9 +761,16 @@ export async function confirmUpload(input: {
   contentType: string;
   key: string;
   folderId: string | null;
+  thumbKey?: string | null;
 }) {
   const { id: userId, maxFile, maxTotal } = await requireActiveUser();
   if (!input.key.startsWith(`${userId}/`)) throw new Error("Cheie invalidă.");
+  // Same ownership rule as the file key: a caller must not be able to point a
+  // row's thumbnail at another user's object.
+  const thumbKey =
+    input.thumbKey && input.thumbKey.startsWith(`${userId}/thumbs/`)
+      ? input.thumbKey
+      : null;
 
   // Trust B2, not the client. Reading the object's real size closes a quota
   // bypass (presign small, upload large, confirm small) and confirms it exists.
@@ -767,7 +797,17 @@ export async function confirmUpload(input: {
     mime_type: stat.contentType ?? input.contentType ?? null,
     storage_key: input.key,
     folder_id: input.folderId,
+    thumb_key: thumbKey,
   });
+}
+
+// The thumbnail key for a file the caller owns, or null. The read goes through
+// the caller's own session, so RLS is what enforces ownership — /api/thumb
+// relies on this returning null for someone else's file.
+export async function getFileThumbKey(id: string): Promise<string | null> {
+  await requireActiveUser();
+  const file = await repo.getFileById(id);
+  return file?.thumb_key ?? null;
 }
 
 export async function getDownloadUrl(id: string) {

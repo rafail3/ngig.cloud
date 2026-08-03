@@ -67,6 +67,7 @@ export function DriveBoard() {
         mimeType: f.mime_type,
         createdAt: f.created_at,
         updatedAt: f.updated_at,
+        thumbKey: f.thumb_key,
       }))}
     >
       {/* Search + filters stick to the top (just under the navbar) as you

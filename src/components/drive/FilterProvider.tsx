@@ -17,6 +17,7 @@ export type FileInput = {
   name: string;
   size: number;
   mimeType: string | null;
+  thumbKey?: string | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -82,6 +82,17 @@ export async function createUploadAction(input: {
   }
 }
 
+export async function createThumbUploadAction(input: {
+  size: number;
+}): Promise<{ key: string; url: string } | Revoked> {
+  try {
+    return await files.createThumbUpload(input);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
 export async function completeUploadAction(input: {
   key: string;
   uploadId: string;
@@ -127,6 +138,7 @@ export async function confirmUploadAction(input: {
   contentType: string;
   key: string;
   folderId: string | null;
+  thumbKey?: string | null;
 }): Promise<Revoked | void> {
   try {
     await files.confirmUpload(input);

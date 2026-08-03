@@ -100,7 +100,43 @@ type FileItem = {
   mimeType: string | null;
   createdAt: string;
   updatedAt: string;
+  // Present only for images/videos uploaded after thumbnails shipped.
+  thumbKey?: string | null;
 };
+
+/* The real image in place of the type icon, in the exact same 36px box so a
+   folder of mixed files doesn't get a ragged left edge.
+
+   Falls back to the type icon if the thumbnail 404s — the row must never show a
+   broken image, and a thumbnail can legitimately go missing (B2 object pruned,
+   an old row pointing at a deleted key). Plain <img>, not next/image: these are
+   already sized and cached by the route, so the optimizer would add a hop for
+   nothing. */
+function Thumb({
+  id,
+  name,
+  mime,
+}: {
+  id: string;
+  name: string;
+  mime: string | null;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <FileTypeIcon name={name} mime={mime} />;
+  return (
+    <span className="h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/api/thumb/${id}`}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        onError={() => setFailed(true)}
+        className="h-full w-full object-cover"
+      />
+    </span>
+  );
+}
 
 // A file counts as "modified" only once its content has actually changed
 // (in-app editing) — updated_at moves past created_at. Rename/move don't.
@@ -439,6 +475,8 @@ function FileRow({
         >
           <CheckCircle2 className="h-[18px] w-[18px] text-indigo-400" />
         </span>
+      ) : file.thumbKey ? (
+        <Thumb id={file.id} name={file.name} mime={file.mimeType} />
       ) : (
         <FileTypeIcon name={file.name} mime={file.mimeType} />
       )}

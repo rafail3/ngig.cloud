@@ -207,19 +207,27 @@ export function SelectionProvider({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [selected.size, clear]);
 
-  // Ctrl/Cmd+A selects everything in the folder, as in any file manager. Skipped
-  // while focus is in a text field, so it doesn't steal "select all text".
+  // Ctrl/Cmd+A selects everything in the folder, as in any file manager, and
+  // toggles: pressing it again with everything already selected clears, so the
+  // same key undoes itself instead of being a dead repeat. Skipped while focus
+  // is in a text field, so it doesn't steal "select all text".
+  // Reads sizes from refs rather than depending on them, so the listener isn't
+  // torn down and rebound on every selection change.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "a" || !(e.ctrlKey || e.metaKey)) return;
+      if (e.key !== "a" && e.key !== "A") return;
+      if (!(e.ctrlKey || e.metaKey)) return;
       const t = e.target as HTMLElement | null;
       if (t?.closest("input, textarea, [contenteditable='true']")) return;
       e.preventDefault();
-      selectAll();
+      const list = itemsRef.current;
+      const everything = list.length > 0 && selectedRef.current.size >= list.length;
+      if (everything) clear();
+      else selectAll();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [selectAll]);
+  }, [selectAll, clear]);
 
   const value = useMemo<SelectionCtx>(
     () => ({
