@@ -1,29 +1,54 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Copy as CopyIcon, ArrowRightLeft, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  Send,
+  Copy as CopyIcon,
+  ArrowRightLeft,
+  Loader2,
+  CheckCircle2,
+  Folder,
+  File as FileIcon,
+  Plus,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { createTransferAction } from "@/app/(app)/transfers/actions";
 import { UserSearchInput } from "./UserSearchInput";
+import { FilePickerModal, type PickedTarget } from "./FilePickerModal";
 import type { UserSearchResult, TransferMode } from "@/lib/transfer";
 import type { ShareTargetType } from "@/lib/share";
 
 type Target = { type: ShareTargetType; id: string };
 
-// The "Trimite utilizator" panel inside the share modal: pick a recipient by
-// live username search, choose copy (default) or move, and send. The recipient
-// must accept before anything actually lands in their drive.
+// The single send-a-transfer flow, used from all three entry points:
+//  - the share modal's "Trimite" tab   → targets given, recipients empty
+//  - a user's public profile           → targets null, recipient prefilled
+//  - the /transfers page               → targets null, recipients empty
+//
+// `targets = null` means "the files aren't chosen yet" and turns on an extra
+// Fișiere section backed by FilePickerModal. Keeping ONE component means the
+// validation, the copy/move rule and the send path can't drift between entry
+// points.
 export function SendTransferPanel({
   targets,
+  initialRecipients = [],
   onClose,
 }: {
-  targets: Target[];
+  targets: Target[] | null;
+  initialRecipients?: UserSearchResult[];
   onClose: () => void;
 }) {
-  const [recipients, setRecipients] = useState<UserSearchResult[]>([]);
+  const [recipients, setRecipients] = useState<UserSearchResult[]>(initialRecipients);
   const [mode, setMode] = useState<TransferMode>("copy");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [picked, setPicked] = useState<PickedTarget[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Either the caller supplied the targets, or the user picked them here.
+  const effectiveTargets: Target[] =
+    targets ?? picked.map((p) => ({ type: p.type, id: p.id }));
 
   const multiple = recipients.length > 1;
   // Move only makes sense with exactly one destination — derived so a stale
@@ -39,13 +64,17 @@ export function SendTransferPanel({
   }
 
   async function send() {
+    if (effectiveTargets.length === 0) {
+      toast.error("Alege ce vrei să trimiți.");
+      return;
+    }
     if (recipients.length === 0) {
       toast.error("Alege cel puțin un destinatar.");
       return;
     }
     setBusy(true);
     const res = await createTransferAction({
-      targets,
+      targets: effectiveTargets,
       recipientIds: recipients.map((r) => r.id),
       mode: effectiveMode,
     });
@@ -98,6 +127,51 @@ export function SendTransferPanel({
   return (
     <div className="mt-4">
       <div className="space-y-4">
+        {targets === null && (
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Fișiere
+            </p>
+            {picked.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {picked.map((p) => (
+                  <span
+                    key={`${p.type}:${p.id}`}
+                    className="flex max-w-full items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-950/40 py-1 pl-2.5 pr-1.5 text-xs font-medium text-zinc-300"
+                  >
+                    {p.type === "folder" ? (
+                      <Folder className="h-3 w-3 shrink-0 text-indigo-400" aria-hidden />
+                    ) : (
+                      <FileIcon className="h-3 w-3 shrink-0 text-zinc-500" aria-hidden />
+                    )}
+                    <span className="truncate">{p.name}</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPicked((prev) =>
+                          prev.filter((x) => !(x.type === p.type && x.id === p.id)),
+                        )
+                      }
+                      aria-label={`Scoate ${p.name}`}
+                      className="rounded-full p-0.5 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-zinc-700 bg-zinc-950/40 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-indigo-400/50 hover:bg-indigo-500/[0.06] hover:text-indigo-300"
+            >
+              <Plus className="h-4 w-4" />
+              {picked.length > 0 ? "Modifică selecția" : "Alege fișiere sau foldere"}
+            </button>
+          </div>
+        )}
+
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Destinatari
@@ -158,13 +232,24 @@ export function SendTransferPanel({
         <button
           type="button"
           onClick={send}
-          disabled={busy || recipients.length === 0}
+          disabled={busy || recipients.length === 0 || effectiveTargets.length === 0}
           className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {busy ? "Se trimite…" : "Trimite"}
         </button>
       </div>
+
+      {pickerOpen && (
+        <FilePickerModal
+          initial={picked}
+          onCancel={() => setPickerOpen(false)}
+          onConfirm={(next) => {
+            setPicked(next);
+            setPickerOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
