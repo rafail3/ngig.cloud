@@ -31,6 +31,20 @@ export function transferItemLabel(folderCount: number, fileCount: number): strin
   return filesPhrase(fileCount);
 }
 
+// What a transfer card leads with. "1 folder" is a count, not information —
+// the name is what the user actually recognises. Falls back to the count label
+// when the names are gone (a completed MOVE cascades its item rows away, so
+// old history genuinely has nothing left to name).
+export function transferTitle(
+  names: string[],
+  folderCount: number,
+  fileCount: number,
+): string {
+  if (names.length === 0) return transferItemLabel(folderCount, fileCount);
+  if (names.length === 1) return names[0];
+  return `${names[0]} +${names.length - 1}`;
+}
+
 export const TRANSFER_STATUS_LABEL: Record<TransferStatus, string> = {
   pending: "În așteptare",
   accepted: "Acceptat",
@@ -44,6 +58,9 @@ export type ReceivedTransferView = {
   senderUsername: string;
   mode: TransferMode;
   itemLabel: string;
+  // Names of the items being sent, for the card title. Empty once the source
+  // rows are gone (see transferTitle).
+  itemNames: string[];
   folderCount: number;
   fileCount: number;
   createdAt: string;
@@ -59,6 +76,9 @@ export type SentTransferView = {
   recipientUsername: string;
   mode: TransferMode;
   itemLabel: string;
+  // Names of the items being sent, for the card title. Empty once the source
+  // rows are gone (see transferTitle).
+  itemNames: string[];
   folderCount: number;
   fileCount: number;
   status: TransferStatus;

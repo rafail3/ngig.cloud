@@ -22,6 +22,7 @@ import {
   Ban,
   History,
   FolderOpen,
+  Plus,
 } from "lucide-react";
 import {
   listReceivedTransfersAction,
@@ -33,18 +34,29 @@ import {
 import { revalidateDrive } from "@/components/drive/useDriveData";
 import { FolderPickerModal } from "@/components/drive/FolderPickerModal";
 import { TransferContentsModal } from "@/components/transfer/TransferContentsModal";
+import { SendTransferModal } from "@/components/transfer/SendTransferModal";
 import { Avatar } from "@/components/shell/Avatar";
 import { expiryLabel } from "@/lib/share";
 import { formatDateShort } from "@/lib/format-date";
 import {
   TRANSFER_STATUS_LABEL,
+  transferTitle,
   type ReceivedTransferView,
   type SentTransferView,
   type TransferStatus,
+  type TransferMode,
 } from "@/lib/transfer";
+import { FileTypeIcon } from "@/components/drive/FileTypeIcon";
 
 type ReceivedRow = ReceivedTransferView & { expiryText: string };
 type SentRow = SentTransferView & { expiryText: string };
+
+// Under a day left — the expiry line turns amber. Read at render time from the
+// already-fetched timestamp, so it stays honest as the page sits open.
+const URGENT_MS = 24 * 60 * 60 * 1000;
+function isUrgent(expiresAt: string): boolean {
+  return new Date(expiresAt).getTime() - Date.now() < URGENT_MS;
+}
 
 const STATUS_META: Record<
   TransferStatus,
@@ -56,60 +68,23 @@ const STATUS_META: Record<
     className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300",
   },
   declined: { icon: XCircle, className: "border-red-500/25 bg-red-500/10 text-red-300" },
-  cancelled: { icon: Ban, className: "border-zinc-700/60 bg-zinc-900/60 text-zinc-500" },
-  expired: { icon: History, className: "border-zinc-700/60 bg-zinc-900/60 text-zinc-500" },
+  cancelled: { icon: Ban, className: "border-zinc-700/60 bg-zinc-900/60 text-zinc-300" },
+  expired: { icon: History, className: "border-zinc-700/60 bg-zinc-900/60 text-zinc-300" },
 };
 
-function StatusBadge({ status }: { status: TransferStatus }) {
-  const { icon: Icon, className } = STATUS_META[status];
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${className}`}
-    >
-      <Icon className="h-3 w-3" />
-      {TRANSFER_STATUS_LABEL[status]}
-    </span>
-  );
-}
-
-function ModeBadge({ mode }: { mode: "copy" | "move" }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/50 px-2 py-0.5 text-[11px] font-medium text-zinc-400">
-      {mode === "copy" ? <CopyIcon className="h-3 w-3" /> : <ArrowRightLeft className="h-3 w-3" />}
-      {mode === "copy" ? "Copie" : "Mutare"}
-    </span>
-  );
-}
-
-// A live "still pending" chip — pulsing dot + remaining time, matching the
-// public share page's expiry pill so the same visual language carries across
-// the whole sharing/transfer surface.
-function LiveExpiryChip({ text }: { text: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-950/50 px-2.5 py-1 text-[11px] font-medium text-zinc-400">
-      <span className="relative flex h-1.5 w-1.5" aria-hidden>
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70 motion-reduce:hidden" />
-        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400" />
-      </span>
-      <Clock className="h-3 w-3" />
-      {text}
-    </span>
-  );
-}
-
 // Opens TransferContentsModal — shown only on pending transfers (either tab),
-// where the sender's original items still exist to browse. A real bordered
-// button (not a text link) so it doesn't get lost next to the mode/expiry
-// chips — especially noticeable on folder transfers, the main use case.
+// where the sender's original items still exist to browse. Sits in the same
+// action band as Refuză/Acceptă, styled one step quieter than them.
 function ViewContentsButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950/40 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-indigo-400/50 hover:bg-indigo-500/10 hover:text-indigo-300"
+      title="Vezi conținutul"
+      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-3 py-2 text-sm font-medium text-zinc-400 transition hover:border-indigo-400/50 hover:bg-indigo-500/10 hover:text-indigo-300"
     >
-      <FolderOpen className="h-3.5 w-3.5" />
-      Vezi conținutul
+      <FolderOpen className="h-4 w-4" />
+      <span className="hidden lg:inline">Conținut</span>
     </button>
   );
 }
@@ -176,12 +151,147 @@ function CompletedRow({ itemLabel }: { itemLabel: string }) {
   );
 }
 
-function ItemIcon({ folderCount, fileCount }: { folderCount: number; fileCount: number }) {
-  const Icon =
-    folderCount > 0 && fileCount > 0 ? Layers : folderCount > 0 ? Folder : FileIcon;
+// A single file shows its real drive icon (same component, same colour coding as
+// the file list) so it's recognisable at a glance; folders and mixed bundles get
+// a matching chip in the same box.
+function TransferIcon({
+  folderCount,
+  fileCount,
+  firstName,
+}: {
+  folderCount: number;
+  fileCount: number;
+  firstName: string | undefined;
+}) {
+  const singleFile = folderCount === 0 && fileCount === 1 && firstName;
+  if (singleFile) return <FileTypeIcon name={firstName} size="sm" />;
+
+  const Icon = folderCount > 0 && fileCount > 0 ? Layers : folderCount > 0 ? Folder : FileIcon;
   return (
-    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/15 to-violet-500/10 text-indigo-300 shadow-inner">
-      <Icon className="h-5 w-5" />
+    <span
+      aria-hidden
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400"
+    >
+      <Icon className="h-4 w-4" />
+    </span>
+  );
+}
+
+/* The transfer card, shared by both tabs.
+
+   Hierarchy fix: the NAME of what's being sent leads, because that's what the
+   user recognises — the old card made "1 folder" the largest text, which is a
+   count, not information, and forced a click into "Vezi conținutul" just to
+   learn which folder it was. Everything else (who, mode, expiry) collapses into
+   one dot-separated meta line instead of a row of competing chips, and all
+   actions live in a single band rather than being scattered over two levels. */
+function TransferCard({
+  title,
+  counterpartPrefix,
+  counterpartUsername,
+  mode,
+  folderCount,
+  fileCount,
+  firstName,
+  expiryText,
+  urgent,
+  itemLabel,
+  progress,
+  actions,
+  index,
+}: {
+  title: string;
+  counterpartPrefix: string;
+  counterpartUsername: string;
+  mode: TransferMode;
+  folderCount: number;
+  fileCount: number;
+  firstName: string | undefined;
+  expiryText: string;
+  urgent: boolean;
+  itemLabel: string;
+  progress: { done: number; total: number | null } | null;
+  actions: React.ReactNode;
+  index: number;
+}) {
+  // No overflow-hidden on the card: nothing needs clipping now that the
+  // hairline is gone, and it only risked cutting glyphs mid layout-animation.
+  return (
+    <motion.li
+      custom={index}
+      variants={cardEnter}
+      initial="hidden"
+      animate="show"
+      exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
+      layout
+      className="group relative rounded-xl border border-zinc-800 bg-zinc-900/50 transition-colors hover:border-zinc-700 hover:bg-zinc-900/70"
+    >
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <TransferIcon
+            folderCount={folderCount}
+            fileCount={fileCount}
+            firstName={firstName}
+          />
+          <div className="min-w-0 flex-1">
+            {/* leading-6, not leading-snug: `truncate` clips at the line box,
+                and a tight line-height cuts the marks on ă/î/ș/ț. */}
+            <p className="truncate text-[15px] font-semibold leading-6 text-zinc-50">
+              {title}
+            </p>
+            {/* One meta line, not a chip row: who → what kind → how long left.
+                zinc-400 is the floor here: this line carries real information,
+                and zinc-500/600 on this surface land at ~3.9:1 and ~2.4:1,
+                under the 4.5:1 minimum. Emphasis comes from weight and colour
+                temperature, never from dimming the supporting words. */}
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] leading-5 text-zinc-400">
+              <span>{counterpartPrefix}</span>
+              <Avatar username={counterpartUsername} className="h-4 w-4 text-[9px]" />
+              <span className="font-medium text-zinc-100">{counterpartUsername}</span>
+              <Dot />
+              <span className="inline-flex items-center gap-1">
+                {mode === "copy" ? (
+                  <CopyIcon className="h-3.5 w-3.5" />
+                ) : (
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                )}
+                {mode === "copy" ? "Copie" : "Mutare"}
+              </span>
+              <Dot />
+              <span>{itemLabel}</span>
+              <Dot />
+              {/* Colour follows urgency, and the word "Expiră" carries the
+                  meaning either way — never colour alone. */}
+              <span
+                className={`inline-flex items-center gap-1 ${
+                  urgent ? "font-medium text-amber-400" : ""
+                }`}
+              >
+                <Clock className="h-3.5 w-3.5" />
+                {expiryText}
+              </span>
+            </p>
+            {progress && (
+              <TransferProgressBar done={progress.done} total={progress.total} />
+            )}
+          </div>
+        </div>
+
+        {actions && (
+          <div className="flex shrink-0 items-center gap-2 sm:pl-2">{actions}</div>
+        )}
+      </div>
+    </motion.li>
+  );
+}
+
+// Decorative separator only, so it may sit below text contrast — but zinc-700
+// was invisible against the card. zinc-600 reads as a separator without
+// competing with the words either side.
+function Dot() {
+  return (
+    <span aria-hidden className="text-zinc-600">
+      ·
     </span>
   );
 }
@@ -203,6 +313,7 @@ export function TransfersBoard() {
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [completedRow, setCompletedRow] = useState<ReceivedRow | null>(null);
   const [viewing, setViewing] = useState<{ id: string; itemLabel: string } | null>(null);
+  const [composing, setComposing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   async function loadReceived() {
@@ -327,12 +438,25 @@ export function TransfersBoard() {
 
   return (
     <div>
+      {/* Sending starts here too, not only from a file's "Partajează" menu —
+          you pick the files inside the modal instead. */}
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setComposing(true)}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500 sm:w-auto"
+        >
+          <Plus className="h-4 w-4" />
+          Trimite fișiere
+        </button>
+      </div>
+
       <div className="mb-5 flex gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-1.5 shadow-sm">
         <button
           type="button"
           onClick={() => setTab("received")}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-            tab === "received" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+            tab === "received" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-400 hover:text-zinc-100"
           }`}
         >
           <Inbox className="h-4 w-4" />
@@ -347,7 +471,7 @@ export function TransfersBoard() {
           type="button"
           onClick={() => setTab("sent")}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-            tab === "sent" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+            tab === "sent" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-400 hover:text-zinc-100"
           }`}
         >
           <SendIcon className="h-4 w-4" />
@@ -369,78 +493,58 @@ export function TransfersBoard() {
               {received
                 .filter((r) => r.id !== completedRow?.id)
                 .map((row, i) => {
-                const inProgress = row.id === acceptingId || row.progressTotal != null;
-                return (
-                <motion.li
-                  key={row.id}
-                  custom={i}
-                  variants={cardEnter}
-                  initial="hidden"
-                  animate="show"
-                  exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
-                  layout
-                  className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 shadow-lg shadow-black/10 backdrop-blur-sm transition-colors hover:border-zinc-700"
-                >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-50/15 to-transparent" />
-
-                  <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-                    <div className="flex min-w-0 flex-1 items-start gap-4">
-                      <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
-                      <div className="min-w-0 flex-1">
-                        <p className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-indigo-400/80">
-                          <Avatar username={row.senderUsername} className="h-4 w-4 text-[9px]" />
-                          <span className="normal-case text-sm text-zinc-100">
-                            {row.senderUsername}
-                          </span>
-                          <span className="font-medium normal-case text-zinc-500">
-                            vrea să-ți trimită
-                          </span>
-                        </p>
-                        <h3 className="mt-1 truncate text-base font-bold leading-tight text-zinc-50">
-                          {row.itemLabel}
-                        </h3>
-                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                          <ModeBadge mode={row.mode} />
-                          <LiveExpiryChip text={row.expiryText} />
-                        </div>
-                        {!inProgress && (
-                          <div className="mt-2">
+                  const inProgress = row.id === acceptingId || row.progressTotal != null;
+                  return (
+                    <TransferCard
+                      key={row.id}
+                      index={i}
+                      title={transferTitle(row.itemNames, row.folderCount, row.fileCount)}
+                      counterpartPrefix="de la"
+                      counterpartUsername={row.senderUsername}
+                      mode={row.mode}
+                      folderCount={row.folderCount}
+                      fileCount={row.fileCount}
+                      firstName={row.itemNames[0]}
+                      expiryText={row.expiryText}
+                      urgent={isUrgent(row.expiresAt)}
+                      itemLabel={row.itemLabel}
+                      progress={
+                        inProgress
+                          ? { done: row.progressDone, total: row.progressTotal }
+                          : null
+                      }
+                      actions={
+                        inProgress ? null : (
+                          <>
                             <ViewContentsButton
-                              onClick={() => setViewing({ id: row.id, itemLabel: row.itemLabel })}
+                              onClick={() =>
+                                setViewing({ id: row.id, itemLabel: row.itemLabel })
+                              }
                             />
-                          </div>
-                        )}
-                        {inProgress && (
-                          <TransferProgressBar done={row.progressDone} total={row.progressTotal} />
-                        )}
-                      </div>
-                    </div>
-
-                    {!inProgress && (
-                      <div className="flex shrink-0 gap-2 sm:pl-2">
-                        <button
-                          type="button"
-                          onClick={() => decline(row)}
-                          disabled={busyId === row.id}
-                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60 sm:flex-none"
-                        >
-                          <X className="h-4 w-4" />
-                          Refuză
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setAccepting(row)}
-                          disabled={busyId === row.id}
-                          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500 disabled:opacity-60 sm:flex-none"
-                        >
-                          <Check className="h-4 w-4" />
-                          Acceptă
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </motion.li>
-              );})}
+                            <button
+                              type="button"
+                              onClick={() => decline(row)}
+                              disabled={busyId === row.id}
+                              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
+                            >
+                              <X className="h-4 w-4" />
+                              Refuză
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAccepting(row)}
+                              disabled={busyId === row.id}
+                              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500 disabled:opacity-60"
+                            >
+                              <Check className="h-4 w-4" />
+                              Acceptă
+                            </button>
+                          </>
+                        )
+                      }
+                    />
+                  );
+                })}
             </AnimatePresence>
           </ul>
         )
@@ -449,90 +553,12 @@ export function TransfersBoard() {
       ) : sent.length === 0 ? (
         <Empty icon={SendIcon} text="Niciun transfer trimis." />
       ) : (
-        <ul className="space-y-3.5">
-          <AnimatePresence initial={false} mode="popLayout">
-            {sent.map((row, i) => {
-              const resolved = row.status !== "pending";
-              const inProgress = row.status === "pending" && row.progressTotal != null;
-              return (
-                <motion.li
-                  key={row.id}
-                  custom={i}
-                  variants={cardEnter}
-                  initial="hidden"
-                  animate="show"
-                  exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
-                  layout
-                  className={`relative overflow-hidden rounded-2xl border shadow-lg shadow-black/10 backdrop-blur-sm transition-colors ${
-                    resolved
-                      ? "border-zinc-800/60 bg-zinc-900/30 opacity-80"
-                      : "border-zinc-800 bg-zinc-900/60 hover:border-zinc-700"
-                  }`}
-                >
-                  {!resolved && (
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-50/15 to-transparent" />
-                  )}
-
-                  <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-                    <div className="flex min-w-0 flex-1 items-start gap-4">
-                      <ItemIcon folderCount={row.folderCount} fileCount={row.fileCount} />
-                      <div className="min-w-0 flex-1">
-                        <p className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                          <Avatar username={row.recipientUsername} className="h-4 w-4 text-[9px]" />
-                          <span className="normal-case text-sm text-zinc-100">
-                            {row.recipientUsername}
-                          </span>
-                        </p>
-                        <h3 className="mt-1 truncate text-base font-bold leading-tight text-zinc-50">
-                          {row.itemLabel}
-                        </h3>
-                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                          <ModeBadge mode={row.mode} />
-                          <StatusBadge status={row.status} />
-                          {row.status === "pending" ? (
-                            <LiveExpiryChip text={row.expiryText} />
-                          ) : (
-                            row.resolvedAt && (
-                              <span className="text-[11px] text-zinc-600">
-                                {TRANSFER_STATUS_LABEL[row.status]} pe{" "}
-                                {formatDateShort(row.resolvedAt)}
-                              </span>
-                            )
-                          )}
-                        </div>
-                        {row.status === "pending" && !inProgress && (
-                          <div className="mt-2">
-                            <ViewContentsButton
-                              onClick={() => setViewing({ id: row.id, itemLabel: row.itemLabel })}
-                            />
-                          </div>
-                        )}
-                        {inProgress && (
-                          <TransferProgressBar done={row.progressDone} total={row.progressTotal} />
-                        )}
-                      </div>
-                    </div>
-
-                    {row.status === "pending" && !inProgress && (
-                      <button
-                        type="button"
-                        onClick={() => cancel(row)}
-                        disabled={busyId === row.id}
-                        className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
-                      >
-                        {busyId === row.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          "Anulează cererea"
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
-        </ul>
+        <SentList
+          rows={sent}
+          busyId={busyId}
+          onCancel={cancel}
+          onViewContents={(row) => setViewing({ id: row.id, itemLabel: row.itemLabel })}
+        />
       )}
 
       {accepting && (
@@ -559,7 +585,196 @@ export function TransfersBoard() {
           onClose={() => setViewing(null)}
         />
       )}
+
+      {composing && (
+        <SendTransferModal
+          subtitle="Alege ce trimiți și cui"
+          onClose={() => {
+            setComposing(false);
+            void loadSent();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+/* The "Trimise" list.
+
+   Spatial thesis: what is ACTIONABLE outranks what is ARCHIVAL. A pending
+   request can still be cancelled, still shows live expiry, and may be mid-copy
+   — it earns a full card. A resolved one is a receipt: it is read at a glance,
+   never acted on, and there can be many. Giving both the same card was the
+   thing that made the page read as eight identical blocks.
+
+   So: cards for pending, a dense single-line row per resolved transfer, under a
+   quiet section header. The tight/generous contrast is what creates the rhythm;
+   the resolved rows also drop out of the list a day after resolution (server
+   side), so this section stays short. */
+function SentList({
+  rows,
+  busyId,
+  onCancel,
+  onViewContents,
+}: {
+  rows: SentRow[];
+  busyId: string | null;
+  onCancel: (row: SentRow) => void;
+  onViewContents: (row: SentRow) => void;
+}) {
+  const pending = rows.filter((r) => r.status === "pending");
+  const resolved = rows.filter((r) => r.status !== "pending");
+
+  return (
+    <div className="space-y-6">
+      {pending.length > 0 && (
+        <section>
+          <SectionHeading label="În așteptare" count={pending.length} />
+          <ul className="space-y-3">
+            <AnimatePresence initial={false} mode="popLayout">
+              {pending.map((row, i) => (
+                <SentPendingCard
+                  key={row.id}
+                  row={row}
+                  index={i}
+                  busy={busyId === row.id}
+                  onCancel={() => onCancel(row)}
+                  onViewContents={() => onViewContents(row)}
+                />
+              ))}
+            </AnimatePresence>
+          </ul>
+        </section>
+      )}
+
+      {resolved.length > 0 && (
+        <section>
+          <SectionHeading label="Rezolvate recent" count={resolved.length} />
+          <ul className="overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900/20 divide-y divide-zinc-800/50">
+            <AnimatePresence initial={false}>
+              {resolved.map((row) => (
+                <SentResolvedRow key={row.id} row={row} />
+              ))}
+            </AnimatePresence>
+          </ul>
+          <p className="mt-2 text-xs text-zinc-500">
+            Transferurile rezolvate dispar din listă după o zi.
+          </p>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function SectionHeading({ label, count }: { label: string; count: number }) {
+  return (
+    <h2 className="mb-2.5 flex items-center gap-2 text-sm font-medium text-zinc-400">
+      {label}
+      <span className="rounded-full bg-zinc-800/80 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-zinc-400">
+        {count}
+      </span>
+    </h2>
+  );
+}
+
+// Full card: still cancellable, still expiring, possibly mid-copy.
+function SentPendingCard({
+  row,
+  index,
+  busy,
+  onCancel,
+  onViewContents,
+}: {
+  row: SentRow;
+  index: number;
+  busy: boolean;
+  onCancel: () => void;
+  onViewContents: () => void;
+}) {
+  const inProgress = row.progressTotal != null;
+  return (
+    <TransferCard
+      index={index}
+      title={transferTitle(row.itemNames, row.folderCount, row.fileCount)}
+      counterpartPrefix="către"
+      counterpartUsername={row.recipientUsername}
+      mode={row.mode}
+      folderCount={row.folderCount}
+      fileCount={row.fileCount}
+      firstName={row.itemNames[0]}
+      expiryText={row.expiryText}
+      urgent={isUrgent(row.expiresAt)}
+      itemLabel={row.itemLabel}
+      progress={inProgress ? { done: row.progressDone, total: row.progressTotal } : null}
+      actions={
+        inProgress ? null : (
+          <>
+            <ViewContentsButton onClick={onViewContents} />
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={busy}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Anulează"}
+            </button>
+          </>
+        )
+      }
+    />
+  );
+}
+
+// Receipt row: one line, scannable down the left edge, no card chrome. The
+// status colour lives in the icon so the row reads at a glance without a badge
+// competing with the recipient's name.
+function SentResolvedRow({ row }: { row: SentRow }) {
+  const { icon: Icon, className } = STATUS_META[row.status];
+  return (
+    <motion.li
+      layout
+      exit={{ opacity: 0, transition: { duration: 0.15 } }}
+      className="flex items-center gap-3 px-3.5 py-2.5 transition-colors hover:bg-zinc-900/40"
+    >
+      <span
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${className}`}
+        aria-hidden
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+
+      <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+        <span className="truncate text-sm font-medium leading-6 text-zinc-100">
+          {transferTitle(row.itemNames, row.folderCount, row.fileCount)}
+        </span>
+        <span className="truncate text-[13px] leading-5 text-zinc-400">
+          către {row.recipientUsername}
+        </span>
+      </div>
+
+      <span className="hidden shrink-0 items-center gap-1 text-[13px] text-zinc-400 sm:flex">
+        {row.mode === "copy" ? (
+          <CopyIcon className="h-3.5 w-3.5" />
+        ) : (
+          <ArrowRightLeft className="h-3.5 w-3.5" />
+        )}
+        {row.mode === "copy" ? "Copie" : "Mutare"}
+      </span>
+
+      {/* Status is named in text, never colour-only. */}
+      <span className="shrink-0 text-[13px] font-medium text-zinc-300">
+        {TRANSFER_STATUS_LABEL[row.status]}
+      </span>
+
+      {row.resolvedAt && (
+        <time
+          dateTime={row.resolvedAt}
+          className="hidden shrink-0 text-[13px] tabular-nums text-zinc-400 sm:block"
+        >
+          {formatDateShort(row.resolvedAt)}
+        </time>
+      )}
+    </motion.li>
   );
 }
 
@@ -577,7 +792,7 @@ function Empty({ icon: Icon, text }: { icon: typeof Inbox; text: string }) {
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/50 text-zinc-500">
         <Icon className="h-7 w-7" />
       </div>
-      <p className="text-sm text-zinc-500">{text}</p>
+      <p className="text-sm text-zinc-400">{text}</p>
     </div>
   );
 }

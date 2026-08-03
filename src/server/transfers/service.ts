@@ -165,7 +165,15 @@ export async function createTransfer(input: {
   for (const recipient of recipients) {
     const { data: transfer, error } = await supabase
       .from("transfers")
-      .insert({ sender_id: senderId, recipient_id: recipient.id, mode: input.mode })
+      .insert({
+        sender_id: senderId,
+        recipient_id: recipient.id,
+        mode: input.mode,
+        // Denormalised so the history survives the item rows cascading away
+        // when a move deletes the sender's originals.
+        folder_count: folderCount,
+        file_count: fileCount,
+      })
       .select("id")
       .single();
     if (error) throw error;
@@ -247,16 +255,61 @@ async function usernamesOf(admin: Admin, ids: string[]): Promise<Map<string, str
 
 type ItemsRow = { transfer_id: string; file_id: string | null; folder_id: string | null };
 
-function countsByTransfer(items: ItemsRow[]): Map<string, { folders: number; files: number }> {
-  const m = new Map<string, { folders: number; files: number }>();
-  for (const it of items) {
-    const c = m.get(it.transfer_id) ?? { folders: 0, files: 0 };
-    if (it.folder_id) c.folders++;
-    else c.files++;
-    m.set(it.transfer_id, c);
+// Names of each transfer's items, for the card title. Service-role: a recipient
+// can't read the sender's files/folders through their own session, and the
+// point is precisely to show them what they're being offered. Returns nothing
+// for transfers whose items already cascaded away (a completed move) — the
+// client falls back to the count label.
+async function itemNamesOf(
+  admin: Admin,
+  transferIds: string[],
+): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (transferIds.length === 0) return out;
+
+  const { data: itemRows } = await admin
+    .from("transfer_items")
+    .select("transfer_id, file_id, folder_id")
+    .in("transfer_id", transferIds);
+  const items = (itemRows ?? []) as ItemsRow[];
+  if (items.length === 0) return out;
+
+  const fileIds = [...new Set(items.map((i) => i.file_id).filter(Boolean))] as string[];
+  const folderIds = [...new Set(items.map((i) => i.folder_id).filter(Boolean))] as string[];
+
+  const [files, folders] = await Promise.all([
+    fileIds.length
+      ? admin.from("files").select("id, name").in("id", fileIds)
+      : Promise.resolve({ data: [] }),
+    folderIds.length
+      ? admin.from("folders").select("id, name").in("id", folderIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const nameById = new Map<string, string>();
+  for (const r of (files.data ?? []) as { id: string; name: string }[]) {
+    nameById.set(r.id, r.name);
   }
-  return m;
+  for (const r of (folders.data ?? []) as { id: string; name: string }[]) {
+    nameById.set(r.id, r.name);
+  }
+
+  for (const it of items) {
+    const id = it.file_id ?? it.folder_id;
+    const name = id ? nameById.get(id) : undefined;
+    if (!name) continue;
+    const arr = out.get(it.transfer_id) ?? [];
+    arr.push(name);
+    out.set(it.transfer_id, arr);
+  }
+  return out;
 }
+
+// How long a resolved transfer stays in the sender's list. The record is kept
+// forever (the frequent-recipients ranking reads it); this only controls how
+// long it keeps occupying the screen — otherwise every accepted transfer piles
+// up in the list for good.
+const SENT_HISTORY_MS = 24 * 60 * 60 * 1000;
 
 // Pending requests addressed to the caller — the actionable inbox.
 export async function listReceivedTransfers(): Promise<ReceivedTransferView[]> {
@@ -264,7 +317,9 @@ export async function listReceivedTransfers(): Promise<ReceivedTransferView[]> {
   const supabase = await createClient();
   const { data: rows, error } = await supabase
     .from("transfers")
-    .select("id, sender_id, mode, created_at, expires_at, progress_done, progress_total")
+    .select(
+      "id, sender_id, mode, created_at, expires_at, progress_done, progress_total, folder_count, file_count",
+    )
     .eq("recipient_id", userId)
     .eq("status", "pending")
     .order("created_at", { ascending: false });
@@ -277,28 +332,26 @@ export async function listReceivedTransfers(): Promise<ReceivedTransferView[]> {
     expires_at: string;
     progress_done: number;
     progress_total: number | null;
+    folder_count: number;
+    file_count: number;
   }[];
   if (transfers.length === 0) return [];
 
-  const ids = transfers.map((t) => t.id);
-  const { data: itemRows } = await supabase
-    .from("transfer_items")
-    .select("transfer_id, file_id, folder_id")
-    .in("transfer_id", ids);
-  const counts = countsByTransfer((itemRows ?? []) as ItemsRow[]);
-
   const admin = createAdminClient();
-  const usernames = await usernamesOf(admin, transfers.map((t) => t.sender_id));
+  const [usernames, names] = await Promise.all([
+    usernamesOf(admin, transfers.map((t) => t.sender_id)),
+    itemNamesOf(admin, transfers.map((t) => t.id)),
+  ]);
 
   return transfers.map((t) => {
-    const c = counts.get(t.id) ?? { folders: 0, files: 0 };
     return {
       id: t.id,
       senderUsername: usernames.get(t.sender_id) ?? "(cont șters)",
       mode: t.mode,
-      itemLabel: transferItemLabel(c.folders, c.files),
-      folderCount: c.folders,
-      fileCount: c.files,
+      itemLabel: transferItemLabel(t.folder_count, t.file_count),
+      itemNames: names.get(t.id) ?? [],
+      folderCount: t.folder_count,
+      fileCount: t.file_count,
       createdAt: t.created_at,
       expiresAt: t.expires_at,
       progressDone: t.progress_done,
@@ -307,16 +360,22 @@ export async function listReceivedTransfers(): Promise<ReceivedTransferView[]> {
   });
 }
 
-// Everything the caller has sent, any status, newest first.
+// The caller's sent transfers: everything still pending, plus anything resolved
+// within the last day. Older resolved ones drop out of the LIST (the rows stay
+// in the table) so the page shows what's live instead of a growing archive.
 export async function listSentTransfers(): Promise<SentTransferView[]> {
   const { id: userId } = await requireActiveUser();
   const supabase = await createClient();
+  const cutoff = new Date(Date.now() - SENT_HISTORY_MS).toISOString();
   const { data: rows, error } = await supabase
     .from("transfers")
     .select(
-      "id, recipient_id, mode, status, created_at, expires_at, resolved_at, progress_done, progress_total",
+      "id, recipient_id, mode, status, created_at, expires_at, resolved_at, progress_done, progress_total, folder_count, file_count",
     )
     .eq("sender_id", userId)
+    // Pending rows have no resolved_at, so the null case must be kept
+    // explicitly — a bare `gte` would filter them all out.
+    .or(`status.eq.pending,resolved_at.gte.${cutoff}`)
     .order("created_at", { ascending: false });
   if (error) throw error;
   const transfers = (rows ?? []) as {
@@ -329,28 +388,26 @@ export async function listSentTransfers(): Promise<SentTransferView[]> {
     resolved_at: string | null;
     progress_done: number;
     progress_total: number | null;
+    folder_count: number;
+    file_count: number;
   }[];
   if (transfers.length === 0) return [];
 
-  const ids = transfers.map((t) => t.id);
-  const { data: itemRows } = await supabase
-    .from("transfer_items")
-    .select("transfer_id, file_id, folder_id")
-    .in("transfer_id", ids);
-  const counts = countsByTransfer((itemRows ?? []) as ItemsRow[]);
-
   const admin = createAdminClient();
-  const usernames = await usernamesOf(admin, transfers.map((t) => t.recipient_id));
+  const [usernames, names] = await Promise.all([
+    usernamesOf(admin, transfers.map((t) => t.recipient_id)),
+    itemNamesOf(admin, transfers.map((t) => t.id)),
+  ]);
 
   return transfers.map((t) => {
-    const c = counts.get(t.id) ?? { folders: 0, files: 0 };
     return {
       id: t.id,
       recipientUsername: usernames.get(t.recipient_id) ?? "(cont șters)",
       mode: t.mode,
-      itemLabel: transferItemLabel(c.folders, c.files),
-      folderCount: c.folders,
-      fileCount: c.files,
+      itemLabel: transferItemLabel(t.folder_count, t.file_count),
+      itemNames: names.get(t.id) ?? [],
+      folderCount: t.folder_count,
+      fileCount: t.file_count,
       status: t.status,
       createdAt: t.created_at,
       expiresAt: t.expires_at,
