@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -45,6 +45,7 @@ import { FolderPickerModal } from "./FolderPickerModal";
 import { InfoModal } from "./InfoModal";
 import { ConfirmDeleteFolder } from "./FolderList";
 import { PreviewModal, type PreviewFile } from "./PreviewModal";
+import { SearchUsersSection } from "@/components/users/SearchUsersSection";
 
 type Crumb = { id: string; name: string };
 type FileHit = PreviewFile & { folderId: string | null; path: Crumb[] };
@@ -73,6 +74,11 @@ function SearchResults() {
     folders: [],
   });
   const [loading, setLoading] = useState(false);
+  // Owned by SearchUsersSection, lifted here so it can feed the result count
+  // and the empty state. useCallback keeps the child's effect from re-running
+  // on every parent render.
+  const [userCount, setUserCount] = useState(0);
+  const onUserCount = useCallback((n: number) => setUserCount(n), []);
 
   // File modals / preview.
   const [preview, setPreview] = useState<FileHit | null>(null);
@@ -219,7 +225,12 @@ function SearchResults() {
     ? []
     : [...hits.folders].sort((a, b) => fuzzyScore(q, b.name) - fuzzyScore(q, a.name));
 
-  const total = files.length + folders.length;
+  // Users are counted into the total so a query that ONLY matches a person
+  // doesn't render the "Niciun rezultat" empty state above their card. Gated on
+  // the same >=2-char rule the section itself uses, so a shrinking query zeroes
+  // the count here rather than needing a state reset inside the child.
+  const shownUsers = q.length >= 2 ? userCount : 0;
+  const total = files.length + folders.length + shownUsers;
 
   return (
     <>
@@ -334,6 +345,13 @@ function SearchResults() {
           )}
         </div>
       )}
+
+      {/* Mounted outside the branches above so it can fetch and report its
+          count even while files/folders are still empty — it renders nothing
+          of its own until it actually has people to show. */}
+      <div className="mt-5">
+        <SearchUsersSection query={q} onCount={onUserCount} />
+      </div>
 
       <AnimatePresence>
         {preview && (

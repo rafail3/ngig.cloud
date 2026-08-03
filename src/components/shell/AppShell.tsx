@@ -5,7 +5,7 @@ import { MotionConfig } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, ShieldCheck, UserRound, Trash2, Archive, LifeBuoy, Link2, Send } from "lucide-react";
+import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, ShieldCheck, UserRound, Trash2, Archive, LifeBuoy, Link2, Send, UsersRound } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { dashboardOrigin } from "@/lib/dashboard";
 import { formatBytes } from "@/lib/format";
@@ -39,6 +39,7 @@ const NAV: NavItem[] = [
   { href: "/trash", label: "Coș", icon: <Trash2 className="h-[18px] w-[18px]" /> },
   { href: "/links", label: "Linkuri", icon: <Link2 className="h-[18px] w-[18px]" /> },
   { href: "/transfers", label: "Transferuri", icon: <Send className="h-[18px] w-[18px]" /> },
+  { href: "/users", label: "Utilizatori", icon: <UsersRound className="h-[18px] w-[18px]" /> },
   { href: "/profil", label: "Profil", icon: <UserRound className="h-[18px] w-[18px]" /> },
   { href: "/support", label: "Suport", icon: <LifeBuoy className="h-[18px] w-[18px]" /> },
   {
