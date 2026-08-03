@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.40.0](https://github.com/rafail3/ngig.cloud/compare/v2.39.0...v2.40.0) (2026-08-03)
+
+
+### Features
+
+* **transfer:** rebuild the transfers list around what is actionable ([8ee253e](https://github.com/rafail3/ngig.cloud/commit/8ee253ee54670376c311c4b512310efb1e686a19))
+* **transfer:** start a transfer from anywhere, not just Partajează ([34768dc](https://github.com/rafail3/ngig.cloud/commit/34768dc4e0aac9cd5ccc0317142e18dcbf88d7d1))
+* **users:** user directory, public profiles, search integration ([5b219c0](https://github.com/rafail3/ngig.cloud/commit/5b219c0565c743139cd48156a74fe38575271ccb))
+* **users:** user directory, send-from-anywhere, transfers list rebuild ([3db180c](https://github.com/rafail3/ngig.cloud/commit/3db180c2de92b7994b4cefd18cae198bbf8e6a29))
+
 ## [2.39.0](https://github.com/rafail3/ngig.cloud/compare/v2.38.0...v2.39.0) (2026-07-27)
 
 
