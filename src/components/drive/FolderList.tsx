@@ -256,7 +256,9 @@ function FolderCard({
       // Use 1 (not undefined) for the normal state: framer-motion doesn't reset
       // opacity when the style prop becomes undefined, which left a stuck ghost.
       style={{ opacity: dimmed ? 0.4 : busy ? 0.5 : 1 }}
-      className={`group flex min-h-[66px] cursor-pointer items-center gap-1.5 rounded-xl border px-3 transition-colors ${
+      className={`group flex min-h-[66px] cursor-pointer items-center gap-1.5 rounded-xl border px-3 transition-[background-color,border-color,transform] duration-150 ${
+        longPress.pressing ? "scale-[0.97]" : ""
+      } ${
         highlight
           ? "border-indigo-400 bg-indigo-500/10 ring-2 ring-indigo-400/60"
           : selected

@@ -423,9 +423,12 @@ function FileRow({
       // Use 1 (not undefined) for the normal state: framer-motion doesn't reset
       // opacity when the style prop becomes undefined, which left a stuck ghost.
       style={{ opacity: dimmed ? 0.4 : busy ? 0.5 : 1 }}
-      className={`group flex cursor-pointer items-center gap-3 px-3.5 py-3 transition-colors ${
-        selected ? "bg-indigo-500/10" : "hover:bg-zinc-900/50"
-      }`}
+      // `longPress.pressing` gives the finger something to see during the hold
+      // — without it the row is inert for the full delay and the press reads as
+      // ignored. transform-only, so it can't reflow the list mid-scroll.
+      className={`group flex cursor-pointer items-center gap-3 px-3.5 py-3 transition-[background-color,transform] duration-150 ${
+        longPress.pressing ? "scale-[0.985] bg-zinc-800/60" : ""
+      } ${selected ? "bg-indigo-500/10" : "hover:bg-zinc-900/50"}`}
     >
       {selected ? (
         // Selected rows swap the type icon for a check — the selection reads
