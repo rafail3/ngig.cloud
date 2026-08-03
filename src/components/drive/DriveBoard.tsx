@@ -13,6 +13,7 @@ import { DriveDndProvider, CurrentFolderDropZone } from "@/components/drive/Driv
 import { SelectionProvider, type SelItem } from "@/components/drive/SelectionProvider";
 import { SelectionBar } from "@/components/drive/SelectionBar";
 import { FilterProvider, useFilter } from "@/components/drive/FilterProvider";
+import { ViewToggle } from "./ViewToggle";
 import { FilterBar } from "@/components/drive/FilterBar";
 import { DriveResults } from "@/components/drive/SearchResults";
 import { DriveSkeleton } from "@/components/drive/DriveSkeleton";
@@ -96,10 +97,13 @@ export function DriveBoard() {
                 </h1>
                 {folderId && <FolderInfoButton folderId={folderId} name={title} />}
               </div>
-              <p className="mt-1 text-sm text-zinc-500">
-                {roCount(folders.length, "folder", "foldere")}
-                <span aria-hidden="true"> · </span>
-                {roCount(files.length, "fișier", "fișiere")}
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500">
+                <span>
+                  {roCount(folders.length, "folder", "foldere")}
+                  <span aria-hidden="true"> · </span>
+                  {roCount(files.length, "fișier", "fișiere")}
+                </span>
+                <ViewToggle />
               </p>
             </div>
             <StorageMeter used={used} quota={quota} />

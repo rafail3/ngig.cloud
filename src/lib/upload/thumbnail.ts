@@ -20,7 +20,11 @@ const VIDEO_SEEK_SEC = 1;
 const VIDEO_TIMEOUT_MS = 5000;
 
 export function canThumbnail(file: File): boolean {
-  return isImage(file) || isVideo(file);
+  return isImage(file) || isVideo(file) || isPdf(file);
+}
+
+function isPdf(file: File): boolean {
+  return file.type === "application/pdf" || /\.pdf$/i.test(file.name);
 }
 
 function isImage(file: File): boolean {
@@ -123,11 +127,62 @@ async function fromVideo(file: File): Promise<Blob | null> {
   }
 }
 
+// pdf.js is a heavy import, so it loads only when a PDF is actually uploaded —
+// and is cached after the first one. Same worker wiring as PdfViewer.
+let pdfjsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
+async function loadPdfjs() {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import("pdfjs-dist").then((pdfjs) => {
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.min.mjs",
+        import.meta.url,
+      ).toString();
+      return pdfjs;
+    });
+  }
+  return pdfjsPromise;
+}
+
+// First page, rendered at whatever scale lands closest to MAX_EDGE. A document's
+// cover is what makes it recognisable in a grid — far more than a red PDF icon.
+async function fromPdf(file: File): Promise<Blob | null> {
+  const pdfjs = await loadPdfjs();
+  const data = new Uint8Array(await file.arrayBuffer());
+  const task = pdfjs.getDocument({ data, isOffscreenCanvasSupported: true });
+  try {
+    const doc = await task.promise;
+    const page = await doc.getPage(1);
+    const base = page.getViewport({ scale: 1 });
+    const scale = Math.min(1, MAX_EDGE / Math.max(base.width, base.height));
+    const viewport = page.getViewport({ scale });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(viewport.width));
+    canvas.height = Math.max(1, Math.round(viewport.height));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    // Pages are transparent outside their content; without this the thumbnail
+    // renders as black text on a black card.
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+    return await new Promise((resolve) => {
+      canvas.toBlob((b) => resolve(b), "image/jpeg", JPEG_QUALITY);
+    });
+  } catch {
+    return null;
+  } finally {
+    void task.destroy();
+  }
+}
+
 // A JPEG thumbnail for the file, or null when one can't be made. Never throws.
 export async function makeThumbnail(file: File): Promise<Blob | null> {
   try {
     if (isImage(file)) return await fromImage(file);
     if (isVideo(file)) return await fromVideo(file);
+    if (isPdf(file)) return await fromPdf(file);
     return null;
   } catch {
     return null;

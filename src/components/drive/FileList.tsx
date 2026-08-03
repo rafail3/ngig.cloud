@@ -47,6 +47,7 @@ import { ShareModal } from "./ShareModal";
 import { useMounted, useIsTouch, useRowClick } from "./anim";
 import { useDragActive, usePendingMove, type DragData } from "./DriveDndProvider";
 import { useFilter } from "./FilterProvider";
+import { useViewMode, type ViewMode } from "./useViewMode";
 
 function speedLabel(bytesPerSec: number): string {
   if (!bytesPerSec || bytesPerSec < 1) return "—";
@@ -61,11 +62,18 @@ function etaLabel(sec: number | null): string {
 }
 
 // A row for a file that is still uploading, shown in-place above the real files.
-function UploadingRow({ job }: { job: UploadJob }) {
+function UploadingRow({ job, variant }: { job: UploadJob; variant: ViewMode }) {
   const pct = job.size > 0 ? Math.min(100, Math.round((job.sent / job.size) * 100)) : 0;
   return (
     <motion.li
-      className="px-3.5 py-3 opacity-55"
+      // In grid mode an in-flight upload spans the whole row rather than
+      // pretending to be a card: it has no preview to show yet, and a
+      // half-height cell among real cards reads as a broken tile.
+      className={
+        variant === "grid"
+          ? "col-span-full rounded-xl border border-zinc-800/70 bg-zinc-900/30 px-3.5 py-3 opacity-70"
+          : "px-3.5 py-3 opacity-55"
+      }
     >
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-2">
@@ -116,25 +124,43 @@ function Thumb({
   id,
   name,
   mime,
+  variant = "list",
 }: {
   id: string;
   name: string;
   mime: string | null;
+  variant?: ViewMode;
 }) {
   const [failed, setFailed] = useState(false);
-  if (failed) return <FileTypeIcon name={name} mime={mime} />;
-  return (
-    <span className="h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={`/api/thumb/${id}`}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        onError={() => setFailed(true)}
-        className="h-full w-full object-cover"
-      />
-    </span>
+
+  if (failed) {
+    // Never a broken-image box: fall back to exactly what a file without a
+    // thumbnail shows, centred in the grid's preview area.
+    return variant === "grid" ? (
+      <div className="flex h-full w-full items-center justify-center">
+        <FileTypeIcon name={name} mime={mime} />
+      </div>
+    ) : (
+      <FileTypeIcon name={name} mime={mime} />
+    );
+  }
+
+  const img = (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={`/api/thumb/${id}`}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+      className="h-full w-full object-cover"
+    />
+  );
+
+  return variant === "grid" ? (
+    img
+  ) : (
+    <span className="h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-zinc-800">{img}</span>
   );
 }
 
@@ -150,6 +176,7 @@ export function FileList({ folderId }: { folderId: string | null }) {
   // `files` is filtered for display; `rawFiles` is the full set, used only to
   // tell when an upload's real row has arrived (so its ghost can disappear).
   const { files, rawFiles } = useFilter();
+  const view = useViewMode();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<FileItem | null>(null);
   // True when the preview was opened straight into edit mode (Editează action).
@@ -231,15 +258,22 @@ export function FileList({ folderId }: { folderId: string | null }) {
       {/* Fully static list — rows replace in place with no enter/exit animation.
           Opening a folder shows its files directly: no entrance slide, and no
           "ghost" of the previous folder's rows animating out over the new ones. */}
-      <ul className="drive-list divide-y divide-zinc-800/40 overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900/20">
+      <ul
+        className={
+          view === "grid"
+            ? "drive-list grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+            : "drive-list divide-y divide-zinc-800/40 overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900/20"
+        }
+      >
           {uploading.map((job) => (
-            <UploadingRow key={job.id} job={job} />
+            <UploadingRow key={job.id} job={job} variant={view} />
           ))}
           {files.map((f) => (
             <FileRow
               key={f.id}
               file={f}
               folderId={folderId}
+              variant={view}
               pending={pendingId === f.id}
               onPreview={() => setPreview(f)}
               onEdit={() => {
@@ -359,6 +393,7 @@ function FileRow({
   file,
   folderId,
   pending,
+  variant,
   onPreview,
   onEdit,
   onInfo,
@@ -373,6 +408,7 @@ function FileRow({
   file: FileItem;
   folderId: string | null;
   pending: boolean;
+  variant: ViewMode;
   onPreview: () => void;
   onEdit: () => void;
   onInfo: () => void;
@@ -462,10 +498,62 @@ function FileRow({
       // `longPress.pressing` gives the finger something to see during the hold
       // — without it the row is inert for the full delay and the press reads as
       // ignored. transform-only, so it can't reflow the list mid-scroll.
-      className={`group flex cursor-pointer items-center gap-3 px-3.5 py-3 transition-[background-color,transform] duration-150 ${
-        longPress.pressing ? "scale-[0.985] bg-zinc-800/60" : ""
-      } ${selected ? "bg-indigo-500/10" : "hover:bg-zinc-900/50"}`}
+      className={
+        variant === "grid"
+          ? `group flex cursor-pointer flex-col overflow-hidden rounded-xl border transition-[background-color,border-color,transform] duration-150 ${
+              longPress.pressing ? "scale-[0.97]" : ""
+            } ${
+              selected
+                ? "border-indigo-400/70 bg-indigo-500/10"
+                : "border-zinc-800/70 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/70"
+            }`
+          : `group flex cursor-pointer items-center gap-3 px-3.5 py-3 transition-[background-color,transform] duration-150 ${
+              longPress.pressing ? "scale-[0.985] bg-zinc-800/60" : ""
+            } ${selected ? "bg-indigo-500/10" : "hover:bg-zinc-900/50"}`
+      }
     >
+      {variant === "grid" ? (
+        <>
+          {/* The preview does the recognising, so it gets the space. 4:3 rather
+              than square: most documents and photos are landscape-ish, and a
+              square box would letterbox nearly everything. */}
+          <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-950/60">
+            {file.thumbKey ? (
+              <Thumb id={file.id} name={file.name} mime={file.mimeType} variant="grid" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <FileTypeIcon name={file.name} mime={file.mimeType} />
+              </div>
+            )}
+            {selected && (
+              <span
+                aria-hidden
+                className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-white shadow"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+              </span>
+            )}
+            {busy && (
+              <span className="absolute inset-0 flex items-center justify-center bg-zinc-950/50">
+                <Loader2 className="h-5 w-5 animate-spin text-indigo-400" />
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 px-2.5 py-2">
+            <div className="min-w-0 flex-1 text-left">
+              <p className="truncate text-sm font-medium leading-6 text-zinc-100">
+                {file.name}
+              </p>
+              <p className="truncate text-xs leading-5 text-zinc-400">
+                {fileTypeShort(file.name, file.mimeType)} · {formatBytes(file.size)}
+              </p>
+            </div>
+            <ActionMenu actions={actions} label="Opțiuni fișier" />
+          </div>
+        </>
+      ) : (
+        <>
       {selected ? (
         // Selected rows swap the type icon for a check — the selection reads
         // instantly, Google-Drive style, especially on mobile.
@@ -509,6 +597,8 @@ function FileRow({
         {busy && <Loader2 className="mr-1 h-4 w-4 animate-spin text-indigo-400" />}
         <ActionMenu actions={actions} label="Opțiuni fișier" />
       </div>
+        </>
+      )}
     </motion.li>
   );
 }

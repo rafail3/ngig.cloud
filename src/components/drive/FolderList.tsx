@@ -72,7 +72,7 @@ export function FolderList({ folderId }: { folderId: string | null }) {
   return (
     <>
       {/* Fully static grid — cards replace in place, no enter/exit animation. */}
-      <ul className="drive-list grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+      <ul className="drive-list grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {folders.map((f) => (
             <FolderCard
               key={f.id}
