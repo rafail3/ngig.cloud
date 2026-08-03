@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getFileThumbKey } from "@/server/files/service";
-import { getObjectStream } from "@/server/storage/b2";
+import { presignInline } from "@/server/storage/b2";
 
 // Serves a file's thumbnail.
 //
@@ -28,8 +28,14 @@ export async function GET(
   if (!key) return new NextResponse(null, { status: 404 });
 
   try {
-    const stream = await getObjectStream(key);
-    return new NextResponse(stream as unknown as ReadableStream, {
+    // Fetch the presigned URL and forward the WEB stream — the same pattern the
+    // OnlyOffice file route uses. `getObjectStream` returns a NODE stream, which
+    // NextResponse cannot consume: it type-checks behind a cast and then fails
+    // at runtime, which is exactly how this route shipped broken the first time.
+    const res = await fetch(await presignInline(key, 600));
+    if (!res.ok || !res.body) return new NextResponse(null, { status: 404 });
+
+    return new NextResponse(res.body, {
       headers: {
         "Content-Type": "image/jpeg",
         // Immutable in practice: a new thumbnail always lands under a new key,
