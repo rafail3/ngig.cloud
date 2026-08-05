@@ -10,6 +10,7 @@ export type FileRow = {
   mime_type: string | null;
   storage_key: string;
   folder_id: string | null;
+  thumb_key: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -241,6 +242,9 @@ export async function insertFile(row: {
   mime_type: string | null;
   storage_key: string;
   folder_id: string | null;
+  // Browser-generated preview object; null for types we can't render and for
+  // every file uploaded before thumbnails shipped.
+  thumb_key?: string | null;
 }): Promise<FileRow> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("files").insert(row).select().single();

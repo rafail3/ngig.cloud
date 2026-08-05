@@ -37,6 +37,12 @@ type SelectionCtx = {
   /** Handle a row click: returns true if a modifier (Ctrl/Cmd/Shift) consumed it
    *  for selection, so the caller should NOT open/preview the item. */
   handleClick: (item: SelItem, e: ClickMods) => boolean;
+  /** Select every item in the current folder. */
+  selectAll: () => void;
+  /** How many items are selectable here — lets the UI label the action and tell
+   *  "select all" from "deselect all" without reaching for the list itself. */
+  total: number;
+  allSelected: boolean;
 };
 
 const Ctx = createContext<SelectionCtx | null>(null);
@@ -152,6 +158,14 @@ export function SelectionProvider({
     anchor.current = null;
   }, []);
 
+  // Reads the live list from the ref, so it stays correct without this callback
+  // being recreated whenever the folder contents change.
+  const selectAll = useCallback(() => {
+    const list = itemsRef.current;
+    setSelected(new Map(list.map((i) => [selKey(i), i])));
+    anchor.current = list.length > 0 ? selKey(list[0]) : null;
+  }, []);
+
   const handleClick = useCallback(
     (item: SelItem, e: ClickMods) => {
       if (e.ctrlKey || e.metaKey) {
@@ -193,6 +207,28 @@ export function SelectionProvider({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [selected.size, clear]);
 
+  // Ctrl/Cmd+A selects everything in the folder, as in any file manager, and
+  // toggles: pressing it again with everything already selected clears, so the
+  // same key undoes itself instead of being a dead repeat. Skipped while focus
+  // is in a text field, so it doesn't steal "select all text".
+  // Reads sizes from refs rather than depending on them, so the listener isn't
+  // torn down and rebound on every selection change.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "a" && e.key !== "A") return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, [contenteditable='true']")) return;
+      e.preventDefault();
+      const list = itemsRef.current;
+      const everything = list.length > 0 && selectedRef.current.size >= list.length;
+      if (everything) clear();
+      else selectAll();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selectAll, clear]);
+
   const value = useMemo<SelectionCtx>(
     () => ({
       selected,
@@ -201,8 +237,11 @@ export function SelectionProvider({
       toggle,
       clear,
       handleClick,
+      selectAll,
+      total: items.length,
+      allSelected: items.length > 0 && selected.size >= items.length,
     }),
-    [selected, toggle, clear, handleClick],
+    [selected, toggle, clear, handleClick, selectAll, items.length],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -3,7 +3,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { revalidateDrive } from "@/components/drive/useDriveData";
-import { Archive, Copy, Download, FolderInput, Info, Pencil, Share2, SquarePen, Trash2, X } from "lucide-react";
+import { Archive, CheckSquare, Copy, Download, FolderInput, Info, Pencil, Share2, Square, SquarePen, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   getDownloadUrlAction,
@@ -54,7 +54,7 @@ type BarAction = {
    menu); with several it offers the bulk actions (move / download / delete). On
    mobile this is the only action surface — selection is entered by long-press. */
 export function SelectionBar() {
-  const { selected, count, clear } = useSelection();
+  const { selected, count, clear, selectAll, total, allSelected } = useSelection();
   const [moving, setMoving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [renaming, setRenaming] = useState<SelItem | null>(null);
@@ -300,6 +300,23 @@ export function SelectionBar() {
               <span className="text-sm font-medium text-zinc-100">
                 {count} {count === 1 ? "selectat" : "selectate"}
               </span>
+              {/* Reachable by thumb on mobile, where there is no Ctrl+A. Flips to
+                  "deselect all" once everything is already selected, so the
+                  control never becomes a no-op. */}
+              {total > 1 && (
+                <button
+                  type="button"
+                  onClick={allSelected ? clear : selectAll}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-2.5 py-1 text-xs font-medium text-zinc-200 transition hover:border-indigo-400/60 hover:bg-indigo-500/10 hover:text-indigo-200"
+                >
+                  {allSelected ? (
+                    <Square className="h-3.5 w-3.5" />
+                  ) : (
+                    <CheckSquare className="h-3.5 w-3.5" />
+                  )}
+                  {allSelected ? "Deselectează tot" : `Selectează tot (${total})`}
+                </button>
+              )}
               <div className="flex flex-wrap items-center gap-1.5">
                 {actions.map((a) => (
                   <BarButton key={a.label} action={a} disabled={busy} />

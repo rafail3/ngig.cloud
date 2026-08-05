@@ -38,9 +38,11 @@ const MAX_ORPHAN_RATIO = 0.2;
 const MIN_FOR_RATIO_CHECK = 10;
 
 const UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
-// Drive files: <ownerId>/<uuid>. Ticket media: tickets/<ownerId>/…
+// Drive files: <ownerId>/<uuid>. Thumbnails: <ownerId>/thumbs/<uuid>.
+// Ticket media: tickets/<ownerId>/…
 const KNOWN_PATTERNS = [
   new RegExp(`^${UUID}/${UUID}$`),
+  new RegExp(`^${UUID}/thumbs/${UUID}$`),
   new RegExp(`^tickets/${UUID}/`),
 ];
 
@@ -80,12 +82,19 @@ async function allKeys(table: string, column: string): Promise<Set<string>> {
 // against a row that appeared while the sweep was running.
 async function keyStillOrphan(key: string): Promise<boolean> {
   const admin = createAdminClient();
-  const [f, t] = await Promise.all([
+  const [f, t, th] = await Promise.all([
     admin.from("files").select("id").eq("storage_key", key).limit(1),
     admin.from("ticket_attachments").select("id").eq("storage_key", key).limit(1),
+    // Thumbnails are referenced by a column on `files`, not by a row of their
+    // own — without this check a live thumbnail looks exactly like an orphan.
+    admin.from("files").select("id").eq("thumb_key", key).limit(1),
   ]);
-  if (f.error || t.error) return false; // can't verify → don't delete
-  return (f.data?.length ?? 0) === 0 && (t.data?.length ?? 0) === 0;
+  if (f.error || t.error || th.error) return false; // can't verify → don't delete
+  return (
+    (f.data?.length ?? 0) === 0 &&
+    (t.data?.length ?? 0) === 0 &&
+    (th.data?.length ?? 0) === 0
+  );
 }
 
 export async function cleanupOrphanB2Objects(): Promise<B2CleanupReport> {
@@ -103,10 +112,12 @@ export async function cleanupOrphanB2Objects(): Promise<B2CleanupReport> {
   // Layer 1: the DB truth. Any failure aborts the whole run.
   let fileKeys: Set<string>;
   let ticketKeys: Set<string>;
+  let thumbKeys: Set<string>;
   try {
-    [fileKeys, ticketKeys] = await Promise.all([
+    [fileKeys, ticketKeys, thumbKeys] = await Promise.all([
       allKeys("files", "storage_key"),
       allKeys("ticket_attachments", "storage_key"),
+      allKeys("files", "thumb_key"),
     ]);
   } catch (e) {
     report.abortedRun = `citirea DB a eșuat (${e instanceof Error ? e.message : "eroare"})`;
@@ -128,7 +139,9 @@ export async function cleanupOrphanB2Objects(): Promise<B2CleanupReport> {
   const now = Date.now();
   const candidates: { key: string; size: number; lastModified: Date | null }[] = [];
   for (const o of objects) {
-    if (fileKeys.has(o.key) || ticketKeys.has(o.key)) continue; // referenced → keep
+    // referenced → keep (thumbKeys covers previews, whose reference is a column
+    // on `files` rather than a row of their own)
+    if (fileKeys.has(o.key) || ticketKeys.has(o.key) || thumbKeys.has(o.key)) continue;
     const age = o.lastModified ? now - o.lastModified.getTime() : 0;
     if (age < MIN_AGE_MS) continue; // Layer 2: too fresh — may be in flight
     if (!KNOWN_PATTERNS.some((p) => p.test(o.key))) {

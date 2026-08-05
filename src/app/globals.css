@@ -295,6 +295,13 @@ html.light .code-preview .shiki {
   user-select: none;
 }
 
+/* Rows are tapped constantly and never need double-tap-to-zoom: `manipulation`
+   drops the browser's wait-and-see delay after a tap and stops an eager second
+   tap from zooming the page mid-selection. Vertical scrolling is unaffected. */
+.drive-list [data-drive-item] {
+  touch-action: manipulation;
+}
+
 /* ===========================================================================
    .xlsx preview — an Excel-like grid: A/B/C column headers, 1/2/3 row numbers
    (both sticky), grid lines, merged cells. Painted with zinc tokens so it works

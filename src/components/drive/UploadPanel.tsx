@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, AlertCircle, X, ChevronDown, Loader2 } from "lucide-react";
 import { useUploads, type UploadJob } from "./UploadProvider";
 import { formatBytes } from "@/lib/format";
@@ -121,6 +122,12 @@ export function UploadPanel() {
             : "Încărcări"}
         </p>
         <div className="flex items-center gap-1">
+          <Link
+            href="/uploads"
+            className="rounded px-2 py-1 text-xs text-zinc-400 transition hover:text-zinc-100"
+          >
+            Vezi toate
+          </Link>
           {activeCount === 0 && (
             <button
               type="button"

@@ -5,11 +5,13 @@
 
 import {
   createUploadAction,
+  createThumbUploadAction,
   confirmUploadAction,
   completeUploadAction,
   abortUploadAction,
   resumeUploadAction,
 } from "@/app/drive-actions";
+import { canThumbnail, makeThumbnail } from "./thumbnail";
 
 // Parts uploaded at once per file.
 const PART_CONCURRENCY = 4;
@@ -162,10 +164,35 @@ export async function startUpload(
     contentType,
     key: plan.key,
     folderId,
+    thumbKey: await uploadThumbnail(file),
   });
   if (confirmed && "revoked" in confirmed) return { ok: false, revoked: true };
 
   return { ok: true };
+}
+
+// Generate and upload a thumbnail, returning its key. Runs AFTER the file is
+// safely in B2 and is entirely best-effort: any failure returns null and the
+// file just keeps its type icon. A missing preview is never worth failing an
+// upload that already succeeded.
+async function uploadThumbnail(file: File): Promise<string | null> {
+  try {
+    if (!canThumbnail(file)) return null;
+    const blob = await makeThumbnail(file);
+    if (!blob) return null;
+
+    const plan = await createThumbUploadAction({ size: blob.size });
+    if ("revoked" in plan) return null;
+
+    const res = await fetch(plan.url, {
+      method: "PUT",
+      body: blob,
+      headers: { "Content-Type": "image/jpeg" },
+    });
+    return res.ok ? plan.key : null;
+  } catch {
+    return null;
+  }
 }
 
 // Resume an interrupted multipart upload: re-presign parts, skip the ones B2
@@ -213,6 +240,9 @@ export async function resumeUpload(
     contentType,
     key: meta.key,
     folderId: meta.folderId,
+    // Also here: an upload that finished after a refresh should get the same
+    // thumbnail as one that ran straight through.
+    thumbKey: await uploadThumbnail(file),
   });
   if (confirmed && "revoked" in confirmed) return { ok: false, revoked: true };
 
