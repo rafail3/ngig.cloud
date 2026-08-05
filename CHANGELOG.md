@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.41.0](https://github.com/rafail3/ngig.cloud/compare/v2.40.0...v2.41.0) (2026-08-05)
+
+
+### Features
+
+* **drive:** grid view with large previews, and PDF thumbnails ([0d78d28](https://github.com/rafail3/ngig.cloud/commit/0d78d285cfe43c3533745b87f896c084a7837585))
+* **drive:** select all, by keyboard and by thumb ([2962303](https://github.com/rafail3/ngig.cloud/commit/296230399612b4f6a0187ba21556361071039f78))
+* **drive:** thumbnails for images and videos in the file list ([199b79e](https://github.com/rafail3/ngig.cloud/commit/199b79e04fb43526170050f8a75b3f293bb9c912))
+* **drive:** uploads page, select all, grid view with thumbnails ([ee31951](https://github.com/rafail3/ngig.cloud/commit/ee319511fd3d7c25dd5011a956bcf76d37871bd8))
+* **uploads:** a full page for uploads in flight ([9a0b750](https://github.com/rafail3/ngig.cloud/commit/9a0b7503f410c283375249835dd451f4624698b1))
+
+
+### Bug Fixes
+
+* **drive:** make touch selection feel responsive ([87c71ba](https://github.com/rafail3/ngig.cloud/commit/87c71ba16ed0be419427021193ec72a5d9b5ea11))
+* **drive:** serve thumbnails as a web stream, not a node one ([0261594](https://github.com/rafail3/ngig.cloud/commit/02615949eba382ac1d9f763c0f2f7cc65b228a8c))
+
 ## [2.40.0](https://github.com/rafail3/ngig.cloud/compare/v2.39.0...v2.40.0) (2026-08-03)
 
 
