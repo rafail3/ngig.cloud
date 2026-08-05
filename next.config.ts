@@ -16,11 +16,20 @@ const pkg = createRequire(import.meta.url)("./package.json") as { version: strin
 // Its exact address is a RUNTIME setting (the server can sit behind a tunnel
 // whose URL changes on every reboot), but a CSP is baked at build time — so we
 // allow the host patterns it may appear under rather than one fixed URL:
+//   onlyoffice.tailacb4db.ts.net — the current home: a dedicated always-on
+//                          Debian node published with Tailscale Funnel.
+//                          Listed as an EXACT host on purpose. `*.ts.net` is
+//                          shared Tailscale infrastructure, so a wildcard there
+//                          would trust every tailnet on the internet as a
+//                          script and frame source, not just ours.
 //   *.trycloudflare.com  — the free Cloudflare tunnel used while the Document
-//                          Server lives on a machine without a public IP;
-//   office.ngig.cloud    — the permanent home once it moves to a real host.
+//                          Server lived on a laptop without a public IP.
+//                          ⚠️ Also a wildcard over shared infrastructure; safe
+//                          to drop once the laptop fallback is retired.
+//   office.ngig.cloud    — reserved for the day it moves behind our own DNS.
 // OFFICE_CSP_ORIGINS (space-separated) can add more without a code change.
 const officeOrigins = [
+  "https://onlyoffice.tailacb4db.ts.net",
   "https://*.trycloudflare.com",
   "https://office.ngig.cloud",
   process.env.NEXT_PUBLIC_ONLYOFFICE_URL?.replace(/\/$/, ""),
