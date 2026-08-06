@@ -11,6 +11,7 @@ export type FileRow = {
   storage_key: string;
   folder_id: string | null;
   thumb_key: string | null;
+  thumb_failed_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -265,6 +266,31 @@ export async function updateFile(
 ): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("files").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+// Attach a thumbnail to an existing row (backfill). Deliberately NOT part of
+// updateFile: that one carries the columns a user action can change, and this
+// must never be reachable from a rename/move patch. `updated_at` is left alone
+// on purpose — a thumbnail is not a content change, and bumping it would make
+// the file show as "modificat" in the list.
+export async function setFileThumb(id: string, thumbKey: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("files")
+    .update({ thumb_key: thumbKey, thumb_failed_at: null })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Remember that a thumbnail could not be produced, so the file isn't downloaded
+// again on every folder open.
+export async function markThumbFailed(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("files")
+    .update({ thumb_failed_at: new Date().toISOString() })
+    .eq("id", id);
   if (error) throw error;
 }
 

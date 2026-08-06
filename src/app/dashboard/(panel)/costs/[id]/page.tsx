@@ -11,6 +11,7 @@ import {
   Eye,
   FolderArchive,
   FilePenLine,
+  Images,
   type LucideIcon,
 } from "lucide-react";
 import { getUserCostDetail, resolveMonth } from "@/server/admin/costs";
@@ -26,6 +27,7 @@ const SOURCE: Record<string, { label: string; icon: LucideIcon }> = {
   preview: { label: "Previzualizare", icon: Eye },
   folder: { label: "Folder (zip)", icon: FolderArchive },
   office: { label: "Editare Office", icon: FilePenLine },
+  thumb: { label: "Generare miniaturi", icon: Images },
 };
 
 const dt = new Intl.DateTimeFormat("ro-RO", {

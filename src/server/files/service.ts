@@ -810,6 +810,108 @@ export async function getFileThumbKey(id: string): Promise<string | null> {
   return file?.thumb_key ?? null;
 }
 
+// --- Backfill of thumbnails for files uploaded before thumbnails shipped ----
+//
+// Same generator as at upload time (the browser's canvas), only the source
+// differs: instead of the File it already held, it reads the original back out
+// of B2 through a presigned URL. That read is real egress, which is why the
+// server — not the client — decides what is eligible and logs the cost.
+
+// The one type whose thumbnail costs a FULL download. Video and PDF are read
+// with range requests (a poster frame needs the header plus a chunk; a first
+// page needs the first few objects), so their true cost is a slice of the file
+// regardless of how big it is. An image has to come down whole, so it gets a
+// cap — above it, the file keeps its type icon.
+const MAX_BACKFILL_IMAGE_BYTES = 25 * 1024 * 1024;
+
+// What a ranged read actually pulls, used for egress accounting. Approximations,
+// deliberately on the generous side: the alternative is logging the full size of
+// a 2GB film for a 40px poster frame, which would make the cost page fiction.
+const RANGED_EGRESS_ESTIMATE: Record<"video" | "pdf", number> = {
+  video: 8 * 1024 * 1024,
+  pdf: 4 * 1024 * 1024,
+};
+
+export type ThumbSourceKind = "image" | "video" | "pdf";
+
+// The kind a browser can render, from the stored mime with a filename fallback
+// (older rows can carry application/octet-stream). SVG is excluded for the same
+// reason as at upload: rasterising untrusted SVG runs its own scripts.
+function thumbKindOf(name: string, mime: string | null): ThumbSourceKind | null {
+  const ext = extensionOf(name).toLowerCase();
+  const m = mime ?? "";
+  if (m === "application/pdf" || ext === "pdf") return "pdf";
+  if (m.startsWith("video/") || ["mp4", "webm", "mov", "m4v"].includes(ext)) {
+    return "video";
+  }
+  if (m === "image/svg+xml" || ext === "svg") return null;
+  if (
+    m.startsWith("image/") ||
+    ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp"].includes(ext)
+  ) {
+    return "image";
+  }
+  return null;
+}
+
+// A presigned URL for reading the ORIGINAL, so the browser can render a
+// thumbnail for a file that has none. Returns null when the file isn't
+// eligible, which the client treats as "don't ask again".
+export async function getThumbSource(
+  id: string,
+): Promise<{ url: string; kind: ThumbSourceKind } | null> {
+  const { id: userId } = await requireActiveUser();
+  const file = await repo.getFileById(id); // RLS → only owner's rows
+  if (!file) return null;
+  assertOwnedKey(userId, file.storage_key);
+  // Already has one, or already tried and failed — nothing to pay for.
+  if (file.thumb_key || file.thumb_failed_at) return null;
+
+  const kind = thumbKindOf(file.name, file.mime_type);
+  if (!kind) return null;
+  if (kind === "image" && file.size > MAX_BACKFILL_IMAGE_BYTES) return null;
+
+  const url = await presignView(file.storage_key);
+
+  // Logged under its own source, never "preview": the suggested-files engine
+  // reads egress_events with source in (preview, download) as the signal that a
+  // user keeps coming back to a file. Counting a background thumbnail job there
+  // would invent interest the user never showed.
+  const bytes =
+    kind === "image" ? file.size : Math.min(file.size, RANGED_EGRESS_ESTIMATE[kind]);
+  after(() => logEgress(bytes, "thumb", { fileId: file.id }));
+
+  return { url, kind };
+}
+
+// Attach a backfilled thumbnail to a file. The key must live under the caller's
+// own thumbs prefix — otherwise a client could point its row at another user's
+// object and have /api/thumb serve it back.
+export async function setFileThumb(input: { id: string; thumbKey: string }) {
+  const { id: userId } = await requireActiveUser();
+  if (!input.thumbKey.startsWith(`${userId}/thumbs/`)) {
+    throw new Error("Cheie invalidă.");
+  }
+  const file = await repo.getFileById(input.id);
+  if (!file) throw new Error("Fișier inexistent.");
+  assertOwnedKey(userId, file.storage_key);
+  // First writer wins. A second one would leave the first object unreferenced
+  // in B2 (the cleanup cron would sweep it, but there is no reason to make it).
+  if (file.thumb_key) return;
+  await repo.setFileThumb(input.id, input.thumbKey);
+}
+
+// Remember a failed attempt so the file isn't downloaded again on every folder
+// open. Best-effort: losing this only costs a repeated attempt.
+export async function markThumbFailed(id: string) {
+  const { id: userId } = await requireActiveUser();
+  const file = await repo.getFileById(id);
+  if (!file) return;
+  assertOwnedKey(userId, file.storage_key);
+  if (file.thumb_key) return;
+  await repo.markThumbFailed(id);
+}
+
 export async function getDownloadUrl(id: string) {
   const { id: userId } = await requireActiveUser();
   const file = await repo.getFileById(id); // RLS → only owner's rows

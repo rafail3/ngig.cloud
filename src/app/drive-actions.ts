@@ -1,7 +1,7 @@
 "use server";
 
 import * as files from "@/server/files/service";
-import type { UploadPlan } from "@/server/files/service";
+import type { UploadPlan, ThumbSourceKind } from "@/server/files/service";
 import { getSuggestedFiles } from "@/server/insights/engine";
 import { getUploadTypes } from "@/server/admin/settings";
 import { requireActiveUser } from "@/server/auth/active-user";
@@ -87,6 +87,40 @@ export async function createThumbUploadAction(input: {
 }): Promise<{ key: string; url: string } | Revoked> {
   try {
     return await files.createThumbUpload(input);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+// --- Thumbnail backfill (files uploaded before thumbnails shipped) ----------
+
+export async function getThumbSourceAction(
+  id: string,
+): Promise<{ url: string; kind: ThumbSourceKind } | null | Revoked> {
+  try {
+    return await files.getThumbSource(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function setFileThumbAction(input: {
+  id: string;
+  thumbKey: string;
+}): Promise<Revoked | void> {
+  try {
+    await files.setFileThumb(input);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function markThumbFailedAction(id: string): Promise<Revoked | void> {
+  try {
+    await files.markThumbFailed(id);
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     throw e;
