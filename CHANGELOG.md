@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.43.1](https://github.com/rafail3/ngig.cloud/compare/v2.43.0...v2.43.1) (2026-08-06)
+
+
+### Bug Fixes
+
+* **office:** stop a bad document URL from permanently blanking thumbnails ([e26fc77](https://github.com/rafail3/ngig.cloud/commit/e26fc77af53d7241c4c5dfbd68c589c4ea414ef5))
+* **office:** stop a bad document URL from permanently blanking thumbnails ([d30bfc2](https://github.com/rafail3/ngig.cloud/commit/d30bfc22225c5ec6c617407a36535515714edf14))
+
 ## [2.43.0](https://github.com/rafail3/ngig.cloud/compare/v2.42.0...v2.43.0) (2026-08-06)
 
 
