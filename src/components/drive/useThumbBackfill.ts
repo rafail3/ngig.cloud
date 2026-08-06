@@ -21,9 +21,14 @@
 // take up a slot in the batch.
 
 import { useEffect, useState } from "react";
-import { getThumbJobsAction, saveThumbResultsAction } from "@/app/drive-actions";
+import {
+  getThumbJobsAction,
+  saveThumbResultsAction,
+  generateOfficeThumbAction,
+} from "@/app/drive-actions";
 import { makeThumbnailFromUrl, type ThumbJob } from "@/lib/upload/thumbnail";
 import { extOf } from "@/lib/file-type";
+import { isOfficeViewable } from "@/lib/office";
 
 export type BackfillCandidate = {
   id: string;
@@ -75,7 +80,9 @@ function eligible(f: BackfillCandidate): boolean {
     m === "application/pdf" ||
     ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "mp4", "webm", "mov", "m4v", "pdf"].includes(
       ext,
-    )
+    ) ||
+    // Office documents, rendered by the Document Server rather than here.
+    isOfficeViewable(f.name)
   );
 }
 
@@ -140,6 +147,39 @@ async function drainBatch(batch: BackfillCandidate[]): Promise<void> {
   if (results.length > 0) await saveThumbResultsAction(results);
 }
 
+// Office documents take a different route: the browser cannot render them, so
+// the whole job — fetch, convert, store — happens on the Document Server and is
+// driven by a single action. One at a time, deliberately: each conversion is CPU
+// on a machine that may be a small always-on box, and a folder of twenty
+// spreadsheets should not arrive there as twenty simultaneous renders.
+async function drainOffice(batch: BackfillCandidate[]): Promise<void> {
+  for (const item of batch) {
+    if (circuitOpen) return;
+    let outcome;
+    try {
+      outcome = await generateOfficeThumbAction(item.id);
+    } catch {
+      outcome = "retry" as const;
+    }
+
+    if (typeof outcome !== "string") throw new Error("revoked");
+
+    if (outcome === "ok") {
+      consecutiveFailures = 0;
+      succeeded.add(item.id);
+      for (const notify of listeners) notify();
+      continue;
+    }
+
+    consecutiveFailures++;
+    // "retry" means the Document Server is down or busy — nothing to do with
+    // this file, so let a later visit try again. The server records the
+    // permanent failures itself.
+    if (outcome === "retry") attempted.delete(item.id);
+    if (consecutiveFailures >= FAILURE_CIRCUIT) circuitOpen = true;
+  }
+}
+
 // Idempotent: safe to call at any time. Does nothing when the queue is empty or
 // a drain is already running.
 function drain(): void {
@@ -148,7 +188,13 @@ function drain(): void {
   void (async () => {
     try {
       while (!circuitOpen && queue.length > 0) {
-        await drainBatch(queue.splice(0, BATCH));
+        const batch = queue.splice(0, BATCH);
+        // Browser-rendered files first: they are the fast ones, and holding a
+        // screenful of photos behind a spreadsheet conversion would be backwards.
+        const browser = batch.filter((c) => !isOfficeViewable(c.name));
+        const office = batch.filter((c) => isOfficeViewable(c.name));
+        if (browser.length > 0) await drainBatch(browser);
+        if (office.length > 0) await drainOffice(office);
       }
     } catch {
       // A batch-level failure (session revoked, action threw) stops this run;

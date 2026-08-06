@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "crypto";
 import { after } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -461,6 +462,133 @@ export async function convertToPdf(fileId: string): Promise<{ bytes: Buffer; nam
   }
 }
 
+// ── Thumbnails ──────────────────────────────────────────────────────────────
+//
+// Office documents are the one type the browser cannot render, so their
+// thumbnail is made where the document already gets rendered: the Document
+// Server. It takes `outputtype: "png"` with a `thumbnail` block and returns the
+// first page as an image — no PDF in between, and no rendering library here.
+//
+// The cost is different in kind from the browser-made ones: the Document Server
+// downloads the WHOLE document (there is no ranged read for a conversion) and
+// spends CPU on a machine that may be someone's small always-on box. Hence the
+// size cap, and hence the caller runs these one at a time.
+
+const OFFICE_THUMB_MAX_BYTES = 25 * 1024 * 1024;
+const OFFICE_THUMB_EDGE = 320; // matches the browser-made ones
+const OFFICE_THUMB_TIMEOUT_MS = 20_000;
+// A first page as PNG is tens of KB. Well past that means something other than
+// a thumbnail came back, and it does not belong under the thumbs prefix.
+const OFFICE_THUMB_MAX_RESULT = 2 * 1024 * 1024;
+
+// Converter error codes that say nothing about the DOCUMENT, so they must never
+// be remembered as "this file can't be rendered":
+//   -1 unknown (ambiguous — assume the environment, the cheaper mistake)
+//   -2 conversion timeout        -4 could not download the document
+//   -6 result database error     -8 invalid token
+// -4 is the one that matters most in practice: in local development the remote
+// Document Server cannot reach the dev machine to fetch the file, and without
+// this every document opened locally would be marked unrenderable — in the
+// production database, which local dev talks to.
+// The rest are about the document itself and are worth remembering: -3
+// conversion error, -5 wrong password, -7 input error, -9 undeterminable output
+// format, -10 over the server's size limit.
+const CONVERT_ENV_ERRORS = new Set([-1, -2, -4, -6, -8]);
+
+/**
+ * The outcome of one attempt, which the caller uses to decide what to remember:
+ *  - `ok`            — stored, `thumb_key` is set;
+ *  - `unrenderable`  — this document will never produce one (corrupt, password
+ *                      protected, refused by the converter). Worth recording so
+ *                      it is not tried again;
+ *  - `retry`         — nothing to do with the document: the server is down, not
+ *                      configured, or timed out. Must NOT be recorded, or a
+ *                      spell of downtime would permanently blank a whole drive.
+ */
+export type OfficeThumbOutcome = "ok" | "unrenderable" | "retry";
+
+export async function generateOfficeThumb(fileId: string): Promise<OfficeThumbOutcome> {
+  const { id: ownerId } = await requireActiveUser();
+
+  // Recorded here rather than by the caller: this runs on the server anyway, and
+  // an extra round trip to say "don't ask again" would be a waste of the one
+  // resource this feature is short on — server-action round trips.
+  const giveUp = async (): Promise<OfficeThumbOutcome> => {
+    await repo.markThumbFailed(fileId);
+    return "unrenderable";
+  };
+
+  const file = await repo.getFileById(fileId); // RLS → only the caller's own rows
+  if (!file) return "unrenderable"; // no row to mark
+  if (file.thumb_key) return "ok"; // someone got there first
+  if (!officeDocType(file.name)) return giveUp();
+  if (file.size > OFFICE_THUMB_MAX_BYTES) return giveUp();
+
+  const base = await getOfficeServerUrl();
+  if (!base || !SECRET) return "retry"; // not configured yet — not the file's fault
+
+  const access = await sign({ fileId, ownerId, mode: "view" satisfies OfficeMode, thumb: true }, "5m");
+  const version = new Date(file.updated_at ?? file.created_at).getTime();
+
+  const payload = {
+    async: false,
+    filetype: officeFileType(file.name),
+    outputtype: "png",
+    // aspect 1 keeps the page's proportions inside the box; first limits the
+    // render to page one, which is the whole point.
+    thumbnail: {
+      aspect: 1,
+      first: true,
+      width: OFFICE_THUMB_EDGE,
+      height: OFFICE_THUMB_EDGE,
+    },
+    // Tied to the bytes, like every other conversion key here: edit the document
+    // and the next request is a different key, not a cached old cover.
+    key: `${fileId}-${version}-thumb`,
+    title: file.name,
+    url: `${callbackOrigin()}/api/office/file?t=${encodeURIComponent(access)}`,
+  };
+  const token = await sign(payload, "5m");
+
+  const deadline = Date.now() + OFFICE_THUMB_TIMEOUT_MS;
+  for (;;) {
+    let body: { fileUrl?: string; endConvert?: boolean; error?: number };
+    try {
+      const res = await fetch(`${base}/ConvertService.ashx`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ ...payload, token }),
+      });
+      body = await res.json();
+    } catch {
+      return "retry"; // unreachable right now; the document is fine
+    }
+
+    if (body.error) {
+      return CONVERT_ENV_ERRORS.has(body.error) ? "retry" : giveUp();
+    }
+
+    if (body.endConvert && body.fileUrl) {
+      const png = await fetch(body.fileUrl);
+      if (!png.ok) return "retry";
+      const bytes = Buffer.from(await png.arrayBuffer());
+      if (bytes.byteLength === 0 || bytes.byteLength > OFFICE_THUMB_MAX_RESULT) {
+        return giveUp();
+      }
+
+      // Same prefix as the browser-made thumbnails, so the account-wipe sweep
+      // and the orphan cleanup keep working without knowing where it came from.
+      const key = `${ownerId}/thumbs/${randomUUID()}`;
+      await putObject(key, bytes, "image/png");
+      await repo.setFileThumb(fileId, key);
+      return "ok";
+    }
+
+    if (Date.now() > deadline) return "retry"; // busy, not broken
+    await new Promise((r) => setTimeout(r, CONVERT_POLL_MS));
+  }
+}
+
 // ── Serving the document to the editor ──────────────────────────────────────
 // Streams the file out of B2 for the Document Server. No session here either —
 // the token minted at open time is what authorises this, and ownership is
@@ -471,7 +599,7 @@ export async function openFileForEditor(token: string): Promise<{
   contentType: string;
   size: number | null;
 }> {
-  const { fileId, ownerId } = await verifyAccessToken(token);
+  const { fileId, ownerId, thumb } = await verifyAccessToken(token);
 
   const admin = createAdminClient();
   const { data: file } = await admin
@@ -487,7 +615,13 @@ export async function openFileForEditor(token: string): Promise<{
 
   // The Document Server pulls the file out of B2 through us — real egress. No
   // session here, so attribute it to the file owner via the service-role path.
-  after(() => logEgress((file.size as number) ?? 0, "office", { userId: ownerId }));
+  // A conversion for a thumbnail is logged as such: counting it as "office"
+  // would read on the cost page as the user opening documents they never opened.
+  after(() =>
+    logEgress((file.size as number) ?? 0, thumb ? "thumb" : "office", {
+      userId: ownerId,
+    }),
+  );
 
   return {
     stream: res.body,
@@ -503,12 +637,15 @@ export async function openFileForEditor(token: string): Promise<{
 // viewing must never be able to write, even if its URL leaks.
 export async function verifyAccessToken(
   token: string,
-): Promise<{ fileId: string; ownerId: string; mode: OfficeMode }> {
+): Promise<{ fileId: string; ownerId: string; mode: OfficeMode; thumb: boolean }> {
   const { payload } = await jwtVerify(token, secretKey());
   return {
     fileId: payload.fileId as string,
     ownerId: payload.ownerId as string,
     mode: payload.mode === "view" ? "view" : "edit",
+    // Set when the fetch is a thumbnail conversion rather than someone opening
+    // the document, so the bytes land under the right heading on the cost page.
+    thumb: payload.thumb === true,
   };
 }
 

@@ -12,6 +12,8 @@ import {
   resumeUploadAction,
 } from "@/app/drive-actions";
 import { canThumbnail, makeThumbnail } from "./thumbnail";
+import { generateOfficeThumbAction } from "@/app/drive-actions";
+import { isOfficeViewable } from "@/lib/office";
 
 // Parts uploaded at once per file.
 const PART_CONCURRENCY = 4;
@@ -167,8 +169,19 @@ export async function startUpload(
     thumbKey: await uploadThumbnail(file),
   });
   if (confirmed && "revoked" in confirmed) return { ok: false, revoked: true };
+  requestOfficeThumbnail(file.name, confirmed.id);
 
   return { ok: true };
+}
+
+// Office documents can't be rendered here, so their thumbnail is asked of the
+// Document Server the moment the file lands. Deliberately not awaited: the
+// upload is already complete, and a conversion queue on a busy server must
+// never hold up the next file. If it fails (or the server is down), the drive's
+// own backfill picks the document up the next time it is rendered.
+function requestOfficeThumbnail(name: string, id: string): void {
+  if (!isOfficeViewable(name)) return;
+  void generateOfficeThumbAction(id).catch(() => {});
 }
 
 // Generate and upload a thumbnail, returning its key. Runs AFTER the file is
@@ -245,6 +258,7 @@ export async function resumeUpload(
     thumbKey: await uploadThumbnail(file),
   });
   if (confirmed && "revoked" in confirmed) return { ok: false, revoked: true };
+  requestOfficeThumbnail(file.name, confirmed.id);
 
   return { ok: true };
 }
