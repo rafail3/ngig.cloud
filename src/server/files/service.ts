@@ -9,7 +9,7 @@ import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/servi
 import { logEvent } from "@/server/insights/engine";
 import { logEgress } from "@/server/billing/egress";
 import * as repo from "./repository";
-import { extensionOf } from "@/lib/file-type";
+import { extensionOf, extOf } from "@/lib/file-type";
 import { fileTypeDenied } from "@/lib/upload-types";
 import { checkStorageAlert } from "@/server/account/storage-alert";
 import { formatBytes } from "@/lib/format";
@@ -838,7 +838,7 @@ export type ThumbSourceKind = "image" | "video" | "pdf";
 // (older rows can carry application/octet-stream). SVG is excluded for the same
 // reason as at upload: rasterising untrusted SVG runs its own scripts.
 function thumbKindOf(name: string, mime: string | null): ThumbSourceKind | null {
-  const ext = extensionOf(name).toLowerCase();
+  const ext = extOf(name) ?? ""; // lowercase, no dot
   const m = mime ?? "";
   if (m === "application/pdf" || ext === "pdf") return "pdf";
   if (m.startsWith("video/") || ["mp4", "webm", "mov", "m4v"].includes(ext)) {

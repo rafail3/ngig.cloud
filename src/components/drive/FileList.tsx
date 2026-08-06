@@ -42,6 +42,7 @@ import { ActionMenu, type MenuAction } from "./ActionMenu";
 import { useContextMenu } from "./ContextMenu";
 import { useSelection, selKey, type SelItem } from "./SelectionProvider";
 import { useLongPress } from "./useLongPress";
+import { useThumbBackfill } from "./useThumbBackfill";
 import { RenameModal } from "./RenameModal";
 import { ShareModal } from "./ShareModal";
 import { useMounted, useIsTouch, useRowClick } from "./anim";
@@ -110,6 +111,9 @@ type FileItem = {
   updatedAt: string;
   // Present only for images/videos uploaded after thumbnails shipped.
   thumbKey?: string | null;
+  // Set when a backfill attempt already failed for this file (see
+  // useThumbBackfill) — it is then never retried.
+  thumbFailedAt?: string | null;
 };
 
 /* The real image in place of the type icon, in the exact same 36px box so a
@@ -132,6 +136,9 @@ function Thumb({
   variant?: ViewMode;
 }) {
   const [failed, setFailed] = useState(false);
+  // Backfilled thumbnails land while the row is already on screen; fading them
+  // in keeps that from reading as a glitch. Cached ones fade too, over ~1 frame.
+  const [loaded, setLoaded] = useState(false);
 
   if (failed) {
     // Never a broken-image box: fall back to exactly what a file without a
@@ -153,7 +160,10 @@ function Thumb({
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}
-      className="h-full w-full object-cover"
+      onLoad={() => setLoaded(true)}
+      className={`h-full w-full object-cover transition-opacity duration-300 ${
+        loaded ? "opacity-100" : "opacity-0"
+      }`}
     />
   );
 
@@ -177,6 +187,9 @@ export function FileList({ folderId }: { folderId: string | null }) {
   // tell when an upload's real row has arrived (so its ghost can disappear).
   const { files, rawFiles } = useFilter();
   const view = useViewMode();
+  // Files uploaded before thumbnails shipped get theirs generated in the
+  // background, as they are rendered. Returns the ids done in this session.
+  const backfilled = useThumbBackfill(files);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<FileItem | null>(null);
   // True when the preview was opened straight into edit mode (Editează action).
@@ -274,6 +287,9 @@ export function FileList({ folderId }: { folderId: string | null }) {
               file={f}
               folderId={folderId}
               variant={view}
+              // A thumbnail generated moments ago in this tab: the row must show
+              // it now, not after the next refetch.
+              hasThumb={Boolean(f.thumbKey) || backfilled.has(f.id)}
               pending={pendingId === f.id}
               onPreview={() => setPreview(f)}
               onEdit={() => {
@@ -394,6 +410,7 @@ function FileRow({
   folderId,
   pending,
   variant,
+  hasThumb,
   onPreview,
   onEdit,
   onInfo,
@@ -409,6 +426,7 @@ function FileRow({
   folderId: string | null;
   pending: boolean;
   variant: ViewMode;
+  hasThumb: boolean;
   onPreview: () => void;
   onEdit: () => void;
   onInfo: () => void;
@@ -518,7 +536,7 @@ function FileRow({
               than square: most documents and photos are landscape-ish, and a
               square box would letterbox nearly everything. */}
           <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-950/60">
-            {file.thumbKey ? (
+            {hasThumb ? (
               <Thumb id={file.id} name={file.name} mime={file.mimeType} variant="grid" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
@@ -563,7 +581,7 @@ function FileRow({
         >
           <CheckCircle2 className="h-[18px] w-[18px] text-indigo-400" />
         </span>
-      ) : file.thumbKey ? (
+      ) : hasThumb ? (
         <Thumb id={file.id} name={file.name} mime={file.mimeType} />
       ) : (
         <FileTypeIcon name={file.name} mime={file.mimeType} />

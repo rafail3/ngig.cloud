@@ -18,6 +18,8 @@ export type FileInput = {
   size: number;
   mimeType: string | null;
   thumbKey?: string | null;
+  // Set once a backfill attempt produced nothing — the file is then left alone.
+  thumbFailedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };

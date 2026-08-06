@@ -60,7 +60,9 @@ function draw(source: CanvasImageSource, w: number, h: number): Promise<Blob | n
   });
 }
 
-async function fromImage(file: File): Promise<Blob | null> {
+// Takes a Blob rather than a File so the same path serves both sources: the
+// file the browser is uploading, and one fetched back out of B2 for a backfill.
+async function fromImage(file: Blob): Promise<Blob | null> {
   // createImageBitmap decodes off the main thread where available, so a big
   // photo doesn't jank the UI while its upload starts.
   if (typeof createImageBitmap === "function") {
@@ -93,10 +95,25 @@ async function fromImage(file: File): Promise<Blob | null> {
 
 async function fromVideo(file: File): Promise<Blob | null> {
   const url = URL.createObjectURL(file);
+  try {
+    return await fromVideoUrl(url, false);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// The seek-and-draw itself, over any URL. For a remote one this is the cheap
+// path: `preload="metadata"` plus a seek makes the browser issue RANGE requests,
+// so a poster frame costs the header and a chunk — not the whole film.
+async function fromVideoUrl(url: string, remote: boolean): Promise<Blob | null> {
   const video = document.createElement("video");
   video.muted = true;
   video.playsInline = true;
   video.preload = "metadata";
+  // Without this a cross-origin frame TAINTS the canvas and toBlob throws. It
+  // has to be set before src, and it means the fetch is a CORS one — B2 already
+  // allows it (the same attribute is what VideoPlayer plays presigned URLs with).
+  if (remote) video.crossOrigin = "anonymous";
 
   try {
     const frame = await new Promise<Blob | null>((resolve) => {
@@ -121,9 +138,11 @@ async function fromVideo(file: File): Promise<Blob | null> {
   } catch {
     return null;
   } finally {
+    // Drop the source so the browser stops buffering the moment we have (or
+    // gave up on) the frame — on a remote video that is the difference between
+    // reading a chunk and reading the file. The caller owns the URL.
     video.removeAttribute("src");
     video.load();
-    URL.revokeObjectURL(url);
   }
 }
 
@@ -143,12 +162,17 @@ async function loadPdfjs() {
   return pdfjsPromise;
 }
 
-// First page, rendered at whatever scale lands closest to MAX_EDGE. A document's
-// cover is what makes it recognisable in a grid — far more than a red PDF icon.
 async function fromPdf(file: File): Promise<Blob | null> {
   const pdfjs = await loadPdfjs();
   const data = new Uint8Array(await file.arrayBuffer());
-  const task = pdfjs.getDocument({ data, isOffscreenCanvasSupported: true });
+  return renderFirstPage(pdfjs.getDocument({ data, isOffscreenCanvasSupported: true }));
+}
+
+// First page, rendered at whatever scale lands closest to MAX_EDGE. A document's
+// cover is what makes it recognisable in a grid — far more than a red PDF icon.
+async function renderFirstPage(
+  task: ReturnType<Awaited<ReturnType<typeof loadPdfjs>>["getDocument"]>,
+): Promise<Blob | null> {
   try {
     const doc = await task.promise;
     const page = await doc.getPage(1);
@@ -184,6 +208,41 @@ export async function makeThumbnail(file: File): Promise<Blob | null> {
     if (isVideo(file)) return await fromVideo(file);
     if (isPdf(file)) return await fromPdf(file);
     return null;
+  } catch {
+    return null;
+  }
+}
+
+// --- Backfill source: the original, read back out of B2 --------------------
+//
+// Same renderers, different input. A file uploaded before thumbnails shipped is
+// no longer in the browser's hands, so the only way to make its preview is to
+// read the original again — which is why only video and PDF are cheap here:
+// both are consumed with range requests, so a poster frame or a cover page
+// costs a slice of the object rather than all of it. An image has no such
+// trick and comes down whole, which is why the server caps its size.
+
+export type ThumbSourceKind = "image" | "video" | "pdf";
+
+// A JPEG thumbnail rendered from a remote original, or null. Never throws — a
+// failure here just means the file keeps its type icon.
+export async function makeThumbnailFromUrl(
+  url: string,
+  kind: ThumbSourceKind,
+): Promise<Blob | null> {
+  try {
+    if (kind === "video") return await fromVideoUrl(url, true);
+    if (kind === "pdf") {
+      const pdfjs = await loadPdfjs();
+      // `url` (not `data`): pdf.js then fetches ranges and stops once the first
+      // page is rendered, instead of pulling a 200-page document to draw one.
+      return await renderFirstPage(
+        pdfjs.getDocument({ url, isOffscreenCanvasSupported: true }),
+      );
+    }
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await fromImage(await res.blob());
   } catch {
     return null;
   }
