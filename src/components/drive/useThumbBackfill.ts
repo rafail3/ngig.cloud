@@ -23,7 +23,7 @@
 import { useEffect, useState } from "react";
 import { getThumbJobsAction, saveThumbResultsAction } from "@/app/drive-actions";
 import { makeThumbnailFromUrl, type ThumbJob } from "@/lib/upload/thumbnail";
-import { extOf } from "@/lib/file-type";
+import { extOf, isTextEditable } from "@/lib/file-type";
 
 export type BackfillCandidate = {
   id: string;
@@ -75,7 +75,8 @@ function eligible(f: BackfillCandidate): boolean {
     m === "application/pdf" ||
     ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "mp4", "webm", "mov", "m4v", "pdf"].includes(
       ext,
-    )
+    ) ||
+    isTextEditable(f.name, f.mimeType)
   );
 }
 

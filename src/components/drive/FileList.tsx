@@ -17,6 +17,7 @@ import {
   Upload,
   CheckCircle2,
   Share2,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -116,6 +117,9 @@ type FileItem = {
   thumbFailedAt?: string | null;
 };
 
+// Older rows can carry application/octet-stream, so the name is the fallback.
+const VIDEO_EXT = /\.(mp4|webm|mov|m4v|mkv|avi)$/i;
+
 /* The real image in place of the type icon, in the exact same 36px box so a
    folder of mixed files doesn't get a ragged left edge.
 
@@ -135,6 +139,10 @@ function Thumb({
   mime: string | null;
   variant?: ViewMode;
 }) {
+  // A page is portrait and the grid's box is landscape, so a centred crop would
+  // cut the head off a document — which is the part that identifies it. Photos
+  // keep the centre crop, where the subject usually is.
+  const docLike = mime === "application/pdf" || isTextEditable(name, mime);
   const [failed, setFailed] = useState(false);
   // Backfilled thumbnails land while the row is already on screen; fading them
   // in keeps that from reading as a glitch. Cached ones fade too, over ~1 frame.
@@ -162,15 +170,49 @@ function Thumb({
       onError={() => setFailed(true)}
       onLoad={() => setLoaded(true)}
       className={`h-full w-full object-cover transition-opacity duration-300 ${
-        loaded ? "opacity-100" : "opacity-0"
-      }`}
+        docLike ? "object-top" : ""
+      } ${loaded ? "opacity-100" : "opacity-0"}`}
     />
   );
 
+  // A poster frame is indistinguishable from a photo, so a video says so with a
+  // play badge — the same convention every video surface uses. Only once the
+  // frame is actually there: a badge floating over an empty box promises a
+  // preview that hasn't arrived.
+  const isVideo = (mime ?? "").startsWith("video/") || VIDEO_EXT.test(name);
+  const badge = isVideo && loaded && (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 flex items-center justify-center"
+    >
+      <span
+        className={
+          variant === "grid"
+            ? "flex h-11 w-11 items-center justify-center rounded-full bg-zinc-950/55 text-white ring-1 ring-white/25 backdrop-blur-[2px] transition-transform duration-150 group-hover:scale-110"
+            : "flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950/60 text-white ring-1 ring-white/25"
+        }
+      >
+        {/* Nudged right by a pixel: a triangle centred by its bounding box
+            reads as sitting slightly left of centre. */}
+        <Play
+          className={`translate-x-px fill-current ${
+            variant === "grid" ? "h-4 w-4" : "h-2.5 w-2.5"
+          }`}
+        />
+      </span>
+    </span>
+  );
+
   return variant === "grid" ? (
-    img
+    <>
+      {img}
+      {badge}
+    </>
   ) : (
-    <span className="h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-zinc-800">{img}</span>
+    <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
+      {img}
+      {badge}
+    </span>
   );
 }
 

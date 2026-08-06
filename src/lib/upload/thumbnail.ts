@@ -8,10 +8,24 @@
 // Everything here is best-effort: any failure returns null and the file simply
 // keeps its type icon. A thumbnail is never worth failing an upload over.
 
+import { isTextEditable } from "@/lib/file-type";
+
 // Longest edge of the generated image. Covers a 2x display at the ~40px the
 // list renders, with room for a larger grid later.
 const MAX_EDGE = 320;
 const JPEG_QUALITY = 0.72;
+
+// Text is rendered rather than photographed, so it gets its own settings: a
+// page-shaped canvas (A4 ratio, like the PDF covers it sits beside in a grid)
+// and a higher quality, because JPEG rings badly around small glyphs.
+const TEXT_W = 226;
+const TEXT_H = MAX_EDGE;
+const TEXT_PAD = 12;
+const TEXT_LINE_H = 15;
+const TEXT_QUALITY = 0.85;
+// Enough for the ~19 lines that fit. Read with a range request, so this is also
+// all that comes down the wire for a 500MB log.
+const TEXT_BYTES = 4096;
 
 // Videos: how far in to seek for the poster frame. Far enough past a black or
 // fade-in first frame to usually land on real content.
@@ -20,7 +34,11 @@ const VIDEO_SEEK_SEC = 1;
 const VIDEO_TIMEOUT_MS = 5000;
 
 export function canThumbnail(file: File): boolean {
-  return isImage(file) || isVideo(file) || isPdf(file);
+  return isImage(file) || isVideo(file) || isPdf(file) || isText(file);
+}
+
+function isText(file: File): boolean {
+  return isTextEditable(file.name, file.type);
 }
 
 function isPdf(file: File): boolean {
@@ -201,12 +219,52 @@ async function renderFirstPage(
   }
 }
 
+// The first lines, drawn as a page. A wall of text is not readable at 40px, but
+// its SHAPE is: indentation, line lengths and blank runs are what let someone
+// pick their config file out of a grid of identical code icons.
+function drawText(text: string): Promise<Blob | null> {
+  const body = text.replace(/\t/g, "  ").split(/\r?\n/);
+  if (!body.some((l) => l.trim().length > 0)) return Promise.resolve(null);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = TEXT_W;
+  canvas.height = TEXT_H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return Promise.resolve(null);
+
+  // Paper, not the app's dark card: the thumbnail has to stay legible whichever
+  // theme the list is in, and it sits next to PDF covers that are white anyway.
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, TEXT_W, TEXT_H);
+  ctx.font = "11px ui-monospace, SFMono-Regular, Menlo, monospace";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = "#3f3f46"; // zinc-700 — full black is harsh at this size
+
+  const maxWidth = TEXT_W - TEXT_PAD * 2;
+  const rows = Math.floor((TEXT_H - TEXT_PAD * 2) / TEXT_LINE_H);
+  for (let i = 0; i < Math.min(rows, body.length); i++) {
+    // Clip to the page instead of letting a long line run off it. The initial
+    // slice keeps the measure loop short on minified files, where one "line"
+    // can be the entire document.
+    let line = body[i].slice(0, 200);
+    while (line.length > 0 && ctx.measureText(line).width > maxWidth) {
+      line = line.slice(0, -1);
+    }
+    ctx.fillText(line, TEXT_PAD, TEXT_PAD + i * TEXT_LINE_H);
+  }
+
+  return new Promise((resolve) => {
+    canvas.toBlob((b) => resolve(b), "image/jpeg", TEXT_QUALITY);
+  });
+}
+
 // A JPEG thumbnail for the file, or null when one can't be made. Never throws.
 export async function makeThumbnail(file: File): Promise<Blob | null> {
   try {
     if (isImage(file)) return await fromImage(file);
     if (isVideo(file)) return await fromVideo(file);
     if (isPdf(file)) return await fromPdf(file);
+    if (isText(file)) return await drawText(await file.slice(0, TEXT_BYTES).text());
     return null;
   } catch {
     return null;
@@ -222,7 +280,7 @@ export async function makeThumbnail(file: File): Promise<Blob | null> {
 // costs a slice of the object rather than all of it. An image has no such
 // trick and comes down whole, which is why the server caps its size.
 
-export type ThumbSourceKind = "image" | "video" | "pdf";
+export type ThumbSourceKind = "image" | "video" | "pdf" | "text";
 
 // Everything the browser needs to produce and store ONE thumbnail: where to read
 // the original, how to render it, where to PUT the result. Lives here rather
@@ -244,6 +302,14 @@ export async function makeThumbnailFromUrl(
 ): Promise<Blob | null> {
   try {
     if (kind === "video") return await fromVideoUrl(url, true);
+    if (kind === "text") {
+      // Only the head of the file: a range request keeps a huge log as cheap as
+      // a small one. A server that ignores Range answers 200 with the whole
+      // body, which still renders — it just costs more.
+      const res = await fetch(url, { headers: { Range: `bytes=0-${TEXT_BYTES - 1}` } });
+      if (!res.ok) return null;
+      return await drawText(await res.text());
+    }
     if (kind === "pdf") {
       const pdfjs = await loadPdfjs();
       // `url` (not `data`): pdf.js then fetches ranges and stops once the first
