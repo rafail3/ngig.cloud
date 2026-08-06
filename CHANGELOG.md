@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.44.0](https://github.com/rafail3/ngig.cloud/compare/v2.43.1...v2.44.0) (2026-08-06)
+
+
+### Features
+
+* **drive:** generated covers for audio files ([5eb4f93](https://github.com/rafail3/ngig.cloud/commit/5eb4f93b360d1f50c7034195e87c8145ab7ecddf))
+* **drive:** generated covers for audio files ([4091bb3](https://github.com/rafail3/ngig.cloud/commit/4091bb3bed4e3f72a010f57018fef6033bd75aa2))
+
+
+### Bug Fixes
+
+* **drive:** keep the selection bar off the last row ([74049ac](https://github.com/rafail3/ngig.cloud/commit/74049ac0fdc8e110768a62f9865e094686d7ee78))
+* **drive:** keep the selection bar off the last row ([dbc0b68](https://github.com/rafail3/ngig.cloud/commit/dbc0b689aa24e1b6d7e847ddbb11852ec8422651))
+
 ## [2.43.1](https://github.com/rafail3/ngig.cloud/compare/v2.43.0...v2.43.1) (2026-08-06)
 
 
