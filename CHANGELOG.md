@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.43.0](https://github.com/rafail3/ngig.cloud/compare/v2.42.0...v2.43.0) (2026-08-06)
+
+
+### Features
+
+* **drive:** thumbnails for Office documents ([1a162d6](https://github.com/rafail3/ngig.cloud/commit/1a162d6d02a043dea2b8b54747e173ec4ac85665))
+* **drive:** thumbnails for Office documents ([d90dc67](https://github.com/rafail3/ngig.cloud/commit/d90dc67e0324e98600d7b50b51e95a316ac22797))
+
 ## [2.42.0](https://github.com/rafail3/ngig.cloud/compare/v2.41.0...v2.42.0) (2026-08-06)
 
 
