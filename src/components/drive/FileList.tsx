@@ -133,22 +133,21 @@ const VIDEO_EXT = /\.(mp4|webm|mov|m4v|mkv|avi)$/i;
    The label carries the recognition, so it gets the size; longer names step down
    rather than wrap, because a wrapped "JAVASCRIPT" reads as two words. */
 function TypeBadge({ label }: { label: string }) {
+  // Sized against the narrowest card the grid produces (two columns on a small
+  // phone), so the longest labels still fit on one line there. Letter-spacing
+  // eases off as the text grows: what opens up a small word crowds a big one.
   const size =
     label.length <= 4
-      ? "text-2xl"
+      ? "text-4xl tracking-[0.08em]"
       : label.length <= 6
-        ? "text-xl"
+        ? "text-2xl tracking-[0.1em]"
         : label.length <= 8
-          ? "text-base"
-          : "text-sm";
+          ? "text-lg tracking-[0.12em]"
+          : "text-sm tracking-[0.14em]";
 
   return (
     <div className="flex h-full w-full items-center justify-center bg-zinc-800 px-2">
-      <span
-        className={`${size} truncate font-semibold tracking-[0.14em] text-zinc-300`}
-      >
-        {label}
-      </span>
+      <span className={`${size} truncate font-bold text-zinc-200`}>{label}</span>
     </div>
   );
 }
