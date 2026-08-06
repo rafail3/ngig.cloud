@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.42.0](https://github.com/rafail3/ngig.cloud/compare/v2.41.0...v2.42.0) (2026-08-06)
+
+
+### Features
+
+* **drive:** backfill thumbnails for previously uploaded files ([afe8b65](https://github.com/rafail3/ngig.cloud/commit/afe8b652f0f27ebf17690a257739a449c22f6b59))
+* **drive:** generate missing thumbnails as files are viewed ([d58591e](https://github.com/rafail3/ngig.cloud/commit/d58591e3ad8a56eca45477f7d0fcdeb27689a951))
+* **drive:** play badge on video thumbnails, previews for text files ([b03bad1](https://github.com/rafail3/ngig.cloud/commit/b03bad109d9b893712b4fca459eeff765579868e))
+* **drive:** server layer for thumbnail backfill ([cab3b5b](https://github.com/rafail3/ngig.cloud/commit/cab3b5b8a9c17ce01426b3270e1a14eec7052a60))
+* **drive:** show the format as a badge on text and code files ([de4e5dc](https://github.com/rafail3/ngig.cloud/commit/de4e5dc6deb12763b225f1aba877110a23e7464d))
+
+
+### Performance Improvements
+
+* **drive:** batch the thumbnail backfill, and fix nesting in the header ([e2a9ef0](https://github.com/rafail3/ngig.cloud/commit/e2a9ef05c2b8d45434ee7f22ab7daacca17ceb21))
+
 ## [2.41.0](https://github.com/rafail3/ngig.cloud/compare/v2.40.0...v2.41.0) (2026-08-05)
 
 
