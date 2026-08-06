@@ -2,7 +2,11 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type EgressSource = "download" | "preview" | "folder" | "office";
+// "thumb" is the backfill of a missing thumbnail: the browser reads an old
+// original back out of B2 to render one. Kept distinct from "preview" because
+// the suggested-files engine reads preview/download as a signal of user
+// interest, and a background job is not interest.
+export type EgressSource = "download" | "preview" | "folder" | "office" | "thumb";
 
 // Repeated previews of the same file within this window count once: the
 // presigned URL changes per open, but video/audio only stream the watched

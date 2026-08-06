@@ -2,6 +2,7 @@
 
 import * as files from "@/server/files/service";
 import type { UploadPlan } from "@/server/files/service";
+import type { ThumbJob } from "@/lib/upload/thumbnail";
 import { getSuggestedFiles } from "@/server/insights/engine";
 import { getUploadTypes } from "@/server/admin/settings";
 import { requireActiveUser } from "@/server/auth/active-user";
@@ -87,6 +88,30 @@ export async function createThumbUploadAction(input: {
 }): Promise<{ key: string; url: string } | Revoked> {
   try {
     return await files.createThumbUpload(input);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+// --- Thumbnail backfill (files uploaded before thumbnails shipped) ----------
+
+export async function getThumbJobsAction(
+  ids: string[],
+): Promise<ThumbJob[] | Revoked> {
+  try {
+    return await files.getThumbJobs(ids);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    throw e;
+  }
+}
+
+export async function saveThumbResultsAction(
+  results: { id: string; thumbKey: string | null }[],
+): Promise<Revoked | void> {
+  try {
+    await files.saveThumbResults(results);
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     throw e;

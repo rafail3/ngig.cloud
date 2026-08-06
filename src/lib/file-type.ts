@@ -132,6 +132,28 @@ export function fileTypeLabel(name: string, mime?: string | null): string {
   return ext && !base.includes(`.${ext}`) ? `${base} (.${ext})` : base;
 }
 
+// The language/format a text file is written in, spelled out where the
+// extension alone says little (`py` reads as nothing, PYTHON reads at a glance).
+// Anything missing falls back to its own extension, which is already the
+// convention for these — HTML, CSS, SQL are the names people use.
+const BADGE_BY_EXT: Record<string, string> = {
+  md: "MARKDOWN", markdown: "MARKDOWN",
+  js: "JAVASCRIPT", mjs: "JAVASCRIPT", cjs: "JAVASCRIPT",
+  ts: "TYPESCRIPT", py: "PYTHON", rb: "RUBY", rs: "RUST", go: "GO",
+  sh: "SHELL", yml: "YAML", h: "C", cpp: "C++", env: "ENV",
+};
+
+/**
+ * Short uppercase badge for a text or code file — "TXT", "HTML", "PYTHON".
+ * Null for anything that isn't text: those have a real preview to show.
+ */
+export function textBadge(name: string, mime?: string | null): string | null {
+  if (!isTextEditable(name, mime)) return null;
+  const ext = extOf(name);
+  if (!ext) return "TXT";
+  return BADGE_BY_EXT[ext] ?? ext.toUpperCase();
+}
+
 // ---------------------------------------------------------------------------
 // Coarse categories — the buckets the in-folder filter (TASK 40) groups by.
 // Deliberately broader than the labels above: a user filtering for "Documente"

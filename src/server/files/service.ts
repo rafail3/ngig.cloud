@@ -9,10 +9,11 @@ import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/servi
 import { logEvent } from "@/server/insights/engine";
 import { logEgress } from "@/server/billing/egress";
 import * as repo from "./repository";
-import { extensionOf } from "@/lib/file-type";
+import { extensionOf, extOf } from "@/lib/file-type";
 import { fileTypeDenied } from "@/lib/upload-types";
 import { checkStorageAlert } from "@/server/account/storage-alert";
 import { formatBytes } from "@/lib/format";
+import type { ThumbJob, ThumbSourceKind } from "@/lib/upload/thumbnail";
 import {
   presignUpload,
   presignDownload,
@@ -808,6 +809,131 @@ export async function getFileThumbKey(id: string): Promise<string | null> {
   await requireActiveUser();
   const file = await repo.getFileById(id);
   return file?.thumb_key ?? null;
+}
+
+// --- Backfill of thumbnails for files uploaded before thumbnails shipped ----
+//
+// Same generator as at upload time (the browser's canvas), only the source
+// differs: instead of the File it already held, it reads the original back out
+// of B2 through a presigned URL. That read is real egress, which is why the
+// server — not the client — decides what is eligible and logs the cost.
+
+// The one type whose thumbnail costs a FULL download. Video and PDF are read
+// with range requests (a poster frame needs the header plus a chunk; a first
+// page needs the first few objects), so their true cost is a slice of the file
+// regardless of how big it is. An image has to come down whole, so it gets a
+// cap — above it, the file keeps its type icon.
+const MAX_BACKFILL_IMAGE_BYTES = 25 * 1024 * 1024;
+
+// What a ranged read actually pulls, used for egress accounting. Approximations,
+// deliberately on the generous side: the alternative is logging the full size of
+// a 2GB film for a 40px poster frame, which would make the cost page fiction.
+const RANGED_EGRESS_ESTIMATE: Record<Exclude<ThumbSourceKind, "image">, number> = {
+  video: 8 * 1024 * 1024,
+  pdf: 4 * 1024 * 1024,
+};
+
+// The kind a browser can render, from the stored mime with a filename fallback
+// (older rows can carry application/octet-stream). SVG is excluded for the same
+// reason as at upload: rasterising untrusted SVG runs its own scripts.
+function thumbKindOf(name: string, mime: string | null): ThumbSourceKind | null {
+  const ext = extOf(name) ?? ""; // lowercase, no dot
+  const m = mime ?? "";
+  if (m === "application/pdf" || ext === "pdf") return "pdf";
+  if (m.startsWith("video/") || ["mp4", "webm", "mov", "m4v"].includes(ext)) {
+    return "video";
+  }
+  if (m === "image/svg+xml" || ext === "svg") return null;
+  if (
+    m.startsWith("image/") ||
+    ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp"].includes(ext)
+  ) {
+    return "image";
+  }
+  // Text and code files deliberately get nothing: their badge is drawn from the
+  // filename by the list, so there is no image to make and no bytes to read.
+  return null;
+}
+
+// A screenful of files per call, which is what a grid renders at once.
+const MAX_THUMB_JOBS = 16;
+
+// Jobs for a batch of files, skipping the ones that aren't eligible.
+//
+// Batched because Next SERIALISES server actions: they queue behind one another
+// on the client, so a per-file round trip turns a folder of twenty into twenty
+// sequential waits before any pixel appears. One call for the whole screen, and
+// the presigned URLs it hands back are used against B2 directly — that part is
+// genuinely parallel.
+export async function getThumbJobs(ids: string[]): Promise<ThumbJob[]> {
+  const { id: userId } = await requireActiveUser();
+  const files = await repo.getFilesByIds(ids.slice(0, MAX_THUMB_JOBS)); // RLS → own rows
+
+  const eligible = files.filter((file) => {
+    if (file.thumb_key || file.thumb_failed_at) return false; // nothing to pay for
+    if (!file.storage_key.startsWith(`${userId}/`)) return false;
+    const kind = thumbKindOf(file.name, file.mime_type);
+    if (!kind) return false;
+    return !(kind === "image" && file.size > MAX_BACKFILL_IMAGE_BYTES);
+  });
+
+  return Promise.all(
+    eligible.map(async (file) => {
+      const kind = thumbKindOf(file.name, file.mime_type)!;
+      // Own prefix under the user, so the account-wipe sweep still catches it
+      // and it stays distinguishable from a real upload.
+      const uploadKey = `${userId}/thumbs/${randomUUID()}`;
+      const [viewUrl, uploadUrl] = await Promise.all([
+        presignView(file.storage_key),
+        presignUpload(uploadKey, "image/jpeg"),
+      ]);
+
+      // Logged under its own source, never "preview": the suggested-files engine
+      // reads egress_events with source in (preview, download) as the signal that
+      // a user keeps coming back to a file. Counting a background thumbnail job
+      // there would invent interest the user never showed.
+      const bytes =
+        kind === "image"
+          ? file.size
+          : Math.min(file.size, RANGED_EGRESS_ESTIMATE[kind]);
+      after(() => logEgress(bytes, "thumb", { fileId: file.id }));
+
+      return { id: file.id, url: viewUrl, kind, uploadUrl, uploadKey };
+    }),
+  );
+}
+
+// Persist a batch of outcomes: a key attaches the thumbnail, null records that
+// the file could not produce one (so it is never downloaded again). Batched for
+// the same reason as getThumbJobs, and best-effort — a lost row only costs a
+// repeated attempt.
+export async function saveThumbResults(
+  results: { id: string; thumbKey: string | null }[],
+) {
+  const { id: userId } = await requireActiveUser();
+  const batch = results.slice(0, MAX_THUMB_JOBS);
+  const files = await repo.getFilesByIds(batch.map((r) => r.id));
+  const byId = new Map(files.map((f) => [f.id, f]));
+
+  await Promise.all(
+    batch.map(async (r) => {
+      const file = byId.get(r.id);
+      if (!file) return;
+      assertOwnedKey(userId, file.storage_key);
+      // First writer wins. A second one would leave the first object
+      // unreferenced in B2 (the cleanup cron sweeps it, but there is no reason
+      // to make the mess).
+      if (file.thumb_key) return;
+      if (r.thumbKey === null) return repo.markThumbFailed(r.id);
+      // The key must live under the caller's own thumbs prefix — otherwise a
+      // client could point its row at another user's object and have /api/thumb
+      // serve it back.
+      if (!r.thumbKey.startsWith(`${userId}/thumbs/`)) {
+        throw new Error("Cheie invalidă.");
+      }
+      return repo.setFileThumb(r.id, r.thumbKey);
+    }),
+  );
 }
 
 export async function getDownloadUrl(id: string) {

@@ -17,6 +17,7 @@ import {
   Upload,
   CheckCircle2,
   Share2,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -29,7 +30,12 @@ import {
 } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
-import { fileTypeShort, fileTypeLabel, isTextEditable } from "@/lib/file-type";
+import {
+  fileTypeShort,
+  fileTypeLabel,
+  isTextEditable,
+  textBadge,
+} from "@/lib/file-type";
 import { isOfficeEditable, officeCanEdit, officeEditUnavailable } from "@/lib/office";
 import { useUploads, type UploadJob } from "./UploadProvider";
 import { useOfficeStatus } from "./OfficeStatusProvider";
@@ -42,6 +48,7 @@ import { ActionMenu, type MenuAction } from "./ActionMenu";
 import { useContextMenu } from "./ContextMenu";
 import { useSelection, selKey, type SelItem } from "./SelectionProvider";
 import { useLongPress } from "./useLongPress";
+import { useThumbBackfill } from "./useThumbBackfill";
 import { RenameModal } from "./RenameModal";
 import { ShareModal } from "./ShareModal";
 import { useMounted, useIsTouch, useRowClick } from "./anim";
@@ -110,7 +117,40 @@ type FileItem = {
   updatedAt: string;
   // Present only for images/videos uploaded after thumbnails shipped.
   thumbKey?: string | null;
+  // Set when a backfill attempt already failed for this file (see
+  // useThumbBackfill) — it is then never retried.
+  thumbFailedAt?: string | null;
 };
+
+// Older rows can carry application/octet-stream, so the name is the fallback.
+const VIDEO_EXT = /\.(mp4|webm|mov|m4v|mkv|avi)$/i;
+
+/* What a text or code file shows instead of a preview: the format, spelled out
+   on a plain grey field. There is nothing to fetch and nothing to store — the
+   badge comes from the filename, so it is right the moment the row appears, for
+   every file that ever existed.
+
+   The label carries the recognition, so it gets the size; longer names step down
+   rather than wrap, because a wrapped "JAVASCRIPT" reads as two words. */
+function TypeBadge({ label }: { label: string }) {
+  // Sized against the narrowest card the grid produces (two columns on a small
+  // phone), so the longest labels still fit on one line there. Letter-spacing
+  // eases off as the text grows: what opens up a small word crowds a big one.
+  const size =
+    label.length <= 4
+      ? "text-4xl tracking-[0.08em]"
+      : label.length <= 6
+        ? "text-2xl tracking-[0.1em]"
+        : label.length <= 8
+          ? "text-lg tracking-[0.12em]"
+          : "text-sm tracking-[0.14em]";
+
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-zinc-800 px-2">
+      <span className={`${size} truncate font-bold text-zinc-200`}>{label}</span>
+    </div>
+  );
+}
 
 /* The real image in place of the type icon, in the exact same 36px box so a
    folder of mixed files doesn't get a ragged left edge.
@@ -131,7 +171,14 @@ function Thumb({
   mime: string | null;
   variant?: ViewMode;
 }) {
+  // A page is portrait and the grid's box is landscape, so a centred crop would
+  // cut the head off a document — which is the part that identifies it. Photos
+  // keep the centre crop, where the subject usually is.
+  const docLike = mime === "application/pdf" || /\.pdf$/i.test(name);
   const [failed, setFailed] = useState(false);
+  // Backfilled thumbnails land while the row is already on screen; fading them
+  // in keeps that from reading as a glitch. Cached ones fade too, over ~1 frame.
+  const [loaded, setLoaded] = useState(false);
 
   if (failed) {
     // Never a broken-image box: fall back to exactly what a file without a
@@ -153,14 +200,51 @@ function Thumb({
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}
-      className="h-full w-full object-cover"
+      onLoad={() => setLoaded(true)}
+      className={`h-full w-full object-cover transition-opacity duration-300 ${
+        docLike ? "object-top" : ""
+      } ${loaded ? "opacity-100" : "opacity-0"}`}
     />
   );
 
+  // A poster frame is indistinguishable from a photo, so a video says so with a
+  // play badge — the same convention every video surface uses. Only once the
+  // frame is actually there: a badge floating over an empty box promises a
+  // preview that hasn't arrived.
+  const isVideo = (mime ?? "").startsWith("video/") || VIDEO_EXT.test(name);
+  const badge = isVideo && loaded && (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 flex items-center justify-center"
+    >
+      <span
+        className={
+          variant === "grid"
+            ? "flex h-11 w-11 items-center justify-center rounded-full bg-zinc-950/55 text-white ring-1 ring-white/25 backdrop-blur-[2px] transition-transform duration-150 group-hover:scale-110"
+            : "flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950/60 text-white ring-1 ring-white/25"
+        }
+      >
+        {/* Nudged right by a pixel: a triangle centred by its bounding box
+            reads as sitting slightly left of centre. */}
+        <Play
+          className={`translate-x-px fill-current ${
+            variant === "grid" ? "h-4 w-4" : "h-2.5 w-2.5"
+          }`}
+        />
+      </span>
+    </span>
+  );
+
   return variant === "grid" ? (
-    img
+    <>
+      {img}
+      {badge}
+    </>
   ) : (
-    <span className="h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-zinc-800">{img}</span>
+    <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
+      {img}
+      {badge}
+    </span>
   );
 }
 
@@ -177,6 +261,9 @@ export function FileList({ folderId }: { folderId: string | null }) {
   // tell when an upload's real row has arrived (so its ghost can disappear).
   const { files, rawFiles } = useFilter();
   const view = useViewMode();
+  // Files uploaded before thumbnails shipped get theirs generated in the
+  // background, as they are rendered. Returns the ids done in this session.
+  const backfilled = useThumbBackfill(files);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<FileItem | null>(null);
   // True when the preview was opened straight into edit mode (Editează action).
@@ -274,6 +361,9 @@ export function FileList({ folderId }: { folderId: string | null }) {
               file={f}
               folderId={folderId}
               variant={view}
+              // A thumbnail generated moments ago in this tab: the row must show
+              // it now, not after the next refetch.
+              hasThumb={Boolean(f.thumbKey) || backfilled.has(f.id)}
               pending={pendingId === f.id}
               onPreview={() => setPreview(f)}
               onEdit={() => {
@@ -394,6 +484,7 @@ function FileRow({
   folderId,
   pending,
   variant,
+  hasThumb,
   onPreview,
   onEdit,
   onInfo,
@@ -409,6 +500,7 @@ function FileRow({
   folderId: string | null;
   pending: boolean;
   variant: ViewMode;
+  hasThumb: boolean;
   onPreview: () => void;
   onEdit: () => void;
   onInfo: () => void;
@@ -445,6 +537,9 @@ function FileRow({
   const dimmed = dragActive?.kind === "file" && dragActive.id === file.id;
   const moving = usePendingMove().has(selKey(item));
   const busy = pending || moving;
+  // Non-null for text and code files, which show their format instead of a
+  // preview (there is nothing in a wall of text to recognise at this size).
+  const badge = textBadge(file.name, file.mimeType);
   const longPress = useLongPress(() => selection.toggle(item));
   const handleRowClick = useRowClick({
     isTouch,
@@ -518,7 +613,11 @@ function FileRow({
               than square: most documents and photos are landscape-ish, and a
               square box would letterbox nearly everything. */}
           <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-950/60">
-            {file.thumbKey ? (
+            {/* The badge wins over a thumbnail: rows written before text files
+                stopped generating one would otherwise still show it. */}
+            {badge ? (
+              <TypeBadge label={badge} />
+            ) : hasThumb ? (
               <Thumb id={file.id} name={file.name} mime={file.mimeType} variant="grid" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
@@ -563,7 +662,9 @@ function FileRow({
         >
           <CheckCircle2 className="h-[18px] w-[18px] text-indigo-400" />
         </span>
-      ) : file.thumbKey ? (
+      ) : hasThumb && !badge ? (
+        // In the list the icon already reads at 36px, and the subtitle spells
+        // the type out — the badge is a grid affordance only.
         <Thumb id={file.id} name={file.name} mime={file.mimeType} />
       ) : (
         <FileTypeIcon name={file.name} mime={file.mimeType} />

@@ -69,6 +69,7 @@ export function DriveBoard() {
         createdAt: f.created_at,
         updatedAt: f.updated_at,
         thumbKey: f.thumb_key,
+        thumbFailedAt: f.thumb_failed_at,
       }))}
     >
       {/* Search + filters stick to the top (just under the navbar) as you
@@ -97,14 +98,18 @@ export function DriveBoard() {
                 </h1>
                 {folderId && <FolderInfoButton folderId={folderId} name={title} />}
               </div>
-              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500">
+              {/* A div, not a p: the view toggle is a role="group" element, and
+                  the browser closes a <p> the moment a <div> opens inside it —
+                  the parsed tree then no longer matches what React rendered
+                  (hydration error). */}
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500">
                 <span>
                   {roCount(folders.length, "folder", "foldere")}
                   <span aria-hidden="true"> · </span>
                   {roCount(files.length, "fișier", "fișiere")}
                 </span>
                 <ViewToggle />
-              </p>
+              </div>
             </div>
             <StorageMeter used={used} quota={quota} />
           </div>
