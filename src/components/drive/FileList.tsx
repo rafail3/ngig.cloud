@@ -124,6 +124,68 @@ type FileItem = {
 
 // Older rows can carry application/octet-stream, so the name is the fallback.
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v|mkv|avi)$/i;
+const AUDIO_EXT = /\.(mp3|wav|ogg|flac|m4a|aac|opus|wma)$/i;
+
+/* Audio has no frame to show, so the tile is made rather than captured: a
+   gradient with a play badge, the language every music surface uses.
+
+   Five of them, picked by the file's id, so a folder of tracks doesn't read as
+   one repeated block — and so a given file always looks the same, which is what
+   makes a cover useful for finding it again.
+
+   Two stops, not three, and deliberately NOT the indigo→violet→fuchsia sweep:
+   that particular three-stop purple is the single most recognisable mark of a
+   machine-made interface. A duotone with real distance between its ends reads
+   like a record sleeve instead. The first pair stays on the app's own indigo so
+   the set is anchored to the brand; the rest carry the variety. */
+const AUDIO_GRADIENTS = [
+  "from-indigo-700 to-sky-400",
+  "from-rose-600 to-amber-400",
+  "from-emerald-700 to-lime-400",
+  "from-cyan-700 to-indigo-400",
+  "from-orange-600 to-rose-500",
+];
+
+function gradientFor(id: string): string {
+  // Any stable spread will do; this is the cheapest one that doesn't clump on
+  // the sequential characters a uuid is full of.
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return AUDIO_GRADIENTS[h % AUDIO_GRADIENTS.length];
+}
+
+function AudioTile({ id, variant }: { id: string; variant: ViewMode }) {
+  return (
+    <div
+      aria-hidden
+      className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${gradientFor(id)}`}
+    >
+      <PlayBadge variant={variant} />
+    </div>
+  );
+}
+
+/* The same badge a video thumbnail carries. Shared on purpose: "this plays" is
+   one idea, and it should not look like two. */
+function PlayBadge({ variant }: { variant: ViewMode }) {
+  return (
+    <span
+      className={
+        variant === "grid"
+          ? "flex h-11 w-11 items-center justify-center rounded-full bg-zinc-950/55 text-white ring-1 ring-white/25 backdrop-blur-[2px] transition-transform duration-150 group-hover:scale-110"
+          : "flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950/60 text-white ring-1 ring-white/25"
+      }
+    >
+      {/* Nudged right by a pixel: a triangle centred by its bounding box reads
+          as sitting slightly left of centre. */}
+      <Play
+        className={`translate-x-px fill-current ${
+          variant === "grid" ? "h-4 w-4" : "h-2.5 w-2.5"
+        }`}
+      />
+    </span>
+  );
+}
 
 /* What a text or code file shows instead of a preview: the format, spelled out
    on a plain grey field. There is nothing to fetch and nothing to store — the
@@ -217,21 +279,7 @@ function Thumb({
       aria-hidden
       className="pointer-events-none absolute inset-0 flex items-center justify-center"
     >
-      <span
-        className={
-          variant === "grid"
-            ? "flex h-11 w-11 items-center justify-center rounded-full bg-zinc-950/55 text-white ring-1 ring-white/25 backdrop-blur-[2px] transition-transform duration-150 group-hover:scale-110"
-            : "flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950/60 text-white ring-1 ring-white/25"
-        }
-      >
-        {/* Nudged right by a pixel: a triangle centred by its bounding box
-            reads as sitting slightly left of centre. */}
-        <Play
-          className={`translate-x-px fill-current ${
-            variant === "grid" ? "h-4 w-4" : "h-2.5 w-2.5"
-          }`}
-        />
-      </span>
+      <PlayBadge variant={variant} />
     </span>
   );
 
@@ -540,6 +588,10 @@ function FileRow({
   // Non-null for text and code files, which show their format instead of a
   // preview (there is nothing in a wall of text to recognise at this size).
   const badge = textBadge(file.name, file.mimeType);
+  // Audio has no frame to capture, so the grid shows a made cover instead of a
+  // music-note icon on an empty field.
+  const isAudio =
+    (file.mimeType ?? "").startsWith("audio/") || AUDIO_EXT.test(file.name);
   const longPress = useLongPress(() => selection.toggle(item));
   const handleRowClick = useRowClick({
     isTouch,
@@ -617,6 +669,8 @@ function FileRow({
                 stopped generating one would otherwise still show it. */}
             {badge ? (
               <TypeBadge label={badge} />
+            ) : isAudio ? (
+              <AudioTile id={file.id} variant="grid" />
             ) : hasThumb ? (
               <Thumb id={file.id} name={file.name} mime={file.mimeType} variant="grid" />
             ) : (
