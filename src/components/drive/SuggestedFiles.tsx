@@ -34,7 +34,22 @@ export function SuggestedFiles() {
   }, []);
 
   if (active) return null;
-  if (!data || data.length === 0) return null;
+  // Still loading: hold the collapsed card's exact footprint instead of
+  // occupying nothing. Without this the section drops in when the request
+  // returns and shoves the whole file list down — the second of the two shifts
+  // measured on this page. Matching the real header's height (h-[62px] plus the
+  // section's own mb-6) means the swap costs nothing when the data lands.
+  if (!data) {
+    return (
+      <section className="mb-6" aria-hidden>
+        <div className="h-[62px] rounded-2xl border border-zinc-800/70 bg-zinc-900/40" />
+      </section>
+    );
+  }
+  // Genuinely nothing to suggest: the section does not exist, and the reserved
+  // space goes with it. That collapse is the one shift left here, and it only
+  // happens for a user the engine has no recommendations for.
+  if (data.length === 0) return null;
 
   function toggle() {
     setOpen((v) => {
