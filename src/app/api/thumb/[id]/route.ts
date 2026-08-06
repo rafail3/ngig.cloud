@@ -37,7 +37,10 @@ export async function GET(
 
     return new NextResponse(res.body, {
       headers: {
-        "Content-Type": "image/jpeg",
+        // Browser-made thumbnails are JPEG; the ones the Document Server renders
+        // for Office documents come back as PNG. Forward what the object
+        // actually is rather than asserting one of them.
+        "Content-Type": res.headers.get("content-type") ?? "image/jpeg",
         // Immutable in practice: a new thumbnail always lands under a new key,
         // so a cached response can never go stale for this file.
         "Cache-Control": "private, max-age=604800, immutable",

@@ -24,9 +24,11 @@ import type { ShareTargetType, SharePageData } from "@/lib/share";
 import {
   buildEditorConfig,
   forceSave,
+  generateOfficeThumb,
   type EditorConfig,
   type OfficeMode,
   type OfficeTheme,
+  type OfficeThumbOutcome,
 } from "@/server/office/onlyoffice";
 import { getOfficeMode, getOfficeStatus } from "@/server/office/config";
 import type { OfficeStatus } from "@/lib/office";
@@ -164,9 +166,12 @@ export async function confirmUploadAction(input: {
   key: string;
   folderId: string | null;
   thumbKey?: string | null;
-}): Promise<Revoked | void> {
+  // The new row's id, so the caller can kick off work that needs it (an Office
+  // document's thumbnail is rendered server-side, after the file exists).
+}): Promise<{ id: string } | Revoked> {
   try {
-    await files.confirmUpload(input);
+    const row = await files.confirmUpload(input);
+    return { id: row.id };
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     throw e;
@@ -332,6 +337,23 @@ export async function getOfficeEditorConfigAction(
   } catch (e) {
     if (isRevoked(e)) return { revoked: true };
     return { error: e instanceof Error ? e.message : "Nu am putut deschide documentul." };
+  }
+}
+
+// Render one Office document's thumbnail on the Document Server. Unlike the
+// browser-made ones, the whole job happens server-side — the caller only gets
+// told what to do next.
+export async function generateOfficeThumbAction(
+  id: string,
+): Promise<OfficeThumbOutcome | Revoked> {
+  try {
+    // The admin can switch the Document Server off platform-wide. Treat that as
+    // "not now", never as "this document can't be rendered".
+    if ((await getOfficeMode()) === "legacy") return "retry";
+    return await generateOfficeThumb(id);
+  } catch (e) {
+    if (isRevoked(e)) return { revoked: true };
+    return "retry";
   }
 }
 
