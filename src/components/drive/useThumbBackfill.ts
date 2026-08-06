@@ -5,22 +5,24 @@
 // Those rows have `thumb_key = null` and show a type icon. The browser can still
 // make the preview — it just has to read the original back out of B2 first. That
 // read is the whole cost of this feature, so the work is lazy on purpose: only
-// files the list is ACTUALLY RENDERING get processed, two at a time, and each one
-// is attempted once. A folder nobody opens costs nothing.
+// files the list is ACTUALLY RENDERING get processed. A folder nobody opens
+// costs nothing.
 //
-// Eligibility is decided by the SERVER (getThumbSource): it owns the size cap
-// and the egress accounting. The filter here is only a cheap pre-check so the
+// The shape of this is dictated by one fact: Next SERIALISES server actions.
+// They queue behind one another on the client, so a per-file round trip would
+// mean a folder of twenty waits sequentially before any pixel appears. Hence
+// TWO actions per BATCH — one to fetch the jobs, one to persist the outcomes —
+// with everything in between (read original, render, upload) going straight to
+// B2, where requests really do run in parallel.
+//
+// Eligibility is decided by the SERVER (getThumbJobs): it owns the size cap and
+// the egress accounting. The filter here is only a cheap pre-check so the
 // obvious non-candidates — a .zip, a file that already has a thumbnail — don't
-// cost a round trip.
+// take up a slot in the batch.
 
 import { useEffect, useState } from "react";
-import {
-  getThumbSourceAction,
-  createThumbUploadAction,
-  setFileThumbAction,
-  markThumbFailedAction,
-} from "@/app/drive-actions";
-import { makeThumbnailFromUrl } from "@/lib/upload/thumbnail";
+import { getThumbJobsAction, saveThumbResultsAction } from "@/app/drive-actions";
+import { makeThumbnailFromUrl, type ThumbJob } from "@/lib/upload/thumbnail";
 import { extOf } from "@/lib/file-type";
 
 export type BackfillCandidate = {
@@ -31,30 +33,33 @@ export type BackfillCandidate = {
   thumbFailedAt?: string | null;
 };
 
-// Two at a time: enough to fill a screen quickly, few enough that the folder's
-// own requests (and any upload in flight) still get the network.
-const CONCURRENCY = 2;
+// One screenful per batch. Must not exceed the server's own cap.
+const BATCH = 16;
 
-// Let the folder finish painting first. A thumbnail is the least urgent thing on
-// the page — it must never compete with the content the user asked for.
-const START_DELAY_MS = 600;
+// Renders in flight at once. Decoding is CPU work on the main thread, so this
+// is about keeping the browser responsive, not about the network.
+const CONCURRENCY = 4;
 
-// If this many attempts fail back to back, something systemic is wrong (CORS
-// dropped on the bucket, B2 unreachable) rather than a few odd files. Stop for
-// the rest of the session instead of marking a whole drive as unrenderable.
+// Just long enough for the folder to paint first. A thumbnail is the least
+// urgent thing on the page, but it shouldn't feel like an afterthought either.
+const START_DELAY_MS = 150;
+
+// If this many files in a row fail, something systemic is wrong (CORS dropped on
+// the bucket, B2 unreachable) rather than a few odd files. Stop for the rest of
+// the session instead of marking a whole drive as unrenderable.
 const FAILURE_CIRCUIT = 5;
 
 // --- Session state ----------------------------------------------------------
-// All of this is module-level, and deliberately so: the queue outlives the
-// component. FileList unmounts on every folder change, and a per-component
-// queue would mean cancelling work mid-flight on each navigation — and
-// re-attempting the same files when the user walks back into a folder.
+// Module-level, and deliberately so: the queue outlives the component. FileList
+// unmounts on every folder change, and a per-component queue would mean
+// cancelling work mid-flight on each navigation — and re-attempting the same
+// files when the user walks back into a folder.
 
 const queue: BackfillCandidate[] = [];
 const attempted = new Set<string>();
 const succeeded = new Set<string>();
 const listeners = new Set<() => void>();
-let active = 0;
+let draining = false;
 let consecutiveFailures = 0;
 let circuitOpen = false;
 
@@ -74,69 +79,85 @@ function eligible(f: BackfillCandidate): boolean {
   );
 }
 
-type Outcome = "ok" | "unrenderable" | "retry";
-
-async function backfillOne(f: BackfillCandidate): Promise<Outcome> {
-  const src = await getThumbSourceAction(f.id);
-  // null = the server says this file isn't eligible (too big, wrong type,
-  // already handled). Not a failure, and not worth asking about again.
-  if (!src) return "unrenderable";
-  if ("revoked" in src) return "retry";
-
-  const blob = await makeThumbnailFromUrl(src.url, src.kind);
+// One file: read the original, render it, store the result. Returns the key on
+// success, null when the file simply cannot produce an image, and throws when
+// the failure is infrastructural (so the caller can leave it unmarked and let a
+// later visit retry).
+async function runJob(job: ThumbJob): Promise<string | null> {
+  const blob = await makeThumbnailFromUrl(job.url, job.kind);
   // Nothing came back: a codec this browser can't decode, a corrupt file, an
-  // encrypted PDF. THIS is the case worth remembering in the database — the
-  // bytes were readable and still produced no image.
-  if (!blob) return "unrenderable";
+  // encrypted PDF. THIS is what is worth remembering — the bytes were readable
+  // and still produced no image.
+  if (!blob) return null;
 
-  const plan = await createThumbUploadAction({ size: blob.size });
-  if ("revoked" in plan) return "retry";
-
-  const put = await fetch(plan.url, {
+  const put = await fetch(job.uploadUrl, {
     method: "PUT",
     body: blob,
     headers: { "Content-Type": "image/jpeg" },
   });
   // The thumbnail exists but couldn't be stored — infrastructure, not the file.
-  // Left unmarked so a later visit tries again.
-  if (!put.ok) return "retry";
-
-  await setFileThumbAction({ id: f.id, thumbKey: plan.key });
-  return "ok";
+  if (!put.ok) throw new Error("thumb upload failed");
+  return job.uploadKey;
 }
 
-// Idempotent: safe to call at any time, from anywhere. Starts as many workers as
-// the concurrency cap allows and does nothing when the queue is empty.
-function pump(): void {
-  while (!circuitOpen && active < CONCURRENCY && queue.length > 0) {
-    const item = queue.shift()!;
-    active++;
-    void (async () => {
+async function drainBatch(batch: BackfillCandidate[]): Promise<void> {
+  const jobs = await getThumbJobsAction(batch.map((c) => c.id));
+  if ("revoked" in jobs) throw new Error("revoked");
+
+  // Files the server left out are ineligible for good (too big, wrong type) —
+  // nothing to record, and nothing to ask about again.
+  const results: { id: string; thumbKey: string | null }[] = [];
+  const pending = [...jobs];
+
+  const worker = async () => {
+    for (let job = pending.shift(); job; job = pending.shift()) {
       try {
-        const outcome = await backfillOne(item);
-        if (outcome === "ok") {
+        const key = await runJob(job);
+        results.push({ id: job.id, thumbKey: key });
+        if (key) {
           consecutiveFailures = 0;
-          succeeded.add(item.id);
+          succeeded.add(job.id);
+          // Paint it now. The row is already on screen, and waiting for the
+          // batch to finish would hold back thumbnails that are ready.
           for (const notify of listeners) notify();
-        } else if (outcome === "unrenderable") {
-          consecutiveFailures++;
-          await markThumbFailedAction(item.id);
         } else {
-          // Retryable: forget the attempt so a later visit picks it up.
           consecutiveFailures++;
-          attempted.delete(item.id);
         }
       } catch {
-        // A thrown action (network, session) is retryable by the same rule.
+        // Retryable: forget the attempt so a later visit picks it up.
         consecutiveFailures++;
-        attempted.delete(item.id);
-      } finally {
-        if (consecutiveFailures >= FAILURE_CIRCUIT) circuitOpen = true;
-        active--;
-        pump();
+        attempted.delete(job.id);
       }
-    })();
-  }
+      if (consecutiveFailures >= FAILURE_CIRCUIT) {
+        circuitOpen = true;
+        return;
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  // One write for the whole batch. Display never waited on it.
+  if (results.length > 0) await saveThumbResultsAction(results);
+}
+
+// Idempotent: safe to call at any time. Does nothing when the queue is empty or
+// a drain is already running.
+function drain(): void {
+  if (draining || circuitOpen || queue.length === 0) return;
+  draining = true;
+  void (async () => {
+    try {
+      while (!circuitOpen && queue.length > 0) {
+        await drainBatch(queue.splice(0, BATCH));
+      }
+    } catch {
+      // A batch-level failure (session revoked, action threw) stops this run;
+      // the next render re-queues whatever never got attempted.
+      for (const c of queue.splice(0)) attempted.delete(c.id);
+    } finally {
+      draining = false;
+    }
+  })();
 }
 
 /**
@@ -163,9 +184,9 @@ export function useThumbBackfill(files: BackfillCandidate[]): Set<string> {
       attempted.add(f.id);
       queue.push(f);
     }
-    // Scheduled rather than immediate, and unconditionally — a pump call with an
-    // empty queue is a no-op, and this way no enqueue can end up unpumped.
-    const timer = setTimeout(pump, START_DELAY_MS);
+    // Scheduled rather than immediate, and unconditionally — a drain call with
+    // an empty queue is a no-op, and this way no enqueue is left unpumped.
+    const timer = setTimeout(drain, START_DELAY_MS);
     return () => clearTimeout(timer);
   }, [files]);
 

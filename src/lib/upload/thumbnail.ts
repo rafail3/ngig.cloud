@@ -224,6 +224,18 @@ export async function makeThumbnail(file: File): Promise<Blob | null> {
 
 export type ThumbSourceKind = "image" | "video" | "pdf";
 
+// Everything the browser needs to produce and store ONE thumbnail: where to read
+// the original, how to render it, where to PUT the result. Lives here rather
+// than in the service so both sides can name it without a client file importing
+// a server-only module.
+export type ThumbJob = {
+  id: string;
+  url: string;
+  kind: ThumbSourceKind;
+  uploadUrl: string;
+  uploadKey: string;
+};
+
 // A JPEG thumbnail rendered from a remote original, or null. Never throws — a
 // failure here just means the file keeps its type icon.
 export async function makeThumbnailFromUrl(

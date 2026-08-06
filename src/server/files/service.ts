@@ -13,6 +13,7 @@ import { extensionOf, extOf } from "@/lib/file-type";
 import { fileTypeDenied } from "@/lib/upload-types";
 import { checkStorageAlert } from "@/server/account/storage-alert";
 import { formatBytes } from "@/lib/format";
+import type { ThumbJob, ThumbSourceKind } from "@/lib/upload/thumbnail";
 import {
   presignUpload,
   presignDownload,
@@ -832,8 +833,6 @@ const RANGED_EGRESS_ESTIMATE: Record<"video" | "pdf", number> = {
   pdf: 4 * 1024 * 1024,
 };
 
-export type ThumbSourceKind = "image" | "video" | "pdf";
-
 // The kind a browser can render, from the stored mime with a filename fallback
 // (older rows can carry application/octet-stream). SVG is excluded for the same
 // reason as at upload: rasterising untrusted SVG runs its own scripts.
@@ -854,62 +853,85 @@ function thumbKindOf(name: string, mime: string | null): ThumbSourceKind | null 
   return null;
 }
 
-// A presigned URL for reading the ORIGINAL, so the browser can render a
-// thumbnail for a file that has none. Returns null when the file isn't
-// eligible, which the client treats as "don't ask again".
-export async function getThumbSource(
-  id: string,
-): Promise<{ url: string; kind: ThumbSourceKind } | null> {
+// A screenful of files per call, which is what a grid renders at once.
+const MAX_THUMB_JOBS = 16;
+
+// Jobs for a batch of files, skipping the ones that aren't eligible.
+//
+// Batched because Next SERIALISES server actions: they queue behind one another
+// on the client, so a per-file round trip turns a folder of twenty into twenty
+// sequential waits before any pixel appears. One call for the whole screen, and
+// the presigned URLs it hands back are used against B2 directly — that part is
+// genuinely parallel.
+export async function getThumbJobs(ids: string[]): Promise<ThumbJob[]> {
   const { id: userId } = await requireActiveUser();
-  const file = await repo.getFileById(id); // RLS → only owner's rows
-  if (!file) return null;
-  assertOwnedKey(userId, file.storage_key);
-  // Already has one, or already tried and failed — nothing to pay for.
-  if (file.thumb_key || file.thumb_failed_at) return null;
+  const files = await repo.getFilesByIds(ids.slice(0, MAX_THUMB_JOBS)); // RLS → own rows
 
-  const kind = thumbKindOf(file.name, file.mime_type);
-  if (!kind) return null;
-  if (kind === "image" && file.size > MAX_BACKFILL_IMAGE_BYTES) return null;
+  const eligible = files.filter((file) => {
+    if (file.thumb_key || file.thumb_failed_at) return false; // nothing to pay for
+    if (!file.storage_key.startsWith(`${userId}/`)) return false;
+    const kind = thumbKindOf(file.name, file.mime_type);
+    if (!kind) return false;
+    return !(kind === "image" && file.size > MAX_BACKFILL_IMAGE_BYTES);
+  });
 
-  const url = await presignView(file.storage_key);
+  return Promise.all(
+    eligible.map(async (file) => {
+      const kind = thumbKindOf(file.name, file.mime_type)!;
+      // Own prefix under the user, so the account-wipe sweep still catches it
+      // and it stays distinguishable from a real upload.
+      const uploadKey = `${userId}/thumbs/${randomUUID()}`;
+      const [viewUrl, uploadUrl] = await Promise.all([
+        presignView(file.storage_key),
+        presignUpload(uploadKey, "image/jpeg"),
+      ]);
 
-  // Logged under its own source, never "preview": the suggested-files engine
-  // reads egress_events with source in (preview, download) as the signal that a
-  // user keeps coming back to a file. Counting a background thumbnail job there
-  // would invent interest the user never showed.
-  const bytes =
-    kind === "image" ? file.size : Math.min(file.size, RANGED_EGRESS_ESTIMATE[kind]);
-  after(() => logEgress(bytes, "thumb", { fileId: file.id }));
+      // Logged under its own source, never "preview": the suggested-files engine
+      // reads egress_events with source in (preview, download) as the signal that
+      // a user keeps coming back to a file. Counting a background thumbnail job
+      // there would invent interest the user never showed.
+      const bytes =
+        kind === "image"
+          ? file.size
+          : Math.min(file.size, RANGED_EGRESS_ESTIMATE[kind]);
+      after(() => logEgress(bytes, "thumb", { fileId: file.id }));
 
-  return { url, kind };
+      return { id: file.id, url: viewUrl, kind, uploadUrl, uploadKey };
+    }),
+  );
 }
 
-// Attach a backfilled thumbnail to a file. The key must live under the caller's
-// own thumbs prefix — otherwise a client could point its row at another user's
-// object and have /api/thumb serve it back.
-export async function setFileThumb(input: { id: string; thumbKey: string }) {
+// Persist a batch of outcomes: a key attaches the thumbnail, null records that
+// the file could not produce one (so it is never downloaded again). Batched for
+// the same reason as getThumbJobs, and best-effort — a lost row only costs a
+// repeated attempt.
+export async function saveThumbResults(
+  results: { id: string; thumbKey: string | null }[],
+) {
   const { id: userId } = await requireActiveUser();
-  if (!input.thumbKey.startsWith(`${userId}/thumbs/`)) {
-    throw new Error("Cheie invalidă.");
-  }
-  const file = await repo.getFileById(input.id);
-  if (!file) throw new Error("Fișier inexistent.");
-  assertOwnedKey(userId, file.storage_key);
-  // First writer wins. A second one would leave the first object unreferenced
-  // in B2 (the cleanup cron would sweep it, but there is no reason to make it).
-  if (file.thumb_key) return;
-  await repo.setFileThumb(input.id, input.thumbKey);
-}
+  const batch = results.slice(0, MAX_THUMB_JOBS);
+  const files = await repo.getFilesByIds(batch.map((r) => r.id));
+  const byId = new Map(files.map((f) => [f.id, f]));
 
-// Remember a failed attempt so the file isn't downloaded again on every folder
-// open. Best-effort: losing this only costs a repeated attempt.
-export async function markThumbFailed(id: string) {
-  const { id: userId } = await requireActiveUser();
-  const file = await repo.getFileById(id);
-  if (!file) return;
-  assertOwnedKey(userId, file.storage_key);
-  if (file.thumb_key) return;
-  await repo.markThumbFailed(id);
+  await Promise.all(
+    batch.map(async (r) => {
+      const file = byId.get(r.id);
+      if (!file) return;
+      assertOwnedKey(userId, file.storage_key);
+      // First writer wins. A second one would leave the first object
+      // unreferenced in B2 (the cleanup cron sweeps it, but there is no reason
+      // to make the mess).
+      if (file.thumb_key) return;
+      if (r.thumbKey === null) return repo.markThumbFailed(r.id);
+      // The key must live under the caller's own thumbs prefix — otherwise a
+      // client could point its row at another user's object and have /api/thumb
+      // serve it back.
+      if (!r.thumbKey.startsWith(`${userId}/thumbs/`)) {
+        throw new Error("Cheie invalidă.");
+      }
+      return repo.setFileThumb(r.id, r.thumbKey);
+    }),
+  );
 }
 
 export async function getDownloadUrl(id: string) {

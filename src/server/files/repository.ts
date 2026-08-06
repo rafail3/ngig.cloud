@@ -236,6 +236,16 @@ export async function getFileById(id: string): Promise<FileRow | null> {
   return (data as FileRow) ?? null;
 }
 
+// Several files in one round trip (RLS → only the caller's own rows). Used by
+// the thumbnail backfill, which works a screenful at a time: one query beats one
+// per file when the list just rendered twenty of them.
+export async function getFilesByIds(ids: string[]): Promise<FileRow[]> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("files").select("*").in("id", ids);
+  return (data ?? []) as FileRow[];
+}
+
 export async function insertFile(row: {
   owner_id: string;
   name: string;
