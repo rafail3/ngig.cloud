@@ -12,6 +12,7 @@ import { FolderInfoButton } from "@/components/drive/FolderInfoButton";
 import { DriveDndProvider, CurrentFolderDropZone } from "@/components/drive/DriveDndProvider";
 import { SelectionProvider, type SelItem } from "@/components/drive/SelectionProvider";
 import { SelectionBar } from "@/components/drive/SelectionBar";
+import { SelectionSpacer } from "@/components/drive/SelectionSpacer";
 import { FilterProvider, useFilter } from "@/components/drive/FilterProvider";
 import { ViewToggle } from "./ViewToggle";
 import { FilterBar } from "@/components/drive/FilterBar";
@@ -144,6 +145,9 @@ export function DriveBoard() {
               </div>
             </CurrentFolderDropZone>
           </DriveResults>
+
+          {/* Keeps the fixed selection bar from covering the last row. */}
+          <SelectionSpacer />
         </DriveDndProvider>
       </SelectionProvider>
     </FilterProvider>
