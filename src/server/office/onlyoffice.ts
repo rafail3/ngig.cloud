@@ -481,19 +481,21 @@ const OFFICE_THUMB_TIMEOUT_MS = 20_000;
 // a thumbnail came back, and it does not belong under the thumbs prefix.
 const OFFICE_THUMB_MAX_RESULT = 2 * 1024 * 1024;
 
-// Converter error codes that say nothing about the DOCUMENT, so they must never
-// be remembered as "this file can't be rendered":
-//   -1 unknown (ambiguous — assume the environment, the cheaper mistake)
-//   -2 conversion timeout        -4 could not download the document
-//   -6 result database error     -8 invalid token
-// -4 is the one that matters most in practice: in local development the remote
-// Document Server cannot reach the dev machine to fetch the file, and without
-// this every document opened locally would be marked unrenderable — in the
-// production database, which local dev talks to.
-// The rest are about the document itself and are worth remembering: -3
-// conversion error, -5 wrong password, -7 input error, -9 undeterminable output
-// format, -10 over the server's size limit.
-const CONVERT_ENV_ERRORS = new Set([-1, -2, -4, -6, -8]);
+// Converter error codes that unambiguously describe the DOCUMENT, and are the
+// only ones worth remembering as "this file will never render":
+//   -5 wrong password   -7 input error
+//   -9 output format could not be determined   -10 over the server's size limit
+//
+// Everything else — including -3 "conversion error" — is treated as temporary.
+// That is not caution for its own sake: a misconfigured document URL made the
+// Document Server download a 404 page and then fail to convert it, reported as
+// -3, which permanently blanked every Office file in the drive. The two
+// mistakes are not symmetric. Marking too eagerly leaves a document with no
+// preview forever, invisibly, fixable only by editing the database. Marking too
+// rarely costs one conversion attempt per session, and the caller's circuit
+// breaker already caps that. A genuinely corrupt file fails to open in the
+// editor too, which is a visible symptom rather than a silent one.
+const CONVERT_DOCUMENT_ERRORS = new Set([-5, -7, -9, -10]);
 
 /**
  * The outcome of one attempt, which the caller uses to decide what to remember:
@@ -565,7 +567,7 @@ export async function generateOfficeThumb(fileId: string): Promise<OfficeThumbOu
     }
 
     if (body.error) {
-      return CONVERT_ENV_ERRORS.has(body.error) ? "retry" : giveUp();
+      return CONVERT_DOCUMENT_ERRORS.has(body.error) ? giveUp() : "retry";
     }
 
     if (body.endConvert && body.fileUrl) {
