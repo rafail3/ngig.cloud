@@ -30,7 +30,12 @@ import {
 } from "@/app/drive-actions";
 import { formatBytes } from "@/lib/format";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
-import { fileTypeShort, fileTypeLabel, isTextEditable } from "@/lib/file-type";
+import {
+  fileTypeShort,
+  fileTypeLabel,
+  isTextEditable,
+  textBadge,
+} from "@/lib/file-type";
 import { isOfficeEditable, officeCanEdit, officeEditUnavailable } from "@/lib/office";
 import { useUploads, type UploadJob } from "./UploadProvider";
 import { useOfficeStatus } from "./OfficeStatusProvider";
@@ -120,6 +125,34 @@ type FileItem = {
 // Older rows can carry application/octet-stream, so the name is the fallback.
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v|mkv|avi)$/i;
 
+/* What a text or code file shows instead of a preview: the format, spelled out
+   on a plain grey field. There is nothing to fetch and nothing to store — the
+   badge comes from the filename, so it is right the moment the row appears, for
+   every file that ever existed.
+
+   The label carries the recognition, so it gets the size; longer names step down
+   rather than wrap, because a wrapped "JAVASCRIPT" reads as two words. */
+function TypeBadge({ label }: { label: string }) {
+  const size =
+    label.length <= 4
+      ? "text-2xl"
+      : label.length <= 6
+        ? "text-xl"
+        : label.length <= 8
+          ? "text-base"
+          : "text-sm";
+
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-zinc-800 px-2">
+      <span
+        className={`${size} truncate font-semibold tracking-[0.14em] text-zinc-300`}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
 /* The real image in place of the type icon, in the exact same 36px box so a
    folder of mixed files doesn't get a ragged left edge.
 
@@ -142,7 +175,7 @@ function Thumb({
   // A page is portrait and the grid's box is landscape, so a centred crop would
   // cut the head off a document — which is the part that identifies it. Photos
   // keep the centre crop, where the subject usually is.
-  const docLike = mime === "application/pdf" || isTextEditable(name, mime);
+  const docLike = mime === "application/pdf" || /\.pdf$/i.test(name);
   const [failed, setFailed] = useState(false);
   // Backfilled thumbnails land while the row is already on screen; fading them
   // in keeps that from reading as a glitch. Cached ones fade too, over ~1 frame.
@@ -505,6 +538,9 @@ function FileRow({
   const dimmed = dragActive?.kind === "file" && dragActive.id === file.id;
   const moving = usePendingMove().has(selKey(item));
   const busy = pending || moving;
+  // Non-null for text and code files, which show their format instead of a
+  // preview (there is nothing in a wall of text to recognise at this size).
+  const badge = textBadge(file.name, file.mimeType);
   const longPress = useLongPress(() => selection.toggle(item));
   const handleRowClick = useRowClick({
     isTouch,
@@ -578,7 +614,11 @@ function FileRow({
               than square: most documents and photos are landscape-ish, and a
               square box would letterbox nearly everything. */}
           <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-950/60">
-            {hasThumb ? (
+            {/* The badge wins over a thumbnail: rows written before text files
+                stopped generating one would otherwise still show it. */}
+            {badge ? (
+              <TypeBadge label={badge} />
+            ) : hasThumb ? (
               <Thumb id={file.id} name={file.name} mime={file.mimeType} variant="grid" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
@@ -623,7 +663,9 @@ function FileRow({
         >
           <CheckCircle2 className="h-[18px] w-[18px] text-indigo-400" />
         </span>
-      ) : hasThumb ? (
+      ) : hasThumb && !badge ? (
+        // In the list the icon already reads at 36px, and the subtitle spells
+        // the type out — the badge is a grid affordance only.
         <Thumb id={file.id} name={file.name} mime={file.mimeType} />
       ) : (
         <FileTypeIcon name={file.name} mime={file.mimeType} />

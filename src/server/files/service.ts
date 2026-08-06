@@ -9,7 +9,7 @@ import { notifyUserEvent, notifyAdminsEvent } from "@/server/notifications/servi
 import { logEvent } from "@/server/insights/engine";
 import { logEgress } from "@/server/billing/egress";
 import * as repo from "./repository";
-import { extensionOf, extOf, isTextEditable } from "@/lib/file-type";
+import { extensionOf, extOf } from "@/lib/file-type";
 import { fileTypeDenied } from "@/lib/upload-types";
 import { checkStorageAlert } from "@/server/account/storage-alert";
 import { formatBytes } from "@/lib/format";
@@ -831,7 +831,6 @@ const MAX_BACKFILL_IMAGE_BYTES = 25 * 1024 * 1024;
 const RANGED_EGRESS_ESTIMATE: Record<Exclude<ThumbSourceKind, "image">, number> = {
   video: 8 * 1024 * 1024,
   pdf: 4 * 1024 * 1024,
-  text: 64 * 1024, // the client reads 4KB; this leaves room for headers and slack
 };
 
 // The kind a browser can render, from the stored mime with a filename fallback
@@ -851,9 +850,8 @@ function thumbKindOf(name: string, mime: string | null): ThumbSourceKind | null 
   ) {
     return "image";
   }
-  // Last, so a .pdf or an image never falls through to it: text is the widest
-  // net (any text/* mime plus a long list of code extensions).
-  if (isTextEditable(name, mime)) return "text";
+  // Text and code files deliberately get nothing: their badge is drawn from the
+  // filename by the list, so there is no image to make and no bytes to read.
   return null;
 }
 
