@@ -1,31 +1,72 @@
 "use client";
 
-import { useRef } from "react";
 import { MoreVertical } from "lucide-react";
-import { useContextMenu, type MenuAction } from "./ContextMenu";
+import { type MenuAction } from "./ContextMenu";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useMenuModality } from "@/lib/useMenuModality";
 
 export type { MenuAction };
 
-// The kebab (⋮) button. Opens the shared context menu right-aligned under the
-// button. Right-click on the row opens the same menu at the cursor (handled by
-// the row via useContextMenu directly).
-export function ActionMenu({ actions, label = "Opțiuni" }: { actions: MenuAction[]; label?: string }) {
-  const open = useContextMenu();
-  const btnRef = useRef<HTMLButtonElement>(null);
+/* The kebab (⋮) button on every row.
+
+   It used to ask a single app-wide panel to appear at coordinates it measured
+   itself — which meant no keyboard navigation, no focus return, and a position
+   that had to be re-derived by hand near the edges of the screen. It owns its
+   menu now: Radix positions it, flips it when it would overflow, and gives it
+   arrow keys, typeahead and Escape for free.
+
+   The `actions` API is unchanged, so every list that renders one is untouched. */
+export function ActionMenu({
+  actions,
+  label = "Opțiuni",
+}: {
+  actions: MenuAction[];
+  label?: string;
+}) {
+  const menu = useMenuModality();
 
   return (
-    <button
-      ref={btnRef}
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        const r = btnRef.current!.getBoundingClientRect();
-        open(actions, r.right, r.bottom + 4, "right");
-      }}
-      aria-label={label}
-      className="shrink-0 rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
-    >
-      <MoreVertical className="h-4 w-4" />
-    </button>
+    <DropdownMenu>
+      {/* The row underneath opens a preview when clicked, so the events that
+          work this button must not reach it. */}
+      <span
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+      >
+        <DropdownMenuTrigger asChild {...menu.triggerProps}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={label}
+            className="shrink-0 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 data-[state=open]:bg-zinc-800 data-[state=open]:text-zinc-100"
+          >
+            <MoreVertical className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+      </span>
+
+      <DropdownMenuContent align="end" className="w-52" {...menu.contentProps}>
+        <DropdownMenuGroup>
+          {actions.map((a) => (
+            <DropdownMenuItem
+              key={a.label}
+              variant={a.danger ? "destructive" : "default"}
+              onSelect={a.onSelect}
+            >
+              <a.icon className="size-4" />
+              {a.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
