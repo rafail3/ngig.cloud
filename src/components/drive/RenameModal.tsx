@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ModalShell } from "./anim";
@@ -57,20 +58,20 @@ export function RenameModal({
           )}
         </div>
         <div className="mt-4 flex justify-end gap-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
           >
             Anulează
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="submit"
             disabled={busy || !name.trim()}
             className="rounded-lg bg-indigo-500 hover:bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition disabled:opacity-60"
           >
             {busy ? "Se salvează…" : "Salvează"}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>

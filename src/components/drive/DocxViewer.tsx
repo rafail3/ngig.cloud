@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ZoomIn, ZoomOut, Maximize2, Download, Loader2 } from "lucide-react";
 
@@ -106,7 +107,7 @@ export function DocxViewer({
       {/* Toolbar */}
       <div className="flex shrink-0 items-center justify-center gap-2 border-b border-zinc-800 bg-zinc-900/80 px-2 py-2 backdrop-blur">
         <div className="flex items-center gap-1">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => zoom(-1)}
             disabled={!ready || scale <= MIN_SCALE}
@@ -114,11 +115,11 @@ export function DocxViewer({
             className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-40"
           >
             <ZoomOut className="h-4 w-4" />
-          </button>
+          </Button>
           <span className="w-12 select-none text-center text-xs tabular-nums text-zinc-400">
             {Math.round(scale * 100)}%
           </span>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => zoom(1)}
             disabled={!ready || scale >= MAX_SCALE}
@@ -126,8 +127,8 @@ export function DocxViewer({
             className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-40"
           >
             <ZoomIn className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={() => setFitWidth(true)}
             disabled={!ready}
@@ -140,10 +141,10 @@ export function DocxViewer({
             }`}
           >
             <Maximize2 className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onDownload}
           aria-label="Descarcă"
@@ -151,7 +152,7 @@ export function DocxViewer({
           className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800"
         >
           <Download className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       {/* Document */}
@@ -169,13 +170,13 @@ export function DocxViewer({
             <p className="text-sm text-zinc-400">
               Nu am putut afișa documentul.
             </p>
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={onDownload}
               className="flex items-center gap-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition"
             >
               <Download className="h-4 w-4" /> Descarcă
-            </button>
+            </Button>
           </div>
         )}
         <div

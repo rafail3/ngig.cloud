@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { CloudOff, Download, FileQuestion, Loader2 } from "lucide-react";
 import type { OfficeTheme } from "@/lib/office";
@@ -79,13 +80,13 @@ function LocalPreview({
       <p className="text-sm text-zinc-400">
         Previzualizarea nu e disponibilă momentan pentru acest document.
       </p>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={onDownload}
         className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400"
       >
         <Download className="h-4 w-4" /> Descarcă
-      </button>
+      </Button>
     </div>
   );
 }
@@ -104,13 +105,13 @@ function Unavailable({ onDownload }: { onDownload: () => void }) {
           Serviciul revine în cel mai scurt timp. Poți descărca documentul între timp.
         </p>
       </div>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={onDownload}
         className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400"
       >
         <Download className="h-4 w-4" /> Descarcă
-      </button>
+      </Button>
     </div>
   );
 }

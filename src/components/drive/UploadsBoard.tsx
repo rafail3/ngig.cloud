@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "motion/react";
 import {
   CheckCircle2,
@@ -187,14 +188,14 @@ function JobRow({
           {active ? `${pct}%` : ""}
         </span>
 
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => (active ? onCancel(job.id) : onDismiss(job.id))}
           aria-label={active ? `Anulează ${job.name}` : `Închide ${job.name}`}
           className="shrink-0 rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       {active && (

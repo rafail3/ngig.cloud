@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Home, ChevronRight } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
@@ -63,13 +64,13 @@ export function Breadcrumb({ crumbs }: { crumbs: Crumb[] }) {
                 {searching ? (
                   // While searching, the current folder is clickable too — it
                   // exits the search back to this folder (no navigation needed).
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={clearSearch}
                     className="block rounded px-1.5 py-1 font-medium text-zinc-100 transition hover:bg-zinc-900"
                   >
                     {c.name}
-                  </button>
+                  </Button>
                 ) : (
                   <span className="block rounded px-1.5 py-1 font-medium text-zinc-100">
                     {c.name}

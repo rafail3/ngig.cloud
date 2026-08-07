@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -153,7 +154,7 @@ export function ShareModal({
 
       {/* Tabs */}
       <div className="mt-5 flex gap-1.5 rounded-xl border border-zinc-800 bg-zinc-950/40 p-1.5">
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => setTab("link")}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -162,8 +163,8 @@ export function ShareModal({
         >
           <Link2 className="h-4 w-4" />
           Link public
-        </button>
-        <button
+        </Button>
+        <Button variant="unstyled"
           type="button"
           onClick={() => setTab("send")}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -172,7 +173,7 @@ export function ShareModal({
         >
           <Send className="h-4 w-4" />
           Trimite
-        </button>
+        </Button>
       </div>
 
       {tab === "send" ? (
@@ -200,7 +201,7 @@ export function ShareModal({
               {EXPIRY_PRESETS.map((p) => {
                 const active = !customOn && preset === p.value;
                 return (
-                  <button
+                  <Button variant="unstyled"
                     key={p.value}
                     type="button"
                     onClick={() => {
@@ -214,11 +215,11 @@ export function ShareModal({
                     }`}
                   >
                     {p.label}
-                  </button>
+                  </Button>
                 );
               })}
               {/* Custom date reads as a real, pressable chip alongside the presets */}
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => setCustomOn((v) => !v)}
                 aria-pressed={customOn}
@@ -230,7 +231,7 @@ export function ShareModal({
               >
                 <CalendarClock className="h-4 w-4" />
                 Dată personalizată
-              </button>
+              </Button>
             </div>
 
             <AnimatePresence initial={false}>
@@ -270,14 +271,14 @@ export function ShareModal({
                     placeholder="Parolă (min. 4 caractere)"
                     className="w-full rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 pr-10 text-sm text-zinc-100 outline-none transition focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
                   />
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={() => setShowPw((v) => !v)}
                     aria-label={showPw ? "Ascunde parola" : "Arată parola"}
                     className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-zinc-500 transition hover:text-zinc-200"
                   >
                     {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                  </Button>
                 </div>
               </Reveal>
             </div>
@@ -312,14 +313,14 @@ export function ShareModal({
           </div>
 
           <div className="mt-5 flex justify-end gap-2">
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={onClose}
               className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
             >
               Anulează
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled"
               type="button"
               onClick={generate}
               disabled={busy}
@@ -331,7 +332,7 @@ export function ShareModal({
                 <Link2 className="h-4 w-4" />
               )}
               {busy ? "Se generează…" : "Generează link"}
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -359,7 +360,7 @@ function GeneratedView({
           onFocus={(e) => e.currentTarget.select()}
           className="min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2.5 text-sm text-zinc-200 outline-none"
         />
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onCopy}
           aria-label="Copiază linkul"
@@ -367,7 +368,7 @@ function GeneratedView({
         >
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           <span className="hidden sm:inline">{copied ? "Copiat" : "Copiază"}</span>
-        </button>
+        </Button>
       </div>
 
       <p className="mt-2.5 inline-flex items-center gap-1.5 text-xs text-zinc-500">
@@ -381,14 +382,14 @@ function GeneratedView({
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-2">
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onReset}
           className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 transition hover:text-zinc-300"
         >
           <RotateCcw className="h-3.5 w-3.5" />
           Alt link
-        </button>
+        </Button>
         <a
           href={generated.absoluteUrl}
           target="_blank"
@@ -416,7 +417,7 @@ function SwitchRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       role="switch"
       aria-checked={checked}
@@ -438,7 +439,7 @@ function SwitchRow({
           }`}
         />
       </span>
-    </button>
+    </Button>
   );
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Info } from "lucide-react";
 import { folderStatsAction } from "@/app/drive-actions";
@@ -31,14 +32,14 @@ export function FolderInfoButton({
 
   return (
     <>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={show}
         aria-label="Detalii folder"
         className="rounded-md border border-zinc-800 p-2 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-100"
       >
         <Info className="h-4 w-4" />
-      </button>
+      </Button>
 
       {open && (
         <InfoModal

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
@@ -341,7 +342,7 @@ export function PreviewModal({
           <div className="flex shrink-0 items-center gap-1">
             {editing ? (
               <>
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={save}
                   disabled={saving || editContent === null}
@@ -353,34 +354,34 @@ export function PreviewModal({
                     <Save className="h-3.5 w-3.5" />
                   )}
                   Salvează
-                </button>
-                <button
+                </Button>
+                <Button variant="unstyled"
                   type="button"
                   onClick={cancelEdit}
                   disabled={saving}
                   className="rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-60"
                 >
                   Anulează
-                </button>
+                </Button>
               </>
             ) : (
               <>
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={onDownload}
                   className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800"
                 >
                   <Download className="h-3.5 w-3.5" /> Descarcă
-                </button>
-                <button
+                </Button>
+                <Button variant="unstyled"
                   type="button"
                   onClick={() => setSharing(true)}
                   className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800"
                 >
                   <Share2 className="h-3.5 w-3.5" /> Partajează
-                </button>
+                </Button>
                 {canPrintOffice && (
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={() =>
                       setThemeOverride(officeTheme === "dark" ? "light" : "dark")
@@ -396,10 +397,10 @@ export function PreviewModal({
                     ) : (
                       <Moon className="h-4 w-4" />
                     )}
-                  </button>
+                  </Button>
                 )}
                 {canPrintOffice && (
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={printOffice}
                     disabled={printing}
@@ -411,33 +412,33 @@ export function PreviewModal({
                       <Printer className="h-3.5 w-3.5" />
                     )}
                     {printing ? "Se pregătește…" : "Printează"}
-                  </button>
+                  </Button>
                 )}
                 {(canEdit || canEditOffice) && (
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={canEditOffice ? openOfficeEditor : startEdit}
                     className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Editează
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={() => setShowInfo(true)}
                   aria-label="Detalii"
                   className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800"
                 >
                   <Info className="h-4 w-4" />
-                </button>
-                <button
+                </Button>
+                <Button variant="unstyled"
                   type="button"
                   onClick={onClose}
                   aria-label="Închide"
                   className="rounded p-1.5 text-zinc-400 transition hover:text-zinc-100"
                 >
                   <X className="h-4 w-4" />
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -460,13 +461,13 @@ export function PreviewModal({
                 <p className="text-sm text-zinc-400">
                   Fișierul e prea mare pentru editare în aplicație (max. 1 MB).
                 </p>
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={cancelEdit}
                   className="rounded-md border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 transition hover:bg-zinc-800"
                 >
                   Înapoi
-                </button>
+                </Button>
               </div>
             ) : editContent !== null ? (
               <>
@@ -541,13 +542,13 @@ export function PreviewModal({
                   <p className="text-sm text-zinc-400">
                     Fără previzualizare pentru acest tip de fișier.
                   </p>
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={onDownload}
                     className="flex items-center gap-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition"
                   >
                     <Download className="h-4 w-4" /> Descarcă
-                  </button>
+                  </Button>
                 </div>
               )}
             </>

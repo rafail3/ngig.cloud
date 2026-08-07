@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, AlertCircle, X, ChevronDown, Loader2 } from "lucide-react";
@@ -47,23 +48,23 @@ function Card({
           {job.name}
         </span>
         {active ? (
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => onCancel(job.id)}
             aria-label="Anulează"
             className="shrink-0 rounded p-0.5 text-zinc-500 transition hover:text-zinc-200"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => onDismiss(job.id)}
             aria-label="Închide"
             className="shrink-0 rounded p-0.5 text-zinc-500 transition hover:text-zinc-200"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
 
@@ -129,15 +130,15 @@ export function UploadPanel() {
             Vezi toate
           </Link>
           {activeCount === 0 && (
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={clearFinished}
               className="rounded px-2 py-1 text-xs text-zinc-400 transition hover:text-zinc-100"
             >
               Curăță
-            </button>
+            </Button>
           )}
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => setCollapsed((v) => !v)}
             aria-label={collapsed ? "Extinde" : "Restrânge"}
@@ -146,7 +147,7 @@ export function UploadPanel() {
             <ChevronDown
               className={`h-4 w-4 transition-transform ${collapsed ? "" : "rotate-180"}`}
             />
-          </button>
+          </Button>
         </div>
       </div>
 

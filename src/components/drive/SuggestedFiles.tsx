@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ChevronDown, Sparkles } from "lucide-react";
@@ -74,7 +75,7 @@ export function SuggestedFiles() {
 
   return (
     <section className="mb-6">
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={toggle}
         aria-expanded={open}
@@ -101,7 +102,7 @@ export function SuggestedFiles() {
             }`}
           />
         </span>
-      </button>
+      </Button>
 
       <AnimatePresence initial={false}>
         {open && (
@@ -115,7 +116,7 @@ export function SuggestedFiles() {
           >
             <div className="drive-list grid grid-cols-1 gap-2.5 pt-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.map((f) => (
-                <button
+                <Button variant="unstyled"
                   key={f.id}
                   type="button"
                   onClick={() => setPreview(f)}
@@ -131,7 +132,7 @@ export function SuggestedFiles() {
                       {fileTypeShort(f.name, f.mimeType)} · {formatBytes(f.size)}
                     </span>
                   </span>
-                </button>
+                </Button>
               ))}
             </div>
           </motion.div>

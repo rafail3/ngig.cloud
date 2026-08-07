@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
@@ -309,20 +310,20 @@ export function ConfirmDeleteFolder({
         șterse definitiv. Acțiunea e ireversibilă.
       </p>
       <div className="mt-5 flex justify-end gap-2">
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onCancel}
           className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
         >
           Anulează
-        </button>
-        <button
+        </Button>
+        <Button variant="unstyled"
           type="button"
           onClick={onConfirm}
           className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
         >
           Șterge
-        </button>
+        </Button>
       </div>
     </ModalShell>
   );

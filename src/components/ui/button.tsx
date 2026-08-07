@@ -19,6 +19,10 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // Paint and layout come from the call site; only the behaviour below is
+        // kept. Declared here so the prop type knows the name — the component
+        // bypasses the base classes for it entirely.
+        unstyled: "",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
@@ -38,6 +42,13 @@ const buttonVariants = cva(
   }
 )
 
+// What a button owes the user no matter how it looks: a focus ring it can be
+// found by, a disabled state that is both visible and unclickable, and icons
+// that never swallow the click. Buttons carrying their own design opt out of
+// the paint below but keep this.
+const buttonBehavior =
+  "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0"
+
 function Button({
   className,
   variant = "default",
@@ -50,12 +61,20 @@ function Button({
   }) {
   const Comp = asChild ? Slot.Root : "button"
 
+  // Bypassed rather than overridden: the base carries display, radius, type
+  // scale and gap, and a control with its own design would have to undo each of
+  // them by hand.
+  const classes =
+    variant === "unstyled"
+      ? cn(buttonBehavior, className)
+      : cn(buttonVariants({ variant, size, className }))
+
   return (
     <Comp
       data-slot="button"
       data-variant={variant}
       data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={classes}
       {...props}
     />
   )

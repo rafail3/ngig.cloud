@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X, Loader2, Save, Check } from "lucide-react";
 import { AnimatePresence } from "motion/react";
@@ -97,7 +98,7 @@ export function OfficeEditor({
       <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-zinc-900 px-3 sm:px-4">
         <p className="min-w-0 truncate text-sm font-medium text-zinc-200">{name}</p>
         <div className="flex shrink-0 items-center gap-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={saveOnly}
             disabled={saving || !dirty}
@@ -111,15 +112,15 @@ export function OfficeEditor({
               <Check className="h-4 w-4" />
             )}
             {saving ? "Se salvează…" : dirty ? "Salvează" : "Salvat"}
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={requestClose}
             aria-label="Închide editorul"
             className="flex items-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 py-1.5 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
           >
             <X className="h-4 w-4" /> Închide
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -140,15 +141,15 @@ export function OfficeEditor({
               Salvează-le înainte să închizi documentul.
             </p>
             <div className="mt-5 flex flex-wrap justify-end gap-2">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => setConfirmExit(false)}
                 disabled={saving}
                 className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-60"
               >
                 Anulează
-              </button>
-              <button
+              </Button>
+              <Button variant="unstyled"
                 type="button"
                 onClick={saveAndClose}
                 disabled={saving}
@@ -156,7 +157,7 @@ export function OfficeEditor({
               >
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {saving ? "Se salvează…" : "Salvează și închide"}
-              </button>
+              </Button>
             </div>
           </ModalShell>
         )}
