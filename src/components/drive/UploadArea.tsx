@@ -222,7 +222,7 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
         aria-label="Alege fișiere de încărcat"
-        className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-6 py-6 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/50 ${
+        className={`flex cursor-pointer select-none flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-6 py-6 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/50 ${
           dragOver
             ? "border-indigo-400 bg-indigo-500/10"
             : "border-zinc-800 bg-zinc-900/20 hover:border-indigo-500/40 hover:bg-indigo-500/[0.04]"

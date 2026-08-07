@@ -94,7 +94,11 @@ export function DriveBoard() {
           <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-3">
-                <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
+                {/* The page furniture — title, counts, meter, section label —
+                    is not text anyone copies, and the lists below already sit
+                    outside a selection. Highlighting it only ever happened by
+                    accident, while dragging. */}
+                <h1 className="min-w-0 select-none truncate text-2xl font-semibold tracking-tight sm:text-3xl">
                   {title}
                 </h1>
                 {folderId && <FolderInfoButton folderId={folderId} name={title} />}
@@ -103,7 +107,7 @@ export function DriveBoard() {
                   the browser closes a <p> the moment a <div> opens inside it —
                   the parsed tree then no longer matches what React rendered
                   (hydration error). */}
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500">
+              <div className="mt-1 flex select-none flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500">
                 <span>
                   {roCount(folders.length, "folder", "foldere")}
                   <span aria-hidden="true"> · </span>
@@ -145,7 +149,7 @@ export function DriveBoard() {
                   collapse — the source of the navigation flash. */}
               <div className="flex flex-col gap-4">
                 {folderId === null && !empty && (
-                  <h2 className="text-sm font-medium text-zinc-400">
+                  <h2 className="select-none text-sm font-medium text-zinc-400">
                     Folderele și fișierele tale
                   </h2>
                 )}
@@ -185,7 +189,7 @@ function roCount(n: number, one: string, many: string): string {
 function StorageMeter({ used, quota }: { used: number; quota: number | null }) {
   const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
   return (
-    <div className="w-full shrink-0 sm:w-56">
+    <div className="w-full shrink-0 select-none sm:w-56">
       <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
         <span className="font-medium text-zinc-400">Spațiu folosit</span>
         <span className="tabular-nums text-zinc-500">

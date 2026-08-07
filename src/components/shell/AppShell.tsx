@@ -77,7 +77,7 @@ function DrawerStorage() {
   const { used, quota } = data;
   const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
   return (
-    <div className="border-t border-zinc-900 px-4 py-4">
+    <div className="select-none border-t border-zinc-900 px-4 py-4">
       <div className="mb-1.5 flex items-center justify-between text-xs">
         <span className="font-medium text-zinc-400">Spațiu folosit</span>
         {quota ? <span className="tabular-nums text-zinc-500">{pct}%</span> : null}
