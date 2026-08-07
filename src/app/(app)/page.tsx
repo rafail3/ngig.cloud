@@ -9,7 +9,7 @@ export const metadata = { title: "Fișierele mele" };
 // useSearchParams read on the first (cold) load.
 export default function Home() {
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
+    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
       <Suspense fallback={<DriveSkeleton />}>
         <DriveBoard />
       </Suspense>

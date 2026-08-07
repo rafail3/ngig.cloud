@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Loader2, UsersRound } from "lucide-react";
 import { listDirectoryUsersAction } from "@/app/(app)/users/actions";
 import { UserCard, UserCardSkeleton } from "./UserCard";
+import { EmptyState } from "@/components/common/EmptyState";
 import { DIRECTORY_PAGE_SIZE, type DirectoryUser } from "@/lib/users";
 
 // The /users directory: search + paginated list of everyone else on the cloud.
@@ -87,7 +88,7 @@ export function UsersDirectory({ initialQuery }: { initialQuery: string }) {
       </div>
 
       {users === null ? (
-        <ul className="grid gap-2.5 sm:grid-cols-2">
+        <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
             <li key={i}>
               <UserCardSkeleton />
@@ -98,7 +99,12 @@ export function UsersDirectory({ initialQuery }: { initialQuery: string }) {
         <Empty query={query} onClear={() => onType("")} />
       ) : (
         <>
-          <ul className="grid gap-2.5 sm:grid-cols-2">
+          <p className="mb-2.5 text-sm text-zinc-400">
+            <span className="font-medium tabular-nums text-zinc-200">{users.length}</span>
+            {hasMore ? "+" : ""} {users.length === 1 && !hasMore ? "membru" : "membri"}
+            {query.trim() ? ` pentru „${query.trim()}”` : ""}
+          </p>
+          <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
             {users.map((u) => (
               <li key={u.id}>
                 <UserCard user={u} />
@@ -128,32 +134,29 @@ export function UsersDirectory({ initialQuery }: { initialQuery: string }) {
 // A dead end is the thing to avoid here: when a search misses, say what missed
 // and offer the way back, rather than rendering nothing.
 function Empty({ query, onClear }: { query: string; onClear: () => void }) {
+  if (!query) {
+    return (
+      <EmptyState
+        icon={UsersRound}
+        title="Deocamdată ești singurul cont din cloud"
+        description="Când se alătură și alți membri, profilurile lor apar aici."
+      />
+    );
+  }
   return (
-    <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-14 text-center">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/50 text-zinc-500">
-        <UsersRound className="h-7 w-7" />
-      </div>
-      {query ? (
-        <>
-          <p className="text-sm text-zinc-300">
-            Niciun utilizator pentru „{query}”.
-          </p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Verifică scrierea username-ului sau caută după o parte din el.
-          </p>
-          <Button variant="unstyled"
-            type="button"
-            onClick={onClear}
-            className="mt-4 rounded-lg border border-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
-          >
-            Vezi toți utilizatorii
-          </Button>
-        </>
-      ) : (
-        <p className="text-sm text-zinc-500">
-          Deocamdată ești singurul cont din cloud.
-        </p>
-      )}
-    </div>
+    <EmptyState
+      icon={UsersRound}
+      title={`Niciun utilizator pentru „${query}”`}
+      description="Verifică scrierea username-ului sau caută după o parte din el."
+      action={
+        <Button variant="unstyled"
+          type="button"
+          onClick={onClear}
+          className="rounded-lg border border-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+        >
+          Vezi toți utilizatorii
+        </Button>
+      }
+    />
   );
 }

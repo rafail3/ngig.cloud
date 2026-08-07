@@ -3,7 +3,8 @@
 import { ModalShell } from "@/components/drive/anim";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Check, Copy, Trash2 } from "lucide-react";
+import { Check, Copy, Ticket, Trash2 } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
 import {
   revokeInviteAction,
   deleteInviteAction,
@@ -152,9 +153,11 @@ export function InvitesTable({
 }) {
   if (invites.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-12 text-center text-sm text-zinc-500">
-        Niciun cod generat încă.
-      </div>
+      <EmptyState
+        icon={Ticket}
+        title="Niciun cod generat încă"
+        description="Generează primul cod din formularul de mai sus — istoricul lui apare aici."
+      />
     );
   }
 
@@ -164,44 +167,48 @@ export function InvitesTable({
 
   return (
     <div>
-      {/* ===== Desktop table ===== */}
-      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/20 lg:block">
-        <table className="w-full table-fixed text-left text-sm">
-          <thead className="bg-zinc-900/40 text-xs font-medium text-zinc-500">
+      {/* ===== Desktop table =====
+          Natural column widths instead of the old fixed percentages, which left
+          dead gaps around the short Status/Rol columns while the code column
+          overflowed. Header + row treatment matches UsersTable so the two admin
+          tables read as one system. */}
+      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/30 lg:block">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-zinc-800/70 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
             <tr>
-              <th className="w-[26%] px-4 py-3 font-medium">Cod</th>
-              <th className="w-[9%] px-4 py-3 font-medium">Status</th>
-              <th className="w-[8%] px-4 py-3 font-medium">Rol</th>
-              <th className="w-[13%] px-4 py-3 font-medium">Creat</th>
-              <th className="w-[13%] px-4 py-3 font-medium">Expiră</th>
-              <th className="w-[16%] px-4 py-3 font-medium">Folosit de</th>
-              {showActions && <th className="w-[15%] px-4 py-3 font-medium text-right">Acțiuni</th>}
+              <th className="w-full px-5 py-3.5 font-medium">Cod</th>
+              <th className="px-4 py-3.5 font-medium">Status</th>
+              <th className="px-4 py-3.5 font-medium">Rol</th>
+              <th className="px-4 py-3.5 font-medium">Creat</th>
+              <th className="px-4 py-3.5 font-medium">Expiră</th>
+              <th className="px-4 py-3.5 font-medium">Folosit de</th>
+              {showActions && <th className="px-4 py-3.5 text-right font-medium">Acțiuni</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-900">
             {invites.map((inv) => {
               const status = inviteStatus(inv);
               return (
-                <tr key={inv.id} className="align-top text-zinc-300">
-                  <td className="px-4 py-3">
+                <tr key={inv.id} className="text-zinc-300 transition-colors hover:bg-zinc-800/30">
+                  <td className="max-w-0 px-5 py-3">
                     <CodeCell code={inv.code} />
                     {inv.label && (
-                      <p className="mt-0.5 break-words text-xs text-zinc-500">{inv.label}</p>
+                      <p className="mt-0.5 truncate text-xs text-zinc-500">{inv.label}</p>
                     )}
                   </td>
                   <td className="px-4 py-3"><StatusBadge status={status} /></td>
                   <td className="px-4 py-3 capitalize">{inv.role}</td>
-                  <td className="px-4 py-3 text-zinc-400">{fmt(inv.created_at)}</td>
-                  <td className="px-4 py-3"><ExpiryCell inv={inv} /></td>
+                  <td className="whitespace-nowrap px-4 py-3 tabular-nums text-zinc-400">{fmt(inv.created_at)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 tabular-nums"><ExpiryCell inv={inv} /></td>
                   <td className="px-4 py-3">
                     {inv.used_by_username ? (
-                      <div className="min-w-0">
+                      <div className="min-w-0 max-w-52">
                         <p className="truncate text-zinc-200">{inv.used_by_username}</p>
                         <p className="truncate text-xs text-zinc-500">{inv.used_by_email}</p>
-                        <p className="mt-0.5 text-xs text-zinc-600">{fmt(inv.used_at)}</p>
+                        <p className="mt-0.5 whitespace-nowrap text-xs tabular-nums text-zinc-600">{fmt(inv.used_at)}</p>
                       </div>
                     ) : inv.email ? (
-                      <div className="min-w-0">
+                      <div className="min-w-0 max-w-52">
                         <p className="text-xs text-zinc-500">Asociat cu</p>
                         <p className="truncate text-zinc-300">{inv.email}</p>
                       </div>

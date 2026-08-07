@@ -69,6 +69,76 @@ const NAV: NavItem[] = [
   },
 ];
 
+/* The navigation itself, written once and mounted twice: in the sticky column
+   on desktop and inside the drawer on mobile. Duplicating the markup instead
+   would guarantee the two drift — one gets a new entry, the other does not. */
+function AppNav({
+  items,
+  onNavigate,
+}: {
+  items: NavItem[];
+  onNavigate?: () => void;
+}) {
+  const pathname = usePathname();
+  return (
+    <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+      <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
+        Navigare
+      </p>
+      {items.map((item) => {
+        const active = item.href === pathname;
+        if (item.soon) {
+          return (
+            <span
+              key={item.label}
+              className="flex cursor-default items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-600"
+              title={item.label}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+              <span className="ml-auto rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
+                soon
+              </span>
+            </span>
+          );
+        }
+        return (
+          <Link
+            key={item.label}
+            href={item.href}
+            onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
+            className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+              active
+                ? "bg-indigo-500/10 font-medium text-indigo-300"
+                : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
+            }`}
+          >
+            {active && (
+              <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-indigo-400" />
+            )}
+            <span
+              className={
+                active
+                  ? "text-indigo-400"
+                  : "text-zinc-500 transition-colors group-hover:text-zinc-300"
+              }
+            >
+              {item.icon}
+            </span>
+            <span>{item.label}</span>
+            {!!item.badge && (
+              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-500 px-1.5 text-[11px] font-semibold tabular-nums text-white">
+                {item.badge}
+              </span>
+            )}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 // Storage summary pinned to the drawer's footer. Reads the same SWR cache as
 // the drive, so it's free (no extra request) and live-updates with uploads.
 function DrawerStorage() {
@@ -109,13 +179,11 @@ export function AppShell({
   pendingTransfers?: number;
   children: React.ReactNode;
 }) {
-  // The sidebar is an overlay drawer on every screen size, opened by the burger
-  // — so the page content is full-width and centers on the whole viewport.
-  // Controlled (rather than left to the Sheet) only because a nav link has to
-  // close it on click.
+  // Mobile/tablet keeps the overlay drawer, opened by the burger; on md+ the
+  // same nav sits in a persistent sidebar column. Controlled (rather than left
+  // to the Sheet) only because a nav link has to close it on click.
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const userMenu = useMenuModality();
-  const pathname = usePathname();
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin").map((i) =>
     i.href === "/transfers" ? { ...i, badge: pendingTransfers } : i,
   );
@@ -145,7 +213,7 @@ export function AppShell({
               <Button
                 variant="outline"
                 aria-label="Meniu"
-                className="h-auto gap-2 rounded-lg border-zinc-800/80 bg-zinc-900/50 px-2.5 py-2 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:border-zinc-700 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+                className="h-auto gap-2 rounded-lg border-zinc-800/80 bg-zinc-900/50 px-2.5 py-2 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:border-zinc-700 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50 md:hidden"
               >
                 <Menu className="size-5" />
                 <span className="hidden font-medium sm:inline">Meniu</span>
@@ -161,67 +229,13 @@ export function AppShell({
               // Height is explicit: the primitive ships `h-full`, which with a
               // top of 4rem would hang 4rem past the bottom of the screen and
               // push the storage footer out of view.
-              className="top-16 h-[calc(100%-4rem)] w-72 border-r border-zinc-900 bg-zinc-950/95 p-0 backdrop-blur sm:max-w-72"
-              overlayClassName="top-16 backdrop-blur-sm"
+              className="top-16 h-[calc(100%-4rem)] w-72 border-r border-zinc-900 bg-zinc-950/95 p-0 backdrop-blur sm:max-w-72 md:hidden"
+              overlayClassName="top-16 backdrop-blur-sm md:hidden"
             >
               <SheetHeader className="sr-only">
                 <SheetTitle>Navigare</SheetTitle>
               </SheetHeader>
-              <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-                <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
-                  Navigare
-                </p>
-                {items.map((item) => {
-                  const active = item.href === pathname;
-                  if (item.soon) {
-                    return (
-                      <span
-                        key={item.label}
-                        className="flex cursor-default items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-600"
-                        title={item.label}
-                      >
-                        {item.icon}
-                        <span>{item.label}</span>
-                        <span className="ml-auto rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
-                          soon
-                        </span>
-                      </span>
-                    );
-                  }
-                  return (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      onClick={() => setSidebarOpen(false)}
-                      aria-current={active ? "page" : undefined}
-                      className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                        active
-                          ? "bg-indigo-500/10 font-medium text-indigo-300"
-                          : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
-                      }`}
-                    >
-                      {active && (
-                        <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-indigo-400" />
-                      )}
-                      <span
-                        className={
-                          active
-                            ? "text-indigo-400"
-                            : "text-zinc-500 transition-colors group-hover:text-zinc-300"
-                        }
-                      >
-                        {item.icon}
-                      </span>
-                      <span>{item.label}</span>
-                      {!!item.badge && (
-                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-500 px-1.5 text-[11px] font-semibold tabular-nums text-white">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </nav>
+              <AppNav items={items} onNavigate={() => setSidebarOpen(false)} />
               <DrawerStorage />
             </SheetContent>
           </Sheet>
@@ -333,8 +347,18 @@ export function AppShell({
         </div>
       </header>
 
-      {/* ===== Main content: full width, centered on the viewport ===== */}
-      <main className="min-w-0 flex-1">{children}</main>
+      {/* ===== Body: sidebar + content ===== */}
+      <div className="flex flex-1">
+        {/* Desktop keeps the column in the flow — it is navigation, not an
+            overlay, so it should not trap focus or dim the page. Same pattern
+            as the admin DashboardShell. */}
+        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 flex-col border-r border-zinc-900 bg-zinc-950 md:flex">
+          <AppNav items={items} />
+          <DrawerStorage />
+        </aside>
+
+        <main className="min-w-0 flex-1">{children}</main>
+      </div>
 
       {/* Floating upload progress panel (visible across all app pages) */}
       <UploadPanel />

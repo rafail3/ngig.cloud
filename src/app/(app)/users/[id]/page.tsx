@@ -4,6 +4,7 @@ import { getPublicProfile } from "@/server/users/service";
 import { Avatar } from "@/components/shell/Avatar";
 import { ProfileActions } from "@/components/users/ProfileActions";
 import { formatDateShort } from "@/lib/format-date";
+import { EmptyState } from "@/components/common/EmptyState";
 
 export const metadata = { title: "Profil utilizator" };
 
@@ -29,15 +30,11 @@ export default async function UserProfilePage({
       </Link>
 
       {!profile ? (
-        <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-14 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/50 text-zinc-500">
-            <UserX className="h-7 w-7" />
-          </div>
-          <p className="text-sm text-zinc-300">Utilizatorul nu există.</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Contul a fost probabil șters între timp.
-          </p>
-        </div>
+        <EmptyState
+          icon={UserX}
+          title="Utilizatorul nu există"
+          description="Contul a fost probabil șters între timp."
+        />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 shadow-lg shadow-black/10">
           <div className="pointer-events-none h-px bg-gradient-to-r from-transparent via-zinc-50/15 to-transparent" />

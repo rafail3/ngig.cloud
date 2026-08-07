@@ -3,7 +3,8 @@
 import { ModalShell } from "@/components/drive/anim";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Check, Copy, Trash2, ChevronDown } from "lucide-react";
+import { Check, Copy, Trash2, ChevronDown, Inbox } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
 import {
   approveRequestAction,
   rejectRequestAction,
@@ -222,38 +223,40 @@ export function InviteRequestsTable({
 }) {
   if (requests.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-12 text-center text-sm text-zinc-500">
-        Nicio cerere de invitație încă.
-      </div>
+      <EmptyState
+        icon={Inbox}
+        title="Nicio cerere de invitație încă"
+        description="Cererile trimise din pagina publică „Cere invitație” apar aici."
+      />
     );
   }
 
   return (
     <div>
       {/* ===== Desktop table ===== */}
-      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/20 lg:block">
-        <table className="w-full table-fixed text-left text-sm">
-          <thead className="bg-zinc-900/40 text-xs font-medium text-zinc-500">
+      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/30 lg:block">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-zinc-800/70 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
             <tr>
-              <th className="w-[20%] px-4 py-3 font-medium">Solicitant</th>
-              <th className="w-[26%] px-4 py-3 font-medium">Mesaj</th>
-              <th className="w-[11%] px-4 py-3 font-medium">Data</th>
-              <th className="w-[11%] px-4 py-3 font-medium">Status</th>
-              <th className="w-[32%] px-4 py-3 font-medium text-right">Acțiuni / cod</th>
+              <th className="w-[22%] px-5 py-3.5 font-medium">Solicitant</th>
+              <th className="w-full px-4 py-3.5 font-medium">Mesaj</th>
+              <th className="px-4 py-3.5 font-medium">Data</th>
+              <th className="px-4 py-3.5 font-medium">Status</th>
+              <th className="px-4 py-3.5 text-right font-medium">Acțiuni / cod</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-900">
             {requests.map((req) => (
-              <tr key={req.id} className="align-top text-zinc-300">
-                <td className="px-4 py-3">
+              <tr key={req.id} className="align-top text-zinc-300 transition-colors hover:bg-zinc-800/30">
+                <td className="max-w-52 px-5 py-3">
                   <p className="truncate font-medium text-zinc-200">{req.name}</p>
                   <p className="truncate text-xs text-zinc-500">{req.email}</p>
                   {req.ip && <p className="mt-0.5 truncate text-xs text-zinc-600">{req.ip}</p>}
                 </td>
-                <td className="px-4 py-3"><Message text={req.message} /></td>
-                <td className="px-4 py-3 text-zinc-400">{fmt(req.created_at)}</td>
+                <td className="max-w-0 px-4 py-3"><Message text={req.message} /></td>
+                <td className="whitespace-nowrap px-4 py-3 tabular-nums text-zinc-400">{fmt(req.created_at)}</td>
                 <td className="px-4 py-3"><StatusBadge status={req.status} /></td>
-                <td className="px-4 py-3">
+                <td className="whitespace-nowrap px-4 py-3">
                   {req.status === "approved" && req.invite_code ? (
                     <div className="flex flex-col items-end gap-2">
                       <CodeChip code={req.invite_code} />

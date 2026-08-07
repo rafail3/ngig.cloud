@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ShieldAlert, HardDrive, Clock, MapPin } from "lucide-react";
+import { ChevronRight, ShieldAlert, HardDrive, Clock, MapPin, UsersRound } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
 import { formatBytes } from "@/lib/format";
 import { formatDateTime as fmt } from "@/lib/format-date";
 import { isOnline, isBlocked } from "@/lib/user-presence";
@@ -55,9 +56,11 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
 
   if (users.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-12 text-center text-sm text-zinc-500">
-        Niciun user încă.
-      </div>
+      <EmptyState
+        icon={UsersRound}
+        title="Niciun user încă"
+        description="Conturile create pe platformă apar aici, cu activitate și spațiu folosit."
+      />
     );
   }
 

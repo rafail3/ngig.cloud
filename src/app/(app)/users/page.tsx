@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { UsersDirectory } from "@/components/users/UsersDirectory";
+import { PageHeader } from "@/components/common/PageHeader";
 
 export const metadata = { title: "Utilizatori" };
 
@@ -14,12 +15,11 @@ export default async function UsersPage({
   const { q } = await searchParams;
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
-      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Utilizatori</h1>
-      <p className="mt-1.5 mb-6 text-sm text-zinc-500">
-        Ceilalți membri ai cloudului. Deschide un profil ca să-i trimiți fișiere
-        sau foldere direct.
-      </p>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <PageHeader
+        title="Utilizatori"
+        description="Ceilalți membri ai cloudului. Deschide un profil ca să-i trimiți fișiere sau foldere direct."
+      />
 
       <Suspense fallback={null}>
         <UsersDirectory initialQuery={q ?? ""} />

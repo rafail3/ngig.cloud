@@ -33,6 +33,7 @@ import {
   cancelTransferAction,
 } from "@/app/(app)/transfers/actions";
 import { revalidateDrive } from "@/components/drive/useDriveData";
+import { EmptyState } from "@/components/common/EmptyState";
 import { FolderPickerModal } from "@/components/drive/FolderPickerModal";
 import { TransferContentsModal } from "@/components/transfer/TransferContentsModal";
 import { SendTransferModal } from "@/components/transfer/SendTransferModal";
@@ -439,44 +440,49 @@ export function TransfersBoard() {
 
   return (
     <div>
-      {/* Sending starts here too, not only from a file's "Partajează" menu —
-          you pick the files inside the modal instead. */}
-      <div className="mb-4 flex justify-end">
+      {/* One toolbar row: the tab switch sized to its content on the left, the
+          primary action anchored right — not a full-width segmented control
+          with a button floating detached above it. Sending starts here too,
+          not only from a file's "Partajează" menu — you pick the files inside
+          the modal instead. */}
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-1 self-start rounded-xl border border-zinc-800 bg-zinc-900/40 p-1 shadow-sm">
+          <Button variant="unstyled"
+            type="button"
+            onClick={() => setTab("received")}
+            aria-pressed={tab === "received"}
+            className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              tab === "received" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-400 hover:text-zinc-100"
+            }`}
+          >
+            <Inbox className="h-4 w-4" />
+            Primite
+            {pendingCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-500 px-1.5 text-[11px] font-semibold tabular-nums text-white">
+                {pendingCount}
+              </span>
+            )}
+          </Button>
+          <Button variant="unstyled"
+            type="button"
+            onClick={() => setTab("sent")}
+            aria-pressed={tab === "sent"}
+            className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              tab === "sent" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-400 hover:text-zinc-100"
+            }`}
+          >
+            <SendIcon className="h-4 w-4" />
+            Trimise
+          </Button>
+        </div>
+
         <Button variant="unstyled"
           type="button"
           onClick={() => setComposing(true)}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500 sm:w-auto"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500"
         >
           <Plus className="h-4 w-4" />
           Trimite fișiere
-        </Button>
-      </div>
-
-      <div className="mb-5 flex gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-1.5 shadow-sm">
-        <Button variant="unstyled"
-          type="button"
-          onClick={() => setTab("received")}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-            tab === "received" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-400 hover:text-zinc-100"
-          }`}
-        >
-          <Inbox className="h-4 w-4" />
-          Primite
-          {pendingCount > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-500 px-1.5 text-[11px] font-semibold tabular-nums text-white">
-              {pendingCount}
-            </span>
-          )}
-        </Button>
-        <Button variant="unstyled"
-          type="button"
-          onClick={() => setTab("sent")}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-            tab === "sent" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-400 hover:text-zinc-100"
-          }`}
-        >
-          <SendIcon className="h-4 w-4" />
-          Trimise
         </Button>
       </div>
 
@@ -484,7 +490,11 @@ export function TransfersBoard() {
         received === null ? (
           <Loading />
         ) : received.length === 0 && !completedRow ? (
-          <Empty icon={Inbox} text="Nicio cerere primită în așteptare." />
+          <EmptyState
+            icon={Inbox}
+            title="Nicio cerere primită în așteptare"
+            description="Când cineva îți trimite fișiere sau foldere, cererea apare aici ca s-o accepți sau s-o refuzi."
+          />
         ) : (
           <ul className="space-y-3.5">
             <AnimatePresence initial={false} mode="popLayout">
@@ -552,7 +562,21 @@ export function TransfersBoard() {
       ) : sent === null ? (
         <Loading />
       ) : sent.length === 0 ? (
-        <Empty icon={SendIcon} text="Niciun transfer trimis." />
+        <EmptyState
+          icon={SendIcon}
+          title="Niciun transfer trimis"
+          description="Trimite fișiere sau foldere direct altui utilizator — cererea apare aici până o rezolvă."
+          action={
+            <Button variant="unstyled"
+              type="button"
+              onClick={() => setComposing(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500"
+            >
+              <Plus className="h-4 w-4" />
+              Trimite fișiere
+            </Button>
+          }
+        />
       ) : (
         <SentList
           rows={sent}
@@ -787,13 +811,3 @@ function Loading() {
   );
 }
 
-function Empty({ icon: Icon, text }: { icon: typeof Inbox; text: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-14 text-center">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/50 text-zinc-500">
-        <Icon className="h-7 w-7" />
-      </div>
-      <p className="text-sm text-zinc-400">{text}</p>
-    </div>
-  );
-}
