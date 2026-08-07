@@ -238,20 +238,20 @@ export function AnnouncementHistory({
   return (
     <div>
       {/* ===== Desktop table ===== */}
-      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/20 lg:block">
-        <table className="w-full table-fixed text-left text-sm">
-          <thead className="bg-zinc-900/40 text-xs font-medium text-zinc-500">
+      <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/30 lg:block">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-zinc-800/70 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
             <tr>
-              <th className="w-[46%] px-4 py-3 font-medium">Anunț</th>
-              <th className="w-[16%] px-4 py-3 font-medium">Destinatari</th>
-              <th className="w-[22%] px-4 py-3 font-medium">Trimis</th>
-              <th className="w-[16%] px-4 py-3 font-medium text-right">Acțiuni</th>
+              <th className="w-full px-5 py-3.5 font-medium">Anunț</th>
+              <th className="px-4 py-3.5 font-medium">Destinatari</th>
+              <th className="px-4 py-3.5 font-medium">Trimis</th>
+              <th className="px-4 py-3.5 text-right font-medium">Acțiuni</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-900">
             {items.map((a) => (
-              <tr key={a.id} className="align-top text-zinc-300">
-                <td className="px-4 py-3">
+              <tr key={a.id} className="align-top text-zinc-300 transition-colors hover:bg-zinc-800/30">
+                <td className="max-w-0 px-5 py-3">
                   <p className="truncate text-[15px] font-semibold text-zinc-100">{a.title}</p>
                   <p
                     className="mt-0.5 line-clamp-2 break-words text-sm text-zinc-300 [&_a]:text-indigo-400 [&_a]:underline"
@@ -263,7 +263,7 @@ export function AnnouncementHistory({
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td className="whitespace-nowrap px-4 py-3">
                   {a.sent_at ? (
                     <span className="inline-flex items-center gap-1.5 text-zinc-300">
                       <Users className="h-3.5 w-3.5 text-zinc-500" />
@@ -273,7 +273,7 @@ export function AnnouncementHistory({
                     <span className="text-zinc-600">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-zinc-400">
+                <td className="whitespace-nowrap px-4 py-3 tabular-nums text-zinc-400">
                   {a.sent_at ? (
                     fmt(a.sent_at)
                   ) : (

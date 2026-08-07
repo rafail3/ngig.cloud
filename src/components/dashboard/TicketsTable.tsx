@@ -123,16 +123,16 @@ export function TicketsTable({ tickets }: { tickets: AdminTicketRow[] }) {
         <>
           {/* Desktop table — the whole row opens the ticket; the subject stays a
               real link so keyboard and open-in-new-tab still work. */}
-          <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/20 lg:block">
+          <div className="hidden overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/30 lg:block">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-900/40 text-xs font-medium text-zinc-500">
+              <thead className="border-b border-zinc-800/70 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium">Subiect</th>
-                  <th className="px-4 py-3 text-left font-medium">Utilizator</th>
-                  <th className="px-4 py-3 text-left font-medium">Categorie</th>
-                  <th className="px-4 py-3 text-left font-medium">Prioritate</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-left font-medium">Actualizat</th>
+                  <th className="w-full px-5 py-3.5 text-left font-medium">Subiect</th>
+                  <th className="px-4 py-3.5 text-left font-medium">Utilizator</th>
+                  <th className="px-4 py-3.5 text-left font-medium">Categorie</th>
+                  <th className="px-4 py-3.5 text-left font-medium">Prioritate</th>
+                  <th className="px-4 py-3.5 text-left font-medium">Status</th>
+                  <th className="px-4 py-3.5 text-left font-medium">Actualizat</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/40">
@@ -144,13 +144,13 @@ export function TicketsTable({ tickets }: { tickets: AdminTicketRow[] }) {
                       t.unread ? "bg-indigo-500/[0.06] hover:bg-indigo-500/10" : "hover:bg-zinc-900/50"
                     }`}
                   >
-                    <td className="px-4 py-3">
+                    <td className="max-w-0 px-5 py-3">
                       <span className="flex items-center gap-2">
                         {t.unread && <UnreadDot />}
                         <Link
                           href={`/tickets/${t.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className={`outline-none hover:text-indigo-300 focus-visible:text-indigo-300 ${
+                          className={`truncate outline-none hover:text-indigo-300 focus-visible:text-indigo-300 ${
                             t.unread ? "font-semibold text-zinc-50" : "font-medium text-zinc-100"
                           }`}
                         >
