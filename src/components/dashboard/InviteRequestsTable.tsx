@@ -3,7 +3,8 @@
 import { ModalShell } from "@/components/drive/anim";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Check, Copy, Trash2, ChevronDown } from "lucide-react";
+import { Check, Copy, Trash2, ChevronDown, Inbox } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
 import {
   approveRequestAction,
   rejectRequestAction,
@@ -222,9 +223,11 @@ export function InviteRequestsTable({
 }) {
   if (requests.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-12 text-center text-sm text-zinc-500">
-        Nicio cerere de invitație încă.
-      </div>
+      <EmptyState
+        icon={Inbox}
+        title="Nicio cerere de invitație încă"
+        description="Cererile trimise din pagina publică „Cere invitație” apar aici."
+      />
     );
   }
 

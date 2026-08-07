@@ -109,8 +109,12 @@ export function InviteGenerator({
         <h2 className="text-base font-semibold">Generează cod de invitație</h2>
       </div>
 
+      {/* One field row on desktop (the four inputs are peers, none deserves
+          double width), stacking 2×2 on tablet and single-column on mobile.
+          The submit sits in a right-aligned footer under the row — the eye
+          finishes the fields and lands on it. */}
       <form action={formAction} className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <span className={labelCls}>Expiră</span>
             <input type="hidden" name="expiry" value={expiry} />
@@ -138,7 +142,7 @@ export function InviteGenerator({
 
           <div>
             <label htmlFor="email" className={labelCls}>
-              Email <span className="text-zinc-500">(opțional — leagă codul de un email)</span>
+              Email <span className="text-zinc-500">(opțional)</span>
             </label>
             <Input variant="unstyled" id="email" name="email" type="email" defaultValue={prefillEmail} placeholder="nume@exemplu.com" className={fieldCls} />
           </div>
@@ -151,13 +155,18 @@ export function InviteGenerator({
           </div>
         </div>
 
-        <Button variant="unstyled"
-          type="submit"
-          disabled={pending}
-          className="self-start rounded-xl bg-indigo-500 hover:bg-indigo-400 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {pending ? "Se generează…" : "Generează cod"}
-        </Button>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-zinc-500">
+            Emailul leagă codul de o adresă — îl poți trimite direct după generare.
+          </p>
+          <Button variant="unstyled"
+            type="submit"
+            disabled={pending}
+            className="shrink-0 rounded-xl bg-indigo-500 hover:bg-indigo-400 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {pending ? "Se generează…" : "Generează cod"}
+          </Button>
+        </div>
       </form>
 
       {state.code && (

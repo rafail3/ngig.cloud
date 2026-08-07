@@ -12,6 +12,7 @@ import { fuzzyScore } from "@/lib/fuzzy";
 import { Select } from "@/components/support/Select";
 import type { AdminTicketRow } from "@/server/tickets/service";
 import { StatusBadge, PriorityBadge } from "@/components/support/badges";
+import { EmptyState } from "@/components/common/EmptyState";
 
 const ANY = "any";
 const STATUS_OPTIONS = [
@@ -109,14 +110,15 @@ export function TicketsTable({ tickets }: { tickets: AdminTicketRow[] }) {
       )}
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-12 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900">
-            <LifeBuoy className="h-5 w-5 text-zinc-500" aria-hidden="true" />
-          </span>
-          <p className="text-sm text-zinc-500">
-            {active ? "Niciun ticket nu se potrivește cu filtrele." : "Niciun ticket deocamdată."}
-          </p>
-        </div>
+        <EmptyState
+          icon={LifeBuoy}
+          title={active ? "Niciun ticket nu se potrivește cu filtrele" : "Niciun ticket deocamdată"}
+          description={
+            active
+              ? "Schimbă sau resetează filtrele ca să vezi restul ticketelor."
+              : "Ticketele deschise de utilizatori apar aici."
+          }
+        />
       ) : (
         <>
           {/* Desktop table — the whole row opens the ticket; the subject stays a

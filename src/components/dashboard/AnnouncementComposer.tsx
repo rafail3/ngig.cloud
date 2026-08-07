@@ -136,6 +136,9 @@ export function AnnouncementComposer() {
           <input type="hidden" name="body" value={bodyHtml} readOnly />
         </div>
 
+        {/* Link + delivery are secondary controls of equal weight — they share
+            one row on desktop instead of stacking into a taller card. */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div>
           <label htmlFor="ann-link" className={labelCls}>
             Link <span className="text-zinc-600">(opțional)</span>
@@ -192,6 +195,7 @@ export function AnnouncementComposer() {
               </p>
             </div>
           )}
+        </div>
         </div>
 
         {/* Carries the ISO instant computed from the local picker at submit. */}

@@ -4,7 +4,8 @@ import { ModalShell } from "@/components/drive/anim";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Trash2, Users, ExternalLink, Link2, RefreshCw, Clock } from "lucide-react";
+import { Trash2, Users, ExternalLink, Link2, RefreshCw, Clock, Megaphone } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
 import {
   deleteAnnouncementAction,
   resendAnnouncementAction,
@@ -226,9 +227,11 @@ export function AnnouncementHistory({
 }) {
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-12 text-center text-sm text-zinc-500">
-        Niciun anunț trimis încă.
-      </div>
+      <EmptyState
+        icon={Megaphone}
+        title="Niciun anunț trimis încă"
+        description="Anunțurile trimise sau programate din formularul de mai sus apar aici."
+      />
     );
   }
 
