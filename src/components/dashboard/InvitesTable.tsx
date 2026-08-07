@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Check, Copy, Trash2 } from "lucide-react";
 import {
@@ -34,7 +35,7 @@ function ExpiryCell({ inv }: { inv: InviteRow }) {
 function CodeCell({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={async () => {
         await navigator.clipboard.writeText(code);
@@ -50,7 +51,7 @@ function CodeCell({ code }: { code: string }) {
       ) : (
         <Copy className="h-3.5 w-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-300" />
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -68,12 +69,12 @@ function RevokeButton({ id }: { id: string }) {
   return (
     <form action={revokeInviteAction}>
       <input type="hidden" name="id" value={id} />
-      <button
+      <Button variant="unstyled"
         type="submit"
         className="rounded-lg border border-zinc-800 px-2.5 py-1 text-xs text-zinc-300 transition hover:border-amber-900/60 hover:text-amber-300"
       >
         Revocă
-      </button>
+      </Button>
     </form>
   );
 }
@@ -82,7 +83,7 @@ function DeleteButton({ id, code, full = false }: { id: string; code: string; fu
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => setOpen(true)}
         title="Șterge"
@@ -92,7 +93,7 @@ function DeleteButton({ id, code, full = false }: { id: string; code: string; fu
       >
         <Trash2 className="h-3.5 w-3.5" />
         {full && "Șterge"}
-      </button>
+      </Button>
       {open && <ConfirmDeleteModal id={id} code={code} onClose={() => setOpen(false)} />}
     </>
   );
@@ -131,21 +132,21 @@ function ConfirmDeleteModal({
           dispare definitiv din istoric. Acțiunea nu poate fi anulată.
         </p>
         <div className="mt-5 flex justify-end gap-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
           >
             Anulează
-          </button>
+          </Button>
           <form action={deleteInviteAction}>
             <input type="hidden" name="id" value={id} />
-            <button
+            <Button variant="unstyled"
               type="submit"
               className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
             >
               Șterge
-            </button>
+            </Button>
           </form>
         </div>
       </div>
@@ -287,12 +288,12 @@ export function InvitesTable({
                   <div className="flex-1">
                     <form action={revokeInviteAction}>
                       <input type="hidden" name="id" value={inv.id} />
-                      <button
+                      <Button variant="unstyled"
                         type="submit"
                         className="w-full rounded-lg border border-zinc-800 px-2.5 py-2 text-xs text-zinc-300 transition hover:border-amber-900/60 hover:text-amber-300"
                       >
                         Revocă
-                      </button>
+                      </Button>
                     </form>
                   </div>
                 )}

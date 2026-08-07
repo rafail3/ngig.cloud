@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -15,6 +16,8 @@ import {
 } from "lucide-react";
 import { setManagerPermissionsAction } from "@/app/dashboard/(panel)/users/actions";
 import { useToastState } from "@/lib/useToastState";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ToggleRow } from "./SettingSwitch";
 import type { UserActionState } from "@/lib/user-presence";
 
 // Mirrors DASHBOARD_SECTIONS (server/admin/guard.ts) with the nav's labels and
@@ -29,41 +32,6 @@ const SECTIONS = [
 ] as const;
 
 const initial: UserActionState = {};
-
-// Same compact whole-row switch as the notification settings: the row is the
-// button, the visual switch is a span.
-function ToggleRow({
-  on,
-  onFlip,
-  children,
-}: {
-  on: boolean;
-  onFlip: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={onFlip}
-      className="flex w-fit items-center gap-3 text-left"
-    >
-      <span
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
-          on ? "bg-indigo-600" : "bg-zinc-700"
-        }`}
-      >
-        <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-            on ? "translate-x-5" : "translate-x-0.5"
-          }`}
-        />
-      </span>
-      {children}
-    </button>
-  );
-}
 
 // Super-admin card on a manager's detail: choose full access or a custom
 // per-section allowlist for the dashboard nav/pages.
@@ -119,7 +87,7 @@ export function ManagerPermissions({
           </span>
           <h3 className="text-sm font-semibold">Permisiuni dashboard</h3>
         </div>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => (open ? cancel() : setOpen(true))}
           aria-expanded={open}
@@ -130,7 +98,7 @@ export function ManagerPermissions({
           }`}
         >
           {open ? "Închide" : "Editează"}
-        </button>
+        </Button>
       </div>
 
       <p className="mt-2 text-sm">{summary}</p>
@@ -147,35 +115,29 @@ export function ManagerPermissions({
           >
             <div className="flex flex-col gap-4 pt-4">
               {/* Preset: full access vs custom allowlist. */}
-              <div
-                role="radiogroup"
+              <RadioGroup
+                value={custom ? "custom" : "full"}
+                onValueChange={(v) => setCustom(v === "custom")}
                 aria-label="Preset de permisiuni"
                 className="grid grid-cols-2 gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
               >
                 {[
-                  { value: false, label: "Acces complet", icon: Globe },
-                  { value: true, label: "Personalizat", icon: SlidersHorizontal },
+                  { value: "full", label: "Acces complet", icon: Globe },
+                  { value: "custom", label: "Personalizat", icon: SlidersHorizontal },
                 ].map((opt) => {
                   const Icon = opt.icon;
-                  const active = custom === opt.value;
                   return (
-                    <button
-                      key={opt.label}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => setCustom(opt.value)}
-                      className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium transition ${
-                        active
-                          ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"
-                          : "text-zinc-400 hover:text-zinc-200"
-                      }`}
+                    // The dot is dropped: the choice reads from the filled pill.
+                    <RadioGroupItem
+                      key={opt.value}
+                      value={opt.value}
+                      className="inline-flex aspect-auto size-auto items-center justify-center gap-1.5 rounded-md border-0 px-2 py-1.5 text-sm font-medium text-zinc-400 shadow-none transition hover:text-zinc-200 data-[state=checked]:bg-indigo-500 data-[state=checked]:text-white data-[state=checked]:shadow-sm data-[state=checked]:shadow-indigo-500/25 dark:bg-transparent [&>[data-slot=radio-group-indicator]]:hidden"
                     >
                       <Icon className="h-3.5 w-3.5" /> {opt.label}
-                    </button>
+                    </RadioGroupItem>
                   );
                 })}
-              </div>
+              </RadioGroup>
 
               <AnimatePresence initial={false}>
                 {custom && (
@@ -233,13 +195,13 @@ export function ManagerPermissions({
                     value={String(on.has(s.key))}
                   />
                 ))}
-                <button
+                <Button variant="unstyled"
                   type="submit"
                   disabled={pending}
                   className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
                 >
                   {pending ? "Se salvează…" : "Salvează"}
-                </button>
+                </Button>
               </form>
             </div>
           </motion.div>

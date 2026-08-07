@@ -1,11 +1,19 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { FileCheck2, Search, ShieldBan, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { saveUploadTypesAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { SettingSwitch } from "./SettingSwitch";
+
+// One segment of a filter pill row: the primitive's dot is dropped because the
+// choice reads from the filled background instead.
+const SEGMENT =
+  "inline-flex aspect-auto size-auto items-center rounded-md border-0 px-2.5 py-1 text-xs font-medium text-zinc-400 shadow-none transition hover:text-zinc-200 data-[state=checked]:text-white data-[state=checked]:shadow-sm dark:bg-transparent [&>[data-slot=radio-group-indicator]]:hidden";
 import { EXT_CATALOG, normalizeExtList, type UploadTypesConfig } from "@/lib/upload-types";
 import type { SettingsState } from "@/lib/settings-state";
 
@@ -25,37 +33,34 @@ function ExtToggle({
   on: boolean;
   onFlip: () => void;
 }) {
+  const id = useId();
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={`Blochează .${ext}`}
-      onClick={onFlip}
-      className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition ${
+    // A label, not a button: the switch inside is the control, and a button
+    // cannot live inside another button. Pointing the label at it keeps the
+    // whole pill clickable.
+    <label
+      htmlFor={id}
+      className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition ${
         on
           ? "border-red-500/40 bg-red-500/10"
           : "border-zinc-800/80 bg-zinc-950/40 hover:border-zinc-700 hover:bg-zinc-900/60"
       }`}
     >
-      <span
-        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition ${
-          on ? "bg-red-500" : "bg-zinc-700"
-        }`}
-      >
-        <span
-          className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition ${
-            on ? "translate-x-3.5" : "translate-x-0.5"
-          }`}
-        />
-      </span>
+      <SettingSwitch
+        id={id}
+        size="sm"
+        tone="red"
+        checked={on}
+        onCheckedChange={onFlip}
+        ariaLabel={`Blochează .${ext}`}
+      />
       <span
         className={`font-mono text-xs font-semibold ${on ? "text-red-300 line-through" : "text-zinc-200"}`}
       >
         .{ext}
       </span>
       <span className="ml-auto truncate text-[10px] text-zinc-500">{label}</span>
-    </button>
+    </label>
   );
 }
 
@@ -199,7 +204,7 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
             </span>
           )}
           <span className="hidden text-sm sm:inline">{summary}</span>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => (open ? close() : setOpen(true))}
             aria-expanded={open}
@@ -210,7 +215,7 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
             }`}
           >
             {open ? "Închide" : "Editează"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -241,36 +246,23 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
                 </div>
 
                 {/* All / blocked-only filter */}
-                <div
-                  role="radiogroup"
+                <RadioGroup
+                  value={onlyBlocked ? "blocked" : "all"}
+                  onValueChange={(v) => setOnlyBlocked(v === "blocked")}
                   aria-label="Filtru extensii"
                   className="flex gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
                 >
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={!onlyBlocked}
-                    onClick={() => setOnlyBlocked(false)}
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                      !onlyBlocked ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25" : "text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
+                  <RadioGroupItem value="all" className={`${SEGMENT} data-[state=checked]:bg-indigo-500 data-[state=checked]:shadow-indigo-500/25`}>
                     Toate
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={onlyBlocked}
-                    onClick={() => setOnlyBlocked(true)}
-                    className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                      onlyBlocked ? "bg-red-500 text-white shadow-sm shadow-red-500/25" : "text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    <ShieldBan className="h-3 w-3" />
-                    Blocate
-                    <span className="tabular-nums">({blocked.size})</span>
-                  </button>
-                </div>
+                  </RadioGroupItem>
+                  <RadioGroupItem value="blocked" className={`${SEGMENT} data-[state=checked]:bg-red-500 data-[state=checked]:shadow-red-500/25`}>
+                    <span className="flex items-center gap-1">
+                      <ShieldBan className="h-3 w-3" />
+                      Blocate
+                      <span className="tabular-nums">({blocked.size})</span>
+                    </span>
+                  </RadioGroupItem>
+                </RadioGroup>
 
                 {/* Add a custom extension into the grid */}
                 <div className="flex min-w-0 items-center gap-1.5">
@@ -288,13 +280,13 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
                     aria-label="Adaugă extensie custom"
                     className="w-28 rounded-xl border border-zinc-800 bg-zinc-950/50 px-3 py-2 font-mono text-xs text-zinc-50 outline-none transition placeholder:font-sans placeholder:text-zinc-500 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15"
                   />
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={addCustom}
                     className="flex items-center gap-1 rounded-lg border border-zinc-800 px-2.5 py-2 text-xs font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/30 hover:text-red-200"
                   >
                     <Plus className="h-3.5 w-3.5" /> Blochează
-                  </button>
+                  </Button>
                 </div>
               </div>
 

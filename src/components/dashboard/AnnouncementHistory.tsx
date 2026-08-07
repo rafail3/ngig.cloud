@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Trash2, Users, ExternalLink, Link2, RefreshCw, Clock } from "lucide-react";
@@ -37,7 +38,7 @@ function ResendButton({ id, title, full = false }: { id: string; title: string; 
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => setOpen(true)}
         title="Retrimite"
@@ -47,7 +48,7 @@ function ResendButton({ id, title, full = false }: { id: string; title: string; 
       >
         <RefreshCw className="h-3.5 w-3.5" />
         {full && "Retrimite"}
-      </button>
+      </Button>
       {open && <ConfirmResend id={id} title={title} onClose={() => setOpen(false)} />}
     </>
   );
@@ -101,15 +102,15 @@ function ConfirmResend({
           utilizatorilor, ca un anunț nou.
         </p>
         <div className="mt-5 flex justify-end gap-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             disabled={pending}
             className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
           >
             Anulează
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             disabled={pending}
             onClick={doResend}
@@ -117,7 +118,7 @@ function ConfirmResend({
           >
             <RefreshCw className={`h-4 w-4 ${pending ? "animate-spin" : ""}`} />
             {pending ? "Se retrimite…" : "Retrimite"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -138,7 +139,7 @@ function DeleteButton({
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => setOpen(true)}
         title={scheduled ? "Anulează programarea" : "Șterge și retrage"}
@@ -148,7 +149,7 @@ function DeleteButton({
       >
         <Trash2 className="h-3.5 w-3.5" />
         {full && (scheduled ? "Anulează" : "Șterge")}
-      </button>
+      </Button>
       {open && (
         <ConfirmDelete
           id={id}
@@ -223,22 +224,22 @@ function ConfirmDelete({
           )}
         </p>
         <div className="mt-5 flex justify-end gap-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             disabled={pending}
             className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
           >
             Anulează
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={doDelete}
             disabled={pending}
             className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-60"
           >
             {pending ? "Se șterge…" : scheduled ? "Anulează programarea" : "Șterge"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

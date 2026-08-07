@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { Bold, Italic, Underline, Link2, Check, X } from "lucide-react";
 
@@ -155,22 +156,22 @@ export function RichTextEditor({
               placeholder="https://… sau /profil"
               className="w-40 rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs text-zinc-100 focus:border-indigo-500/60 focus:outline-none"
             />
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={applyLink}
               aria-label="Adaugă link"
               className="rounded-md p-1 text-emerald-400 transition hover:bg-zinc-800"
             >
               <Check className="h-4 w-4" />
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled"
               type="button"
               onClick={() => setLinkOpen(false)}
               aria-label="Anulează"
               className="rounded-md p-1 text-zinc-400 transition hover:bg-zinc-800"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -206,7 +207,7 @@ function ToolbarButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       aria-label={label}
       aria-pressed={active}
@@ -221,6 +222,6 @@ function ToolbarButton({
       }`}
     >
       {children}
-    </button>
+    </Button>
   );
 }

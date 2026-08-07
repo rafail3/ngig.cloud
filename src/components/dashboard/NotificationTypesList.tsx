@@ -1,9 +1,12 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { User, Shield, Plus, BellOff, Pencil, X, RotateCcw, Search } from "lucide-react";
 import { Select } from "@/components/support/Select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { SettingSwitch } from "./SettingSwitch";
 import {
   setNotificationEnabledAction,
   setNotificationTemplateAction,
@@ -57,24 +60,7 @@ function Toggle({
   onFlip: () => void;
   pending: boolean;
 }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      onClick={onFlip}
-      disabled={pending}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-60 ${
-        enabled ? "bg-indigo-600" : "bg-zinc-700"
-      }`}
-    >
-      <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-          enabled ? "translate-x-5" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
+  return <SettingSwitch checked={enabled} onCheckedChange={onFlip} disabled={pending} />;
 }
 
 // Render text with {placeholder} tokens highlighted (known vars = indigo chip,
@@ -251,7 +237,7 @@ function TemplateField({
           style={{ left: sugg.left, top: sugg.top + 22 }}
         >
           {matches.map((v) => (
-            <button
+            <Button variant="unstyled"
               key={v}
               type="button"
               onMouseDown={(e) => {
@@ -261,7 +247,7 @@ function TemplateField({
               className="rounded-md px-2 py-1 text-left font-mono text-xs text-indigo-300 transition hover:bg-zinc-800"
             >
               {`{${v}}`}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -337,14 +323,14 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
             <h3 className="text-base font-semibold text-zinc-100">Editează mesajul</h3>
             <p className="mt-0.5 text-xs text-zinc-500">{t.label}</p>
           </div>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={attemptClose}
             aria-label="Închide"
             className="rounded-md p-1 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         <div className="mt-4 flex flex-col gap-4">
@@ -382,7 +368,7 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={toDefault}
             disabled={pending}
@@ -390,24 +376,24 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
           >
             <RotateCcw className="h-3.5 w-3.5" />
             Implicit
-          </button>
+          </Button>
           <div className="flex gap-2">
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={onClose}
               disabled={pending}
               className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
             >
               Anulează
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled"
               type="button"
               onClick={save}
               disabled={pending || !dirty}
               className="rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {pending ? "Se salvează…" : "Salvează"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -447,7 +433,7 @@ function Row({ t }: { t: NotificationTypeStatus }) {
         </div>
         <p className="mt-0.5 text-xs text-zinc-400">{t.description}</p>
       </div>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => setEditing(true)}
         aria-label="Editează mesajul"
@@ -455,7 +441,7 @@ function Row({ t }: { t: NotificationTypeStatus }) {
         className="shrink-0 rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
       >
         <Pencil className="h-4 w-4" />
-      </button>
+      </Button>
       <div className="hidden w-20 shrink-0 sm:flex sm:justify-end">
         <AudienceBadge audience={t.audience} />
       </div>
@@ -475,7 +461,7 @@ function TabButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition ${
@@ -483,7 +469,7 @@ function TabButton({
       }`}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -525,43 +511,38 @@ function ExistingTab({ types }: { types: NotificationTypeStatus[] }) {
             className="w-full rounded-lg border border-zinc-800 bg-zinc-950/50 py-2 pl-9 pr-9 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-indigo-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-indigo-500/15"
           />
           {q && (
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => setQ("")}
               aria-label="Șterge căutarea"
               className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-zinc-500 transition hover:text-zinc-300"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           )}
         </div>
 
-        <div
-          role="radiogroup"
+        {/* One tab stop with arrow keys between the options, instead of three
+            stops that only answered to a click. */}
+        <RadioGroup
+          value={aud}
+          onValueChange={(v) => setAud(v as typeof aud)}
           aria-label="Filtrează după audiență"
           className="flex shrink-0 gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
         >
-          {AUD_FILTERS.map((f) => {
-            const on = aud === f.value;
-            return (
-              <button
-                key={f.value}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => setAud(f.value)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition sm:flex-none ${
-                  on
-                    ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
+          {AUD_FILTERS.map((f) => (
+            <RadioGroupItem
+              key={f.value}
+              value={f.value}
+              className="inline-flex aspect-auto size-auto flex-1 items-center justify-center gap-1.5 rounded-md border-0 px-3 py-1.5 text-sm font-medium text-zinc-400 shadow-none transition hover:text-zinc-200 data-[state=checked]:bg-indigo-500 data-[state=checked]:text-white data-[state=checked]:shadow-sm data-[state=checked]:shadow-indigo-500/25 dark:bg-transparent sm:flex-none [&>[data-slot=radio-group-indicator]]:hidden"
+            >
+              <span className="flex items-center gap-1.5">
                 {f.icon}
                 {f.label}
-              </button>
-            );
-          })}
-        </div>
+              </span>
+            </RadioGroupItem>
+          ))}
+        </RadioGroup>
       </div>
 
       {filtered.length === 0 ? (
@@ -620,14 +601,14 @@ function AddTab({ addable }: { addable: NotificationTypeMeta[] }) {
           ariaLabel="Alege o acțiune"
           className="flex-1"
         />
-        <button
+        <Button variant="unstyled"
           type="button"
           disabled={!selected}
           className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />
           Adaugă
-        </button>
+        </Button>
       </div>
     </div>
   );

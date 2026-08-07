@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { Link2, Wand2, Pencil, TriangleAlert } from "lucide-react";
 import {
@@ -132,13 +133,13 @@ export function OfficeServerUrl({ url, mode }: { url: string; mode: OfficeUrlMod
                 : "border-zinc-800 bg-zinc-950/50 text-zinc-50 placeholder:text-zinc-500 focus:border-indigo-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-indigo-500/15"
             }`}
           />
-          <button
+          <Button variant="unstyled"
             type="submit"
             disabled={pending}
             className="shrink-0 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
           >
             {pending ? "…" : "Salvează"}
-          </button>
+          </Button>
         </div>
 
         <p className="text-xs text-zinc-500">

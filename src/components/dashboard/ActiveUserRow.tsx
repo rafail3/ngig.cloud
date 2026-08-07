@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Upload, Download, LogIn, HardDrive, MapPin, ChevronRight } from "lucide-react";
 import { Avatar } from "@/components/shell/Avatar";
@@ -59,7 +60,7 @@ export function ActiveUserRow({
 
   return (
     <>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => setOpen(true)}
         // Hover: zinc-900/70 mirrors to near-white in light mode (invisible on
@@ -126,7 +127,7 @@ export function ActiveUserRow({
         </div>
 
         <ChevronRight className="h-4 w-4 shrink-0 text-zinc-700 transition group-hover:translate-x-0.5 group-hover:text-zinc-400" />
-      </button>
+      </Button>
 
       {open && (
         <UserInsightsModal

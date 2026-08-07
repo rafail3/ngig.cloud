@@ -290,6 +290,24 @@ html.light {
     outline: 2px solid color-mix(in oklab, var(--ring) 50%, transparent);
     outline-offset: 2px;
   }
+
+  /* Fields answer to the same rule. Most of them draw a focus border of their
+     own and keep it; the ones that never did stop relying on whatever the
+     browser felt like drawing. */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--ring) 50%, transparent);
+    outline-offset: 2px;
+  }
+
+  /* An empty field has nothing worth selecting, but a drag across the page
+     still paints its placeholder as if it did. Selection returns the moment
+     there is a value, so typed text stays copyable. */
+  input:placeholder-shown,
+  textarea:placeholder-shown {
+    user-select: none;
+  }
 }
 
 /* ===========================================================================

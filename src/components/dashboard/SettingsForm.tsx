@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HardDrive, FileText, User, Database, Users, type LucideIcon } from "lucide-react";
@@ -74,7 +75,7 @@ function SettingRow({
           >
             {display}
           </span>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => {
               if (!open) setUnit(bytes.unit);
@@ -88,7 +89,7 @@ function SettingRow({
             }`}
           >
             {open ? "Închide" : "Editează"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -138,20 +139,20 @@ function SettingRow({
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <Button variant="unstyled"
                   type="submit"
                   disabled={pending}
                   className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
                 >
                   {pending ? "Se salvează…" : "Salvează"}
-                </button>
-                <button
+                </Button>
+                <Button variant="unstyled"
                   type="button"
                   onClick={() => setOpen(false)}
                   className="rounded-lg border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
                 >
                   Anulează
-                </button>
+                </Button>
                 <span className="text-xs text-zinc-500">Gol = nelimitat</span>
               </div>
             </form>

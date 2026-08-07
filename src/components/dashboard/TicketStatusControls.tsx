@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
@@ -55,7 +56,7 @@ export function TicketStatusControls({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={toggleStatus}
         disabled={pending}
@@ -73,17 +74,17 @@ export function TicketStatusControls({
           <RotateCcw className="h-4 w-4" />
         )}
         {status === "open" ? "Închide ticketul" : "Redeschide"}
-      </button>
+      </Button>
 
       {canDelete && (
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => setConfirmDelete(true)}
           disabled={pending}
           className="inline-flex items-center gap-2 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-400 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60"
         >
           <Trash2 className="h-4 w-4" /> Șterge
-        </button>
+        </Button>
       )}
 
       <AnimatePresence>
@@ -98,22 +99,22 @@ export function TicketStatusControls({
               Acțiunea e ireversibilă.
             </p>
             <div className="mt-5 flex justify-end gap-2">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => setConfirmDelete(false)}
                 disabled={pending}
                 className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-60"
               >
                 Anulează
-              </button>
-              <button
+              </Button>
+              <Button variant="unstyled"
                 type="button"
                 onClick={remove}
                 disabled={pending}
                 className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-60"
               >
                 {pending ? "Se șterge…" : "Șterge definitiv"}
-              </button>
+              </Button>
             </div>
           </ModalShell>
         )}

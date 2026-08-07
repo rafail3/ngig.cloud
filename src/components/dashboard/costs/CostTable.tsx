@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
@@ -150,7 +151,7 @@ function Th({
       aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
       className={`px-4 py-3 font-medium ${align === "right" ? "text-right" : "text-left"}`}
     >
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => onClick(col)}
         className={`inline-flex items-center gap-1.5 transition-colors hover:text-zinc-200 ${
@@ -159,7 +160,7 @@ function Th({
       >
         {label}
         <Icon className={`h-3.5 w-3.5 ${active ? "text-indigo-400" : "text-zinc-600"}`} />
-      </button>
+      </Button>
     </th>
   );
 }

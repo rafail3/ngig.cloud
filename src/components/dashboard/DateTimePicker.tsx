@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight, Clock } from "lucide-react";
-import { useClickOutside } from "@/lib/useClickOutside";
+import { ModalShell } from "@/components/drive/anim";
 
 const WEEKDAYS = ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"];
 const MONTHS = [
@@ -84,8 +85,6 @@ export function DateTimePicker({
   // in render). Drives "today" highlighting and past-date disabling.
   const [now, setNow] = useState<Date | null>(null);
   const [view, setView] = useState<{ y: number; m: number } | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false), open);
 
   const selected = fromLocalString(value);
   const hh = selected ? selected.getHours() : 0;
@@ -125,8 +124,8 @@ export function DateTimePicker({
     : "Alege data și ora";
 
   return (
-    <div ref={ref} className="relative w-full sm:w-72">
-      <button
+    <div className="relative w-full sm:w-72">
+      <Button variant="unstyled"
         type="button"
         onClick={toggle}
         aria-expanded={open}
@@ -136,36 +135,39 @@ export function DateTimePicker({
       >
         <Calendar className="h-4 w-4 shrink-0 text-zinc-500" />
         <span className="truncate">{label}</span>
-      </button>
+      </Button>
 
+      {/* The panel was already a modal — a scrim over the page with the calendar
+          centred on it — so it says so now: focus stays inside it, Escape
+          closes it, and the page behind it stops scrolling. */}
       {open && now && view && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
-          />
-          <div className="relative max-h-[85vh] w-[20rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900 p-3 shadow-2xl">
+        <ModalShell
+          onClose={() => setOpen(false)}
+          title="Alege data și ora"
+          scrim="bg-black/60"
+          className="max-h-[85vh] w-[20rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900 p-3 shadow-2xl"
+        >
           {/* Month nav */}
           <div className="mb-2 flex items-center justify-between">
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => shiftMonth(-1)}
               className="rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
               aria-label="Luna anterioară"
             >
               <ChevronLeft className="h-4 w-4" />
-            </button>
+            </Button>
             <span className="text-sm font-medium capitalize text-zinc-100">
               {MONTHS[view.m]} {view.y}
             </span>
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => shiftMonth(1)}
               className="rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
               aria-label="Luna următoare"
             >
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
 
           {/* Weekday header */}
@@ -194,16 +196,15 @@ export function DateTimePicker({
               <span className="text-zinc-500">:</span>
               <TimeField value={mm} max={59} ariaLabel="Minutul" onCommit={(m) => setTime(hh, m)} />
             </div>
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => setOpen(false)}
               className="ml-auto rounded-md bg-indigo-600 px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500"
             >
               Gata
-            </button>
+            </Button>
           </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
     </div>
   );
@@ -241,7 +242,7 @@ function DayGrid({
         const isToday = sameDay(d, now);
         const isSel = selected != null && sameDay(d, selected);
         return (
-          <button
+          <Button variant="unstyled"
             key={i}
             type="button"
             disabled={past}
@@ -255,7 +256,7 @@ function DayGrid({
             }`}
           >
             {d.getDate()}
-          </button>
+          </Button>
         );
       })}
     </div>

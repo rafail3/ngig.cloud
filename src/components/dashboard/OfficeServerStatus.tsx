@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import {
   Activity,
@@ -319,14 +320,14 @@ export function OfficeServerStatus() {
             <Activity className="h-3.5 w-3.5" />
             {paused ? "În pauză" : "Live"}
           </span>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => setPaused((p) => !p)}
             aria-label={paused ? "Reia monitorizarea" : "Pune pe pauză"}
             className="flex items-center gap-1 rounded-lg border border-zinc-800 px-2 py-1 text-xs text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
           >
             {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-          </button>
+          </Button>
         </div>
       </div>
 

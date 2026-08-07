@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Check, Copy, Trash2, ChevronDown } from "lucide-react";
 import {
@@ -45,7 +46,7 @@ function CodeChip({ code }: { code: string }) {
       <code className="flex min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded-lg border border-indigo-500/30 bg-zinc-950 px-3 py-2 font-mono text-sm tracking-tight text-indigo-300">
         {code}
       </code>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={async () => {
           await navigator.clipboard.writeText(code);
@@ -61,7 +62,7 @@ function CodeChip({ code }: { code: string }) {
         }`}
       >
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -76,14 +77,14 @@ function Message({ text }: { text: string | null }) {
         {text}
       </p>
       {long && (
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="mt-0.5 inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300"
         >
           {open ? "Mai puțin" : "Mai mult"}
           <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -93,7 +94,7 @@ function ApproveButton({ id, full = false }: { id: string; full?: boolean }) {
   return (
     <form action={approveRequestAction} className={full ? "flex-1" : ""}>
       <input type="hidden" name="id" value={id} />
-      <button
+      <Button variant="unstyled"
         type="submit"
         title="Generează cod + trimite email"
         className={`rounded-lg border border-emerald-800/60 bg-emerald-950/30 px-2.5 text-xs font-medium text-emerald-300 transition hover:border-emerald-700 hover:text-emerald-200 ${
@@ -101,7 +102,7 @@ function ApproveButton({ id, full = false }: { id: string; full?: boolean }) {
         }`}
       >
         Aprobă
-      </button>
+      </Button>
     </form>
   );
 }
@@ -110,14 +111,14 @@ function RejectButton({ id, full = false }: { id: string; full?: boolean }) {
   return (
     <form action={rejectRequestAction} className={full ? "flex-1" : ""}>
       <input type="hidden" name="id" value={id} />
-      <button
+      <Button variant="unstyled"
         type="submit"
         className={`rounded-lg border border-zinc-800 px-2.5 text-xs text-zinc-300 transition hover:border-amber-900/60 hover:text-amber-300 ${
           full ? "w-full py-2" : "py-1"
         }`}
       >
         Respinge
-      </button>
+      </Button>
     </form>
   );
 }
@@ -126,7 +127,7 @@ function DeleteButton({ id, email, full = false }: { id: string; email: string; 
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => setOpen(true)}
         title="Șterge"
@@ -136,7 +137,7 @@ function DeleteButton({ id, email, full = false }: { id: string; email: string; 
       >
         <Trash2 className="h-3.5 w-3.5" />
         {full && "Șterge"}
-      </button>
+      </Button>
       {open && <ConfirmDeleteModal id={id} email={email} onClose={() => setOpen(false)} />}
     </>
   );
@@ -175,21 +176,21 @@ function ConfirmDeleteModal({
           dispare definitiv din istoric. Acțiunea nu poate fi anulată.
         </p>
         <div className="mt-5 flex justify-end gap-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
           >
             Anulează
-          </button>
+          </Button>
           <form action={deleteRequestAction}>
             <input type="hidden" name="id" value={id} />
-            <button
+            <Button variant="unstyled"
               type="submit"
               className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
             >
               Șterge
-            </button>
+            </Button>
           </form>
         </div>
       </div>

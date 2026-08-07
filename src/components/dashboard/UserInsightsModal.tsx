@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -164,14 +165,14 @@ export function UserInsightsModal({
                 </p>
               )}
             </div>
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={onClose}
               aria-label="Închide"
               className="rounded-lg p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
             >
               <X className="h-5 w-5" />
-            </button>
+            </Button>
           </div>
 
           <div className="max-h-[70vh] overflow-y-auto p-4 sm:p-6">

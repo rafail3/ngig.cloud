@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState, useState } from "react";
 import { Copy, Ticket } from "lucide-react";
 import { toast } from "sonner";
@@ -54,14 +55,14 @@ function NewCode({ code, email }: { code: string; email?: string }) {
             {code}
           </p>
         </div>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={copy}
           className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-emerald-800/60 px-3 py-2 text-sm text-emerald-200 transition hover:bg-emerald-900/40"
         >
           <Copy className="h-4 w-4" />
           Copiază
-        </button>
+        </Button>
       </div>
 
       {email && (
@@ -72,13 +73,13 @@ function NewCode({ code, email }: { code: string; email?: string }) {
             <p className="text-sm text-zinc-400">
               Trimite codul pe <span className="text-zinc-200">{email}</span>
             </p>
-            <button
+            <Button variant="unstyled"
               type="submit"
               disabled={sendPending}
               className="shrink-0 rounded-lg bg-indigo-500 hover:bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition disabled:opacity-60"
             >
               {sendPending ? "Se trimite…" : "Trimite codul pe email"}
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -149,13 +150,13 @@ export function InviteGenerator({
           </div>
         </div>
 
-        <button
+        <Button variant="unstyled"
           type="submit"
           disabled={pending}
           className="self-start rounded-xl bg-indigo-500 hover:bg-indigo-400 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending ? "Se generează…" : "Generează cod"}
-        </button>
+        </Button>
       </form>
 
       {state.code && (
