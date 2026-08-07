@@ -275,6 +275,21 @@ html.light {
   [role="button"]:not([aria-disabled="true"]) {
     cursor: pointer;
   }
+
+  /* A button that never styled its own focus falls back to the browser's
+     outline: right colour since the rule above, but the browser's weight and
+     offset, which read as thinner and tighter than the ring the Button
+     primitive draws. This is the same shape at the same distance, so a keyboard
+     user sees one focus treatment across the app rather than two.
+
+     It sits in the base layer, so anything that states its own focus — the
+     primitive's `outline-none` plus ring, or a bespoke `focus-visible:` class —
+     still wins. */
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--ring) 50%, transparent);
+    outline-offset: 2px;
+  }
 }
 
 /* ===========================================================================

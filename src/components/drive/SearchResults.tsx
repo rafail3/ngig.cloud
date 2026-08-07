@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
@@ -518,7 +519,7 @@ function PathLine({
     );
   }
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={(e) => {
         e.stopPropagation();
@@ -527,6 +528,6 @@ function PathLine({
       className="mt-0.5 flex max-w-full items-center gap-1 text-xs text-zinc-600 transition hover:text-indigo-400"
     >
       {content}
-    </button>
+    </Button>
   );
 }

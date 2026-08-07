@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Archive, ArchiveRestore, Download, Trash2, Loader2, X } from "lucide-react";
@@ -96,14 +97,14 @@ export function ArchiveList({ files }: { files: ArchiveFile[] }) {
       {err && (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-red-900/60 bg-red-950/30 px-3.5 py-2 text-sm text-red-300">
           <span>{err}</span>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => setErr(null)}
             aria-label="Închide"
             className="shrink-0 rounded p-0.5 text-red-400 transition hover:text-red-200"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -146,7 +147,7 @@ export function ArchiveList({ files }: { files: ArchiveFile[] }) {
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   {busy && <Loader2 className="mr-1 h-4 w-4 animate-spin text-indigo-400" />}
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -158,7 +159,7 @@ export function ArchiveList({ files }: { files: ArchiveFile[] }) {
                     className="rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-50"
                   >
                     <ArchiveRestore className="h-4 w-4" />
-                  </button>
+                  </Button>
                   <ActionMenu actions={actions(file)} label="Opțiuni fișier" />
                 </div>
               </motion.li>

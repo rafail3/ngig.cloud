@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { RotateCcw, Trash2, Loader2, X, Trash } from "lucide-react";
@@ -104,14 +105,14 @@ export function TrashList({ files }: { files: TrashFile[] }) {
       {err && (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-red-900/60 bg-red-950/30 px-3.5 py-2 text-sm text-red-300">
           <span>{err}</span>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => setErr(null)}
             aria-label="Închide"
             className="shrink-0 rounded p-0.5 text-red-400 transition hover:text-red-200"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -119,14 +120,14 @@ export function TrashList({ files }: { files: TrashFile[] }) {
         <span className="text-sm text-zinc-500">
           {files.length} {files.length === 1 ? "fișier" : "fișiere"} în coș
         </span>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => setConfirmEmpty(true)}
           className="flex items-center gap-1.5 rounded-lg border border-red-900/60 px-3 py-1.5 text-sm text-red-300 transition hover:bg-red-950/40"
         >
           <Trash2 className="h-4 w-4" />
           Golește coșul
-        </button>
+        </Button>
       </div>
 
       <motion.ul
@@ -163,7 +164,7 @@ export function TrashList({ files }: { files: TrashFile[] }) {
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   {busy && <Loader2 className="mr-1 h-4 w-4 animate-spin text-indigo-400" />}
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={() => restore(file)}
                     disabled={busy}
@@ -172,8 +173,8 @@ export function TrashList({ files }: { files: TrashFile[] }) {
                     className="rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-50"
                   >
                     <RotateCcw className="h-4 w-4" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button variant="unstyled"
                     type="button"
                     onClick={() => setToDelete(file)}
                     disabled={busy}
@@ -182,7 +183,7 @@ export function TrashList({ files }: { files: TrashFile[] }) {
                     className="rounded-md p-1.5 text-zinc-400 transition hover:bg-red-950/40 hover:text-red-300 disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               </motion.li>
             );
@@ -204,22 +205,22 @@ export function TrashList({ files }: { files: TrashFile[] }) {
               va fi șters permanent. Acțiunea e ireversibilă.
             </p>
             <div className="mt-5 flex justify-end gap-2">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => setToDelete(null)}
                 disabled={busyId === toDelete.id}
                 className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-60"
               >
                 Anulează
-              </button>
-              <button
+              </Button>
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => remove(toDelete)}
                 disabled={busyId === toDelete.id}
                 className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-60"
               >
                 {busyId === toDelete.id ? "Se șterge…" : "Șterge definitiv"}
-              </button>
+              </Button>
             </div>
           </ModalShell>
         )}
@@ -237,22 +238,22 @@ export function TrashList({ files }: { files: TrashFile[] }) {
               Acțiunea e ireversibilă.
             </p>
             <div className="mt-5 flex justify-end gap-2">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => setConfirmEmpty(false)}
                 disabled={emptying}
                 className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-60"
               >
                 Anulează
-              </button>
-              <button
+              </Button>
+              <Button variant="unstyled"
                 type="button"
                 onClick={empty}
                 disabled={emptying}
                 className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-60"
               >
                 {emptying ? "Se golește…" : "Golește coșul"}
-              </button>
+              </Button>
             </div>
           </ModalShell>
         )}

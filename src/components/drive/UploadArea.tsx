@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { toast } from "sonner";
@@ -181,27 +182,27 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
           webkitdirectory=""
           directory=""
         />
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => filesRef.current?.click()}
           className="flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-400 active:bg-indigo-600"
         >
           <Upload className="h-4 w-4" /> Încarcă fișiere
-        </button>
-        <button
+        </Button>
+        <Button variant="unstyled"
           type="button"
           onClick={() => folderRef.current?.click()}
           className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-sm font-medium text-zinc-200 transition hover:border-zinc-700 hover:bg-zinc-900"
         >
           <Upload className="h-4 w-4" /> Încarcă folder
-        </button>
-        <button
+        </Button>
+        <Button variant="unstyled"
           type="button"
           onClick={() => setCreating(true)}
           className="flex items-center gap-2 rounded-lg border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-900/60 hover:text-zinc-50"
         >
           <FolderPlus className="h-4 w-4" /> Folder nou
-        </button>
+        </Button>
       </div>
 
       <div
@@ -221,7 +222,7 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
         aria-label="Alege fișiere de încărcat"
-        className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-6 py-6 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/50 ${
+        className={`flex cursor-pointer select-none flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-6 py-6 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/50 ${
           dragOver
             ? "border-indigo-400 bg-indigo-500/10"
             : "border-zinc-800 bg-zinc-900/20 hover:border-indigo-500/40 hover:bg-indigo-500/[0.04]"
@@ -294,20 +295,20 @@ function CreateFolderModal({
         />
         {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
         <div className="mt-4 flex justify-end gap-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
           >
             Anulează
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="submit"
             disabled={busy || !name.trim()}
             className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
           >
             {busy ? "Se creează…" : "Creează"}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>

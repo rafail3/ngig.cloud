@@ -211,8 +211,9 @@ export function DashboardShell({
           </Sheet>
           {/* White-wordmark logo for dark mode, black-wordmark for light.
               shrink-0 keeps its aspect ratio on narrow screens.
-              Click → dashboard overview. */}
-          <Link href="/" aria-label="Overview" className="flex shrink-0 items-center">
+              Click → dashboard overview. select-none: it is chrome, not content,
+              so dragging across the header must not highlight it. */}
+          <Link href="/" aria-label="Overview" className="flex shrink-0 select-none items-center">
             <Image
               src="/ngig-logo.png"
               alt="ngig.cloud"
@@ -246,7 +247,7 @@ export function DashboardShell({
                 className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
               >
                 <Avatar username={user.username} />
-                <span className="hidden max-w-[120px] truncate font-medium sm:inline">
+                <span className="hidden max-w-[120px] select-none truncate font-medium sm:inline">
                   {user.username}
                 </span>
                 <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />
@@ -257,7 +258,9 @@ export function DashboardShell({
               <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3.5">
                 <Avatar username={user.username} className="h-9 w-9 text-sm" />
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-zinc-100">
+                  {/* Name is a label; the email below stays selectable so it can
+                      still be copied. */}
+                  <p className="flex select-none items-center gap-1.5 truncate text-sm font-semibold text-zinc-100">
                     {user.username}
                     <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
                   </p>

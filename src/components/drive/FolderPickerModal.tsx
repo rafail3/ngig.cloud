@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Home, Folder, X } from "lucide-react";
@@ -71,7 +72,7 @@ export function FolderPickerModal({
     return folders
       .filter((f) => f.parent_id === parent && !excluded.has(f.id))
       .flatMap((f) => [
-        <button
+        <Button variant="unstyled"
           key={f.id}
           type="button"
           onClick={() => pick(f.id)}
@@ -81,7 +82,7 @@ export function FolderPickerModal({
         >
           <Folder className="h-4 w-4 shrink-0 text-indigo-400" />
           <span className="truncate">{f.name}</span>
-        </button>,
+        </Button>,
         ...renderLevel(f.id, depth + 1),
       ]);
   }
@@ -95,19 +96,19 @@ export function FolderPickerModal({
         <h3 className="min-w-0 truncate text-base font-semibold text-zinc-100">
           {title}
         </h3>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onClose}
           aria-label="Închide"
           className="rounded p-1 text-zinc-400 transition hover:text-zinc-100"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       <p className="px-4 pt-3 text-xs text-zinc-500">Alege destinația:</p>
       <div className="mt-1 flex-1 overflow-auto py-1">
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => pick(null)}
           disabled={busy}
@@ -115,7 +116,7 @@ export function FolderPickerModal({
         >
           <Home className="h-4 w-4 shrink-0 text-indigo-400" />
           Acasă (rădăcină)
-        </button>
+        </Button>
         {folders === null ? (
           <p className="px-4 py-3 text-sm text-zinc-500">Se încarcă…</p>
         ) : (

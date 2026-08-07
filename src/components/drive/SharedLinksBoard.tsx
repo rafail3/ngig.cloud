@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import {
   Link2,
@@ -183,7 +184,7 @@ export function SharedLinksBoard() {
               </div>
 
               {/* Revoke lives apart from the safe actions */}
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => revoke(row)}
                 disabled={revoking === row.id}
@@ -196,7 +197,7 @@ export function SharedLinksBoard() {
                 ) : (
                   <Trash2 className="h-4 w-4" />
                 )}
-              </button>
+              </Button>
             </div>
 
             {/* Link + copy/open */}
@@ -204,7 +205,7 @@ export function SharedLinksBoard() {
               <code className="min-w-0 flex-1 truncate rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 font-mono text-xs text-zinc-400">
                 {row.absoluteUrl}
               </code>
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => copy(row)}
                 aria-label="Copiază linkul"
@@ -219,7 +220,7 @@ export function SharedLinksBoard() {
                 <span className="hidden sm:inline">
                   {copiedId === row.id ? "Copiat" : "Copiază"}
                 </span>
-              </button>
+              </Button>
               <a
                 href={row.absoluteUrl}
                 target="_blank"

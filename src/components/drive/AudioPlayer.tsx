@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useRef, useState } from "react";
 import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { SpeedMenu } from "./SpeedMenu";
@@ -84,14 +85,14 @@ export function AudioPlayer({ url }: { url: string }) {
       </div>
 
       <div className="relative mt-3 flex items-center gap-2.5">
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={toggle}
           aria-label={playing ? "Pauză" : "Redă"}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-400"
         >
           {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
-        </button>
+        </Button>
         <span className="text-xs tabular-nums text-zinc-200">
           {fmt(cur)} / {fmt(dur)}
         </span>
@@ -103,7 +104,7 @@ export function AudioPlayer({ url }: { url: string }) {
               if (audioRef.current) audioRef.current.playbackRate = r;
             }}
           />
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => {
               const a = audioRef.current;
@@ -115,7 +116,7 @@ export function AudioPlayer({ url }: { url: string }) {
             className="rounded p-1 text-zinc-200 transition hover:text-zinc-50"
           >
             {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

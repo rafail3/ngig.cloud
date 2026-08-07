@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { revalidateDrive } from "@/components/drive/useDriveData";
@@ -289,14 +290,14 @@ export function SelectionBar() {
             className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4"
           >
             <div className="pointer-events-auto flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-indigo-500/40 bg-zinc-900/95 px-4 py-2.5 shadow-2xl shadow-black/40 backdrop-blur">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={clear}
                 aria-label="Anulează selecția"
                 className="rounded-md p-1 text-zinc-300 transition hover:bg-zinc-50/10 hover:text-zinc-50"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
               <span className="text-sm font-medium text-zinc-100">
                 {count} {count === 1 ? "selectat" : "selectate"}
               </span>
@@ -304,7 +305,7 @@ export function SelectionBar() {
                   "deselect all" once everything is already selected, so the
                   control never becomes a no-op. */}
               {total > 1 && (
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={allSelected ? clear : selectAll}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-2.5 py-1 text-xs font-medium text-zinc-200 transition hover:border-indigo-400/60 hover:bg-indigo-500/10 hover:text-indigo-200"
@@ -315,7 +316,7 @@ export function SelectionBar() {
                     <CheckSquare className="h-3.5 w-3.5" />
                   )}
                   {allSelected ? "Deselectează tot" : `Selectează tot (${total})`}
-                </button>
+                </Button>
               )}
               <div className="flex flex-wrap items-center gap-1.5">
                 {actions.map((a) => (
@@ -418,22 +419,22 @@ export function SelectionBar() {
               )}
             </p>
             <div className="mt-5 flex justify-end gap-2">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => setConfirmDel(false)}
                 disabled={busy}
                 className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-60"
               >
                 Anulează
-              </button>
-              <button
+              </Button>
+              <Button variant="unstyled"
                 type="button"
                 onClick={bulkDelete}
                 disabled={busy}
                 className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-60"
               >
                 {busy ? "Se șterge…" : "Șterge"}
-              </button>
+              </Button>
             </div>
           </ModalShell>
         )}
@@ -445,7 +446,7 @@ export function SelectionBar() {
 function BarButton({ action, disabled }: { action: BarAction; disabled?: boolean }) {
   const { icon: Icon, label, onClick, danger } = action;
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       disabled={disabled}
@@ -461,6 +462,6 @@ function BarButton({ action, disabled }: { action: BarAction; disabled?: boolean
     >
       <Icon className="h-4 w-4" />
       <span className="hidden sm:inline">{label}</span>
-    </button>
+    </Button>
   );
 }

@@ -53,7 +53,9 @@ export function ActionMenu({
         </DropdownMenuTrigger>
       </span>
 
-      <DropdownMenuContent align="end" className="w-52" {...menu.contentProps}>
+      {/* Portalled out of the row, so it has to say for itself that a click in
+          here is not a click away from the selection. */}
+      <DropdownMenuContent align="end" className="w-52" data-keep-selection {...menu.contentProps}>
         <DropdownMenuGroup>
           {actions.map((a) => (
             <DropdownMenuItem

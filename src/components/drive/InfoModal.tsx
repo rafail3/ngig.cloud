@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { ModalShell } from "./anim";
 
@@ -29,14 +30,14 @@ export function InfoModal({
         <h3 className="min-w-0 break-all text-base font-semibold text-zinc-100">
           {title}
         </h3>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onClose}
           aria-label="Închide"
           className="shrink-0 rounded p-1 text-zinc-400 transition hover:text-zinc-100"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
       <dl className="flex flex-col gap-2">
         {rows.map((r) => (

@@ -82,6 +82,9 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
           align={state?.align === "right" ? "end" : "start"}
           sideOffset={2}
           className="w-52"
+          // Portalled to the body, so it has to say for itself that a click in
+          // here is not a click away from the selection.
+          data-keep-selection
           // Opened by pointer every time (it is a right-click), so returning
           // focus to an invisible anchor would only paint a ring on nothing.
           onCloseAutoFocus={(e) => e.preventDefault()}

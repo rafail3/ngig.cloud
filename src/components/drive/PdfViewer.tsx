@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import {
@@ -160,7 +161,7 @@ export function PdfViewer({
       {/* Toolbar */}
       <div className="flex shrink-0 flex-wrap items-center justify-center gap-1.5 border-b border-zinc-800 bg-zinc-900/80 px-2 py-2 backdrop-blur sm:justify-between">
         <div className="flex items-center gap-1">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => goToPage(Math.max(1, page - 1))}
             disabled={!ready || page <= 1}
@@ -168,8 +169,8 @@ export function PdfViewer({
             className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-40"
           >
             <ChevronUp className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={() => goToPage(Math.min(numPages, page + 1))}
             disabled={!ready || page >= numPages}
@@ -177,14 +178,14 @@ export function PdfViewer({
             className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-40"
           >
             <ChevronDown className="h-4 w-4" />
-          </button>
+          </Button>
           <span className="ml-1 select-none text-xs tabular-nums text-zinc-400">
             {ready ? `${page} / ${numPages}` : "—"}
           </span>
         </div>
 
         <div className="flex items-center gap-1">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => zoom(-1)}
             disabled={!ready || scale <= MIN_SCALE}
@@ -192,11 +193,11 @@ export function PdfViewer({
             className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-40"
           >
             <ZoomOut className="h-4 w-4" />
-          </button>
+          </Button>
           <span className="w-12 select-none text-center text-xs tabular-nums text-zinc-400">
             {Math.round(scale * 100)}%
           </span>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => zoom(1)}
             disabled={!ready || scale >= MAX_SCALE}
@@ -204,8 +205,8 @@ export function PdfViewer({
             className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-40"
           >
             <ZoomIn className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={() => setFitWidth(true)}
             disabled={!ready}
@@ -218,11 +219,11 @@ export function PdfViewer({
             }`}
           >
             <Maximize2 className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <div className="flex items-center gap-1">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={print}
             disabled={!ready || printing}
@@ -235,8 +236,8 @@ export function PdfViewer({
             ) : (
               <Printer className="h-4 w-4" />
             )}
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={onDownload}
             aria-label="Descarcă"
@@ -244,7 +245,7 @@ export function PdfViewer({
             className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800"
           >
             <Download className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
 import { SpeedMenu } from "./SpeedMenu";
@@ -145,10 +146,10 @@ export function VideoPlayer({
           </div>
 
           <div className="mt-1.5 flex items-center gap-3 text-zinc-100">
-            <button type="button" onClick={toggle} aria-label={playing ? "Pauză" : "Redă"}>
+            <Button variant="unstyled" type="button" onClick={toggle} aria-label={playing ? "Pauză" : "Redă"}>
               {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled"
               type="button"
               onClick={() => {
                 const v = videoRef.current;
@@ -159,7 +160,7 @@ export function VideoPlayer({
               aria-label={muted ? "Activează sunet" : "Mut"}
             >
               {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-            </button>
+            </Button>
             <span className="text-xs tabular-nums text-zinc-200">
               {fmt(cur)} / {fmt(dur)}
             </span>
@@ -172,9 +173,9 @@ export function VideoPlayer({
                   if (videoRef.current) videoRef.current.playbackRate = r;
                 }}
               />
-              <button type="button" onClick={fullscreen} aria-label="Ecran complet">
+              <Button variant="unstyled" type="button" onClick={fullscreen} aria-label="Ecran complet">
                 <Maximize className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>

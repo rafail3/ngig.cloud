@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { LayoutGrid, List } from "lucide-react";
 import { useViewMode, setViewMode, type ViewMode } from "./useViewMode";
 
@@ -44,7 +45,7 @@ function Option({
 }) {
   const active = current === mode;
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={() => setViewMode(mode)}
       // aria-pressed rather than a title alone: assistive tech needs the state,
@@ -59,6 +60,6 @@ function Option({
       }`}
     >
       {icon}
-    </button>
+    </Button>
   );
 }
