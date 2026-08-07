@@ -1,20 +1,20 @@
 "use client";
 
 import {
-  Fragment,
   createContext,
   useCallback,
   useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
   useState,
   type ComponentType,
   type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
-import { motion } from "motion/react";
-import { menuMotion } from "./anim";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export type MenuAction = {
   icon: ComponentType<{ className?: string }>;
@@ -24,9 +24,13 @@ export type MenuAction = {
 };
 
 // `align: "left"` opens the menu to the right of the anchor x (used for
-// right-click at the cursor); `"right"` puts the menu's right edge at x (used for
-// the kebab button sitting at a row's right edge).
-type OpenMenu = (actions: MenuAction[], x: number, y: number, align?: "left" | "right") => void;
+// right-click at the cursor); `"right"` puts the menu's right edge at x.
+type OpenMenu = (
+  actions: MenuAction[],
+  x: number,
+  y: number,
+  align?: "left" | "right",
+) => void;
 
 const Ctx = createContext<OpenMenu | null>(null);
 
@@ -36,114 +40,66 @@ export function useContextMenu(): OpenMenu {
   return open;
 }
 
-const PAD = 8;
 type State = { actions: MenuAction[]; x: number; y: number; align: "left" | "right" };
 
-/* A single app-wide context menu. Rows call `open(...)` from their right-click
-   handler (and the kebab button), so the same styled menu shows for every file
-   and folder, while right-clicking anywhere else falls through to the browser's
-   native menu. Closes on outside click, another right-click, scroll, or Escape. */
+/* One menu for the whole drive, opened at the cursor by any row's right-click.
+
+   The imperative API is kept — the rows ask for a menu at a point, and asking a
+   provider is far less invasive than wrapping every row in a trigger — but the
+   panel underneath is now a real Radix menu instead of a portal positioned by
+   hand. What the hand-written one did not have: arrow keys, typeahead, Escape,
+   focus returning where it came from, and a panel that flips itself when it
+   would open past the edge of the screen (which used to be a manual clamp).
+
+   Radix positions relative to a trigger, so the trigger is an empty element
+   parked at the cursor: it anchors the menu without being visible or clickable. */
 export function ContextMenuProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State | null>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number; origin: string } | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const open = useCallback<OpenMenu>((actions, x, y, align = "left") => {
-    setCoords(null);
     setState({ actions, x, y, align });
   }, []);
-  const close = useCallback(() => setState(null), []);
-
-  // Measure the menu, then clamp it inside the viewport (flipping up when there
-  // isn't room below) so it never spills off-screen.
-  useLayoutEffect(() => {
-    if (!state || !menuRef.current) return;
-    const w = menuRef.current.offsetWidth;
-    const h = menuRef.current.offsetHeight;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    let left = state.align === "right" ? state.x - w : state.x;
-    left = Math.max(PAD, Math.min(left, vw - PAD - w));
-
-    let flippedUp = false;
-    let top = state.y;
-    if (top + h > vh - PAD) {
-      top = state.y - h;
-      flippedUp = true;
-      if (top < PAD) top = Math.max(PAD, vh - PAD - h);
-    }
-    setCoords({ top, left, origin: `${flippedUp ? "bottom" : "top"} ${state.align}` });
-  }, [state]);
-
-  // Dismiss on any interaction outside the menu. The contextmenu listener does
-  // NOT preventDefault, so a right-click on another row reopens via that row's
-  // handler, and a right-click on empty space shows the native menu.
-  useEffect(() => {
-    if (!state) return;
-    const outside = (e: Event) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) close();
-    };
-    const onScroll = () => close();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
-    document.addEventListener("pointerdown", outside, true);
-    document.addEventListener("contextmenu", outside, true);
-    window.addEventListener("scroll", onScroll, true);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", outside, true);
-      document.removeEventListener("contextmenu", outside, true);
-      window.removeEventListener("scroll", onScroll, true);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [state, close]);
 
   return (
     <Ctx.Provider value={open}>
       {children}
-      {state &&
-        createPortal(
-          <div
-            ref={menuRef}
-            data-keep-selection
-            className="fixed z-[71]"
-            style={{
-              top: coords ? coords.top : state.y,
-              left: coords ? coords.left : state.x,
-              visibility: coords ? "visible" : "hidden",
-            }}
-          >
-            <motion.div
-              {...menuMotion}
-              style={{ transformOrigin: coords?.origin ?? "top left" }}
-              className="w-48 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 py-1 shadow-2xl"
-            >
-              {state.actions.map((a, i) => (
-                <Fragment key={a.label}>
-                  {a.danger && i > 0 && !state.actions[i - 1].danger && (
-                    <div className="my-1 h-px bg-zinc-800" />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      close();
-                      a.onSelect();
-                    }}
-                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition ${
-                      a.danger
-                        ? "text-red-400 hover:bg-red-950/40"
-                        : "text-zinc-200 hover:bg-zinc-800/70"
-                    }`}
-                  >
-                    <a.icon className="h-4 w-4 shrink-0" />
-                    {a.label}
-                  </button>
-                </Fragment>
-              ))}
-            </motion.div>
-          </div>,
-          document.body,
-        )}
+
+      <DropdownMenu
+        open={state !== null}
+        onOpenChange={(next) => {
+          if (!next) setState(null);
+        }}
+      >
+        <DropdownMenuTrigger asChild>
+          <span
+            aria-hidden
+            className="pointer-events-none fixed"
+            style={{ left: state?.x ?? 0, top: state?.y ?? 0, width: 0, height: 0 }}
+          />
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent
+          align={state?.align === "right" ? "end" : "start"}
+          sideOffset={2}
+          className="w-52"
+          // Opened by pointer every time (it is a right-click), so returning
+          // focus to an invisible anchor would only paint a ring on nothing.
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
+          <DropdownMenuGroup>
+            {(state?.actions ?? []).map((a) => (
+              <DropdownMenuItem
+                key={a.label}
+                variant={a.danger ? "destructive" : "default"}
+                onSelect={a.onSelect}
+              >
+                <a.icon className="size-4" />
+                {a.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </Ctx.Provider>
   );
 }
