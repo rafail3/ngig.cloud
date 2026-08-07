@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.48.0](https://github.com/rafail3/ngig.cloud/compare/v2.47.0...v2.48.0) (2026-08-07)
+
+
+### Features
+
+* **brand:** install manifest, icons, robots and sitemap ([d29d167](https://github.com/rafail3/ngig.cloud/commit/d29d167c3aeae50fe28c8f9c695899e430ee33c9))
+* **brand:** official lockup everywhere, and real preview cards for share links ([85bc7be](https://github.com/rafail3/ngig.cloud/commit/85bc7be9d12e22a26c707b077b9081dc98f77a85))
+* **brand:** official lockup, preview cards, and the metadata layer ([9438da0](https://github.com/rafail3/ngig.cloud/commit/9438da0af7b19532e0f3fd9eb0b1a4b79bcb1d66))
+
 ## [2.47.0](https://github.com/rafail3/ngig.cloud/compare/v2.46.0...v2.47.0) (2026-08-07)
 
 
