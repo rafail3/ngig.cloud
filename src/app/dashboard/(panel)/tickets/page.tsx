@@ -4,6 +4,7 @@ import { listAllTickets } from "@/server/tickets/service";
 import { TicketsTable } from "@/components/dashboard/TicketsTable";
 import { SectionGate } from "@/components/dashboard/SectionGate";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
+import { FlashToast } from "@/components/common/FlashToast";
 
 export const metadata = { title: "Dashboard — Suport" };
 
@@ -31,6 +32,12 @@ export default function TicketsPage() {
           Ticketele de suport ale utilizatorilor — răspunde, închide sau redeschide.
         </p>
       </header>
+
+      {/* Confirms a deletion performed on the (now gone) ticket page. Reads
+          useSearchParams, so it needs a boundary of its own. */}
+      <Suspense fallback={null}>
+        <FlashToast param="sters" message="Ticket șters." />
+      </Suspense>
 
       <Suspense fallback={<ListSkeleton />}>
         <SectionGate section="tickets">

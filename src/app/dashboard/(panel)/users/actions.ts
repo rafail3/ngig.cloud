@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
   requireSection,
   requireSuperAdmin,
@@ -62,10 +63,24 @@ export async function blockUserAction(
 // echo back the exact username — the same lock the self-service flow uses.
 // Deleting yourself from here is refused: that belongs on your own profile,
 // where re-authentication happens.
+/* Deleting an account navigates away from the page it was deleted on, and the
+   navigation has to be the SERVER's, not the client's.
+
+   The page this runs from is `/users/[id]`, which calls `notFound()` when the
+   user does not exist. Revalidating and then pushing from the client raced
+   with that: the action's revalidation made the router re-render the route it
+   was still on, that render found no user and threw a 404, and the 404 landed
+   on top of the push — so you ended up at /users looking at a not-found page
+   that a manual reload then fixed.
+
+   `redirect()` removes the race by construction: it terminates the segment and
+   answers the action with a navigation, so the doomed page is never rendered
+   again. It must sit OUTSIDE the try — it works by throwing, and the catch
+   below would swallow it and report it as a deletion failure. */
 export async function deleteUserAction(input: {
   id: string;
   username: string;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+}): Promise<{ ok: false; error: string }> {
   let adminId: string;
   try {
     adminId = await requireSuperAdmin();
@@ -80,11 +95,16 @@ export async function deleteUserAction(input: {
   try {
     // The confirmation is validated inside, before the wipe.
     await deleteUserAccount(input.id, input.username, adminId);
-    revalidatePath("/dashboard/users");
-    return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Eroare la ștergere." };
   }
+
+  revalidatePath("/dashboard/users");
+  // Prefix-free, like every other dashboard path — the proxy rewrites it onto
+  // the /dashboard tree. The name rides along so the list can confirm what was
+  // deleted; the client can no longer toast it itself, since a redirect means
+  // nothing after the await ever runs.
+  redirect(`/users?sters=${encodeURIComponent(input.username)}`);
 }
 
 export async function unblockUserAction(formData: FormData) {

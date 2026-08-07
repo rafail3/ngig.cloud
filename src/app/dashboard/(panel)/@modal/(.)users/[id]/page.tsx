@@ -1,6 +1,7 @@
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { UserX } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { MissingRecord } from "@/components/common/MissingRecord";
 import { getUser, getManagerSections } from "@/server/admin/users";
 import { UserDetailBody } from "@/components/dashboard/UserDetailBody";
 import { UserDetailModal } from "@/components/dashboard/UserDetailModal";
@@ -17,7 +18,19 @@ async function InterceptedUserDetailContent({
 }) {
   const { id } = await params;
   const user = await getUser(id);
-  if (!user) notFound();
+  // Same reasoning as the full page: a deleted account is a normal way to land
+  // here empty-handed, and a 404 inside an overlay is a dead end.
+  if (!user) {
+    return (
+      <MissingRecord
+        icon={UserX}
+        title="Utilizatorul nu există"
+        description="Contul a fost șters între timp sau linkul nu mai e valabil."
+        backHref="/users"
+        backLabel="Vezi toți userii"
+      />
+    );
+  }
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();

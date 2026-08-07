@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireSuperAdmin } from "@/server/admin/guard";
 import {
   replyAsAdmin,
@@ -71,14 +72,23 @@ export async function reopenTicketAction(id: string): Promise<SimpleResult> {
   }
 }
 
-export async function deleteTicketAction(id: string): Promise<SimpleResult> {
+/* Same shape as deleting a user, and the same reason for it: this runs from
+   `/tickets/[id]`, which calls `notFound()` once the ticket is gone. Letting
+   the client navigate afterwards raced that — the revalidation re-rendered the
+   page we were still on, it 404'd, and the 404 landed on top of the push.
+   Redirecting from here ends the segment instead, so it never re-renders.
+
+   Outside the try: `redirect` works by throwing, and the catch would report it
+   as a failed deletion. */
+export async function deleteTicketAction(id: string): Promise<{ ok: false; error: string }> {
   try {
     // History deletion is reserved for the super admin.
     await requireSuperAdmin();
     await deleteTicket(id);
-    revalidatePath("/dashboard/tickets");
-    return { ok: true };
   } catch (e) {
     return fail(e);
   }
+
+  revalidatePath("/dashboard/tickets");
+  redirect("/tickets?sters=1");
 }

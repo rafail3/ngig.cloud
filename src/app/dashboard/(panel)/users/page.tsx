@@ -4,6 +4,7 @@ import { listUsers } from "@/server/admin/users";
 import { UsersTable } from "@/components/dashboard/UsersTable";
 import { SectionGate } from "@/components/dashboard/SectionGate";
 import { ListSkeleton } from "@/components/drive/ListSkeleton";
+import { FlashToast } from "@/components/common/FlashToast";
 
 export const metadata = { title: "Dashboard — Useri" };
 
@@ -31,6 +32,12 @@ export default function UsersPage() {
           Toți userii platformei — activitate, spațiu, locație și acțiuni.
         </p>
       </header>
+
+      {/* Confirms a deletion performed on the (now gone) detail page. It reads
+          useSearchParams, so it needs a boundary of its own. */}
+      <Suspense fallback={null}>
+        <FlashToast param="sters" message="Contul „{value}” a fost șters." />
+      </Suspense>
 
       <Suspense fallback={<ListSkeleton />}>
         <SectionGate section="users">
