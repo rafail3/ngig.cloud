@@ -225,7 +225,9 @@ export function AppShell({
               <DrawerStorage />
             </SheetContent>
           </Sheet>
-          <Link href="/" aria-label="Acasă" className="flex shrink-0 items-center">
+          {/* select-none: the wordmark is chrome, not content — dragging across
+              the header should never leave it highlighted. */}
+          <Link href="/" aria-label="Acasă" className="flex shrink-0 select-none items-center">
             <Image
               src="/ngig-logo.png"
               alt="ngig.cloud"
@@ -256,7 +258,7 @@ export function AppShell({
                 className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
               >
                 <Avatar username={user.username} />
-                <span className="hidden max-w-[140px] truncate font-medium sm:inline">
+                <span className="hidden max-w-[140px] select-none truncate font-medium sm:inline">
                   {user.username}
                 </span>
               {/* Rotates from the menu's own state rather than from a boolean we
@@ -269,7 +271,9 @@ export function AppShell({
               <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3.5">
                 <Avatar username={user.username} className="h-9 w-9 text-sm" />
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-zinc-100">
+                  {/* Name is a label; the email below stays selectable so it can
+                      still be copied. */}
+                  <p className="flex select-none items-center gap-1.5 truncate text-sm font-semibold text-zinc-100">
                     {user.username}
                     {user.role === "admin" && (
                       <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-300">
