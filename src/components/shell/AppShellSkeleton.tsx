@@ -42,7 +42,7 @@ export function AppShellSkeleton() {
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 border-zinc-200/70 bg-zinc-950 dark:border-zinc-800/60 dark:bg-zinc-900/60 md:rounded-tl-2xl md:border-l md:border-t">
+        <main className="min-w-0 flex-1 border-zinc-200/70 bg-zinc-950 dark:border-zinc-800/60 dark:bg-zinc-900/30 md:rounded-tl-2xl md:border-l md:border-t">
           <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
             <Skeleton className="h-8 w-44 rounded-lg bg-zinc-900" />
             <Skeleton className="mt-3 h-4 w-80 max-w-full rounded bg-zinc-900/70" />

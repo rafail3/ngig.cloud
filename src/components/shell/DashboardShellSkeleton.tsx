@@ -41,7 +41,7 @@ export function DashboardShellSkeleton() {
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 border-zinc-200/70 bg-zinc-950 dark:border-zinc-800/60 dark:bg-zinc-900/60 md:rounded-tl-2xl md:border-l md:border-t">
+        <main className="min-w-0 flex-1 border-zinc-200/70 bg-zinc-950 dark:border-zinc-800/60 dark:bg-zinc-900/30 md:rounded-tl-2xl md:border-l md:border-t">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
             <div>
               <Skeleton className="h-7 w-40 rounded-lg bg-zinc-900" />

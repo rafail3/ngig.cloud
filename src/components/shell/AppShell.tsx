@@ -431,7 +431,7 @@ export function AppShell({
           change are what make this read as an application frame rather than a
           web page with a menu beside it. Only the corner meeting the sidebar is
           rounded, and only where a sidebar exists. */}
-      <main className="min-w-0 flex-1 border-zinc-200/70 bg-zinc-950 dark:border-zinc-800/60 dark:bg-zinc-900/60 md:rounded-tl-2xl md:border-l md:border-t">
+      <main className="min-w-0 flex-1 border-zinc-200/70 bg-zinc-950 dark:border-zinc-800/60 dark:bg-zinc-900/30 md:rounded-tl-2xl md:border-l md:border-t">
         {children}
       </main>
       </div>
