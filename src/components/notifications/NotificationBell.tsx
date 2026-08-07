@@ -44,14 +44,20 @@ export function NotificationBell() {
   // The panel hangs off the whole navbar action cluster, not off the bell: the
   // bell sits to the left of the theme toggle and the user menu, so anchoring
   // to it would leave the panel floating mid-header instead of tucked against
-  // the edge of the page, where it has always been. Falls back to the bell if
-  // the marker is ever missing.
-  const anchor = useRef<HTMLElement | null>(null);
-  const takeAnchor = (el: HTMLButtonElement | null) => {
-    anchor.current = el
-      ? (el.closest<HTMLElement>("[data-navbar-actions]") ?? el)
-      : null;
-  };
+  // the edge of the page, where it has always been.
+  //
+  // A measurable rather than a ref to the node: a ref is still empty when the
+  // anchor is first read, and an anchor that measures nothing puts the panel in
+  // the top-left corner. This resolves the cluster at measure time, every time,
+  // and falls back to the bell's own header if the marker is ever missing.
+  const anchor = useRef({
+    getBoundingClientRect: () => {
+      const el =
+        document.querySelector("[data-navbar-actions]") ??
+        document.querySelector("header");
+      return (el ?? document.body).getBoundingClientRect();
+    },
+  });
 
   const { data, mutate } = useSWR("notifications", () => getNotificationsAction(), {
     revalidateOnFocus: true,
@@ -188,7 +194,6 @@ export function NotificationBell() {
       <PopoverAnchor virtualRef={anchor} />
       <PopoverTrigger asChild {...menu.triggerProps}>
         <Button
-          ref={takeAnchor}
           variant="unstyled"
           type="button"
           aria-label={unread > 0 ? `Notificări (${unread} necitite)` : "Notificări"}
