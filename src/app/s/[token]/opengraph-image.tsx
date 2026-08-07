@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { getShareSummary } from "@/server/share/service";
 import { shareKindLabel } from "@/lib/share";
 import { formatBytes } from "@/lib/format";
+import { CHROME_DARK, ACCENT } from "@/lib/brand";
 
 export const alt = "Fișier partajat prin ngig.cloud";
 export const size = { width: 1200, height: 630 };
@@ -70,7 +71,7 @@ export default async function Image({
           flexDirection: "column",
           justifyContent: "space-between",
           padding: 72,
-          backgroundColor: "#09090b",
+          backgroundColor: CHROME_DARK,
           // The aurora from the share page itself, so the preview and the page
           // it opens are recognisably the same place. Applied as layers on the
           // container: Satori has no blur filter, and a rounded div with a
@@ -88,7 +89,7 @@ export default async function Image({
           <img src={markSrc} width={72} height={72} alt="" />
           <div style={{ display: "flex", fontSize: 42, fontWeight: 700, letterSpacing: -1 }}>
             <span style={{ color: "#fafafa" }}>ngig</span>
-            <span style={{ color: "#60a5fa" }}>.cloud</span>
+            <span style={{ color: ACCENT }}>.cloud</span>
           </div>
         </div>
 
@@ -100,7 +101,7 @@ export default async function Image({
               fontSize: 26,
               fontWeight: 700,
               letterSpacing: 4,
-              color: "#60a5fa",
+              color: ACCENT,
             }}
           >
             {kicker}

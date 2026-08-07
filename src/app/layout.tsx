@@ -1,6 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import {
+  SITE_NAME,
+  SITE_DESCRIPTION,
+  SITE_URL,
+  CHROME_DARK,
+  CHROME_LIGHT,
+} from "@/lib/brand";
 import { ThemeProvider, THEME_SCRIPT } from "@/components/theme/ThemeProvider";
 import { AppToaster } from "@/components/toast/AppToaster";
 
@@ -14,35 +21,44 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const DESCRIPTION =
-  "Cloudul tău privat — fișiere, foldere și partajări, rapid și sigur.";
-
 /* Site-wide metadata. The brand is written "ngig.cloud" everywhere now, as the
    mark and the wordmark say it — the old "ngig Cloud" spelling survived only
    here. The preview images are NOT listed: `opengraph-image.tsx` beside this
    file provides them, and naming an `images` array here would override that
    generated card with a flat logo. */
 export const metadata: Metadata = {
-  metadataBase: new URL("https://ngig.cloud"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "ngig.cloud",
-    template: "%s — ngig.cloud",
+    default: SITE_NAME,
+    template: `%s — ${SITE_NAME}`,
   },
-  description: DESCRIPTION,
-  applicationName: "ngig.cloud",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
   openGraph: {
     type: "website",
-    siteName: "ngig.cloud",
-    title: "ngig.cloud",
-    description: DESCRIPTION,
-    url: "https://ngig.cloud",
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
     locale: "ro_RO",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ngig.cloud",
-    description: DESCRIPTION,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
   },
+};
+
+/* The colour the OS paints around the page — the phone's status bar, the
+   desktop title bar of an installed window. Two entries, because the app
+   themes itself: without the media queries a light-mode user gets a black bar
+   above a white page. `viewport`, not `metadata`: that is where Next moved
+   themeColor, and leaving it in metadata makes it silently do nothing. */
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: CHROME_LIGHT },
+    { media: "(prefers-color-scheme: dark)", color: CHROME_DARK },
+  ],
 };
 
 export default function RootLayout({

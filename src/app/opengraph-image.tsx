@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { CHROME_DARK, ACCENT, SITE_DESCRIPTION } from "@/lib/brand";
 
 export const alt = "ngig.cloud — cloud privat, rapid și sigur";
 export const size = { width: 1200, height: 630 };
@@ -26,7 +27,7 @@ export default async function Image() {
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#09090b",
+          backgroundColor: CHROME_DARK,
           // The aurora as layers on the container itself, not as positioned
           // circles: Satori has no blur filter, and a rounded div with a radial
           // fill renders its own box edges, which showed up as hard rectangles
@@ -45,7 +46,7 @@ export default async function Image() {
             style={{ display: "flex", fontSize: 92, fontWeight: 700, letterSpacing: -3 }}
           >
             <span style={{ color: "#fafafa" }}>ngig</span>
-            <span style={{ color: "#60a5fa" }}>.cloud</span>
+            <span style={{ color: ACCENT }}>.cloud</span>
           </div>
         </div>
 
@@ -59,7 +60,7 @@ export default async function Image() {
             maxWidth: 820,
           }}
         >
-          Cloudul tău privat — fișiere, foldere și partajări, rapid și sigur.
+          {SITE_DESCRIPTION}
         </div>
       </div>
     ),
