@@ -111,12 +111,6 @@ export const listItem: Variants = {
   show: { opacity: 1, transition: { duration: 0.18, ease: "easeOut" } },
 };
 
-// Entrance pop for portal menus (kebab). Spread onto a motion element.
-export const menuMotion = {
-  initial: { opacity: 0, scale: 0.94, y: -4 },
-  animate: { opacity: 1, scale: 1, y: 0 },
-  transition: { type: "spring", stiffness: 500, damping: 34, mass: 0.6 } as Transition,
-};
 
 // Animated modal chrome: fading scrim + spring panel. Render as the root of a
 // modal that the parent mounts conditionally inside <AnimatePresence>.
