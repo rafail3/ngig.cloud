@@ -3,7 +3,6 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { TriangleAlert, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -13,7 +12,6 @@ import { deleteUserAction } from "@/app/dashboard/(panel)/users/actions";
 // Admin-side account deletion. Same lock as the self-service flow: the username
 // must be typed by hand, because this wipes someone else's files for good.
 export function DeleteUser({ id, username }: { id: string; username: string }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirm, setConfirm] = useState("");
   const [pending, startTransition] = useTransition();
@@ -24,15 +22,19 @@ export function DeleteUser({ id, username }: { id: string; username: string }) {
     setConfirm("");
   }
 
+  /* On success the action redirects, so nothing after the await runs — only a
+     REFUSAL comes back here. The confirmation toast is raised by the users list
+     when it lands (see the `?sters=` param), because this component is gone by
+     then. Navigating from the client instead is what produced the 404: the page
+     we are on 404s the moment the account is gone, and its re-render beat the
+     push. */
   function remove() {
     startTransition(async () => {
+      // Optional chaining is not paranoia: on success this call never resolves
+      // to a value — the redirect takes over — and reading `.error` off nothing
+      // would throw right where the user is being told it worked.
       const res = await deleteUserAction({ id, username: confirm });
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(`Contul „${username}” a fost șters.`);
-      router.push("/users");
+      if (res?.error) toast.error(res.error);
     });
   }
 

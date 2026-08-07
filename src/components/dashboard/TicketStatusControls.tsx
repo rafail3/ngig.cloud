@@ -42,15 +42,13 @@ export function TicketStatusControls({
     });
   }
 
+  // On success the action redirects, so only a refusal comes back here; the
+  // confirmation is raised by the list on arrival (the `?sters=` param).
   function remove() {
     startTransition(async () => {
+      // On success this never resolves to a value — the redirect takes over.
       const res = await deleteTicketAction(ticketId);
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success("Ticket șters.");
-      router.push("/tickets");
+      if (res?.error) toast.error(res.error);
     });
   }
 
