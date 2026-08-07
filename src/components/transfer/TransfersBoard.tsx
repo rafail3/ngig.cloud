@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -77,7 +78,7 @@ const STATUS_META: Record<
 // action band as Refuză/Acceptă, styled one step quieter than them.
 function ViewContentsButton({ onClick }: { onClick: () => void }) {
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       title="Vezi conținutul"
@@ -85,7 +86,7 @@ function ViewContentsButton({ onClick }: { onClick: () => void }) {
     >
       <FolderOpen className="h-4 w-4" />
       <span className="hidden lg:inline">Conținut</span>
-    </button>
+    </Button>
   );
 }
 
@@ -441,18 +442,18 @@ export function TransfersBoard() {
       {/* Sending starts here too, not only from a file's "Partajează" menu —
           you pick the files inside the modal instead. */}
       <div className="mb-4 flex justify-end">
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => setComposing(true)}
           className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500 sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Trimite fișiere
-        </button>
+        </Button>
       </div>
 
       <div className="mb-5 flex gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-1.5 shadow-sm">
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => setTab("received")}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -466,8 +467,8 @@ export function TransfersBoard() {
               {pendingCount}
             </span>
           )}
-        </button>
-        <button
+        </Button>
+        <Button variant="unstyled"
           type="button"
           onClick={() => setTab("sent")}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -476,7 +477,7 @@ export function TransfersBoard() {
         >
           <SendIcon className="h-4 w-4" />
           Trimise
-        </button>
+        </Button>
       </div>
 
       {tab === "received" ? (
@@ -521,7 +522,7 @@ export function TransfersBoard() {
                                 setViewing({ id: row.id, itemLabel: row.itemLabel })
                               }
                             />
-                            <button
+                            <Button variant="unstyled"
                               type="button"
                               onClick={() => decline(row)}
                               disabled={busyId === row.id}
@@ -529,8 +530,8 @@ export function TransfersBoard() {
                             >
                               <X className="h-4 w-4" />
                               Refuză
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="unstyled"
                               type="button"
                               onClick={() => setAccepting(row)}
                               disabled={busyId === row.id}
@@ -538,7 +539,7 @@ export function TransfersBoard() {
                             >
                               <Check className="h-4 w-4" />
                               Acceptă
-                            </button>
+                            </Button>
                           </>
                         )
                       }
@@ -710,14 +711,14 @@ function SentPendingCard({
         inProgress ? null : (
           <>
             <ViewContentsButton onClick={onViewContents} />
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={onCancel}
               disabled={busy}
               className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Anulează"}
-            </button>
+            </Button>
           </>
         )
       }

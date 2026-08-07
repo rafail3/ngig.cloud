@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState } from "react";
 import { updatePasswordAction } from "@/app/reset/update/actions";
 import type { ResetUpdateState } from "@/lib/email-state";
@@ -28,13 +29,13 @@ export function ResetUpdateForm() {
         <PasswordInput name="confirm" autoComplete="new-password" />
       </div>
 
-      <button
+      <Button variant="unstyled"
         type="submit"
         disabled={pending}
         className="mt-1 rounded-xl bg-indigo-500 hover:bg-indigo-400 px-4 py-2.5 text-base font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
       >
         {pending ? "Se salvează…" : "Setează parola nouă"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Info, HardDrive, BellRing } from "lucide-react";
@@ -53,7 +54,7 @@ function Row({
           <p className="text-sm font-medium text-zinc-100">{label}</p>
           <p className="mt-0.5 truncate text-sm text-zinc-500">{value}</p>
         </div>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onToggle}
           aria-expanded={open}
@@ -64,7 +65,7 @@ function Row({
           }`}
         >
           {open ? "Închide" : "Schimbă"}
-        </button>
+        </Button>
       </div>
       <AnimatePresence initial={false}>
         {open && (
@@ -235,18 +236,18 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
               </CurrentChip>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => submitCap(false)} disabled={capPending} className={saveCls}>
+              <Button variant="unstyled" type="button" onClick={() => submitCap(false)} disabled={capPending} className={saveCls}>
                 {capPending ? "Se salvează…" : "Salvează"}
-              </button>
+              </Button>
               {settings.selfMaxTotal != null && (
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={() => submitCap(true)}
                   disabled={capPending}
                   className="rounded-lg border border-zinc-800 px-3.5 py-1.5 text-sm text-zinc-300 transition hover:border-red-900/60 hover:text-red-200"
                 >
                   Resetează
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -320,18 +321,18 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => submitAlert(true)} disabled={alertPending} className={saveCls}>
+            <Button variant="unstyled" type="button" onClick={() => submitAlert(true)} disabled={alertPending} className={saveCls}>
               {alertPending ? "Se salvează…" : "Salvează alerta"}
-            </button>
+            </Button>
             {alert != null && (
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => submitAlert(false)}
                 disabled={alertPending}
                 className="rounded-lg border border-zinc-800 px-3.5 py-1.5 text-sm text-zinc-300 transition hover:border-red-900/60 hover:text-red-200"
               >
                 Dezactivează
-              </button>
+              </Button>
             )}
           </div>
         </div>

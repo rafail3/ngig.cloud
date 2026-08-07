@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
@@ -61,14 +62,14 @@ export function InviteRequestForm() {
 
       <Turnstile resetSignal={state} onStatus={setBotReady} />
 
-      <button
+      <Button variant="unstyled"
         type="submit"
         disabled={busy}
         className="relative mt-1 rounded-xl bg-indigo-500 hover:bg-indigo-400 px-4 py-2.5 text-base font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
       >
         {pending || queued ? "Se trimite…" : "Trimite cererea"}
         {busy && <Spinner className="absolute right-4 top-1/2 -translate-y-1/2" />}
-      </button>
+      </Button>
     </form>
   );
 }

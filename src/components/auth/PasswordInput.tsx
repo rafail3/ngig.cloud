@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 type Props = {
@@ -45,7 +46,7 @@ export function PasswordInput({
         placeholder={placeholder}
         className={`${className ?? defaultInputCls} pr-12`}
       />
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => setShow((s) => !s)}
         aria-label={show ? "Ascunde parola" : "Arată parola"}
@@ -64,7 +65,7 @@ export function PasswordInput({
             <circle cx="12" cy="12" r="3" />
           </svg>
         )}
-      </button>
+      </Button>
     </div>
   );
 }

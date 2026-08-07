@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import {
   Send,
@@ -113,13 +114,13 @@ export function SendTransferPanel({
             : "Fiecare trebuie să accepte cererea înainte ca fișierele să ajungă la el."}{" "}
           Vezi statusul în „Transferuri”.
         </p>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onClose}
           className="mt-1 rounded-lg border border-zinc-800 px-4 py-2 text-sm text-zinc-200 transition hover:border-zinc-700 hover:text-zinc-50"
         >
           Închide
-        </button>
+        </Button>
       </div>
     );
   }
@@ -145,7 +146,7 @@ export function SendTransferPanel({
                       <FileIcon className="h-3 w-3 shrink-0 text-zinc-500" aria-hidden />
                     )}
                     <span className="truncate">{p.name}</span>
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() =>
                         setPicked((prev) =>
@@ -156,19 +157,19 @@ export function SendTransferPanel({
                       className="rounded-full p-0.5 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-100"
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>
             )}
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => setPickerOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-zinc-700 bg-zinc-950/40 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-indigo-400/50 hover:bg-indigo-500/[0.06] hover:text-indigo-300"
             >
               <Plus className="h-4 w-4" />
               {picked.length > 0 ? "Modifică selecția" : "Alege fișiere sau foldere"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -184,7 +185,7 @@ export function SendTransferPanel({
             Mod
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => setMode("copy")}
               className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
@@ -195,8 +196,8 @@ export function SendTransferPanel({
             >
               <CopyIcon className="h-4 w-4" />
               Copie
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled"
               type="button"
               onClick={() => !multiple && setMode("move")}
               disabled={multiple}
@@ -209,7 +210,7 @@ export function SendTransferPanel({
             >
               <ArrowRightLeft className="h-4 w-4" />
               Mută definitiv
-            </button>
+            </Button>
           </div>
           <p className="mt-2 text-xs text-zinc-500">
             {multiple
@@ -222,14 +223,14 @@ export function SendTransferPanel({
       </div>
 
       <div className="mt-5 flex justify-end gap-2 border-t border-zinc-800 pt-4">
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onClose}
           className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
         >
           Anulează
-        </button>
-        <button
+        </Button>
+        <Button variant="unstyled"
           type="button"
           onClick={send}
           disabled={busy || recipients.length === 0 || effectiveTargets.length === 0}
@@ -237,7 +238,7 @@ export function SendTransferPanel({
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {busy ? "Se trimite…" : "Trimite"}
-        </button>
+        </Button>
       </div>
 
       {pickerOpen && (

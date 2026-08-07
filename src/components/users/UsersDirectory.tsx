@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Loader2, UsersRound } from "lucide-react";
@@ -106,7 +107,7 @@ export function UsersDirectory({ initialQuery }: { initialQuery: string }) {
 
           {hasMore && (
             <div className="mt-5 flex justify-center">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={loadMore}
                 disabled={loadingMore}
@@ -114,7 +115,7 @@ export function UsersDirectory({ initialQuery }: { initialQuery: string }) {
               >
                 {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loadingMore ? "Se încarcă…" : `Încarcă încă ${DIRECTORY_PAGE_SIZE}`}
-              </button>
+              </Button>
             </div>
           )}
         </>
@@ -139,13 +140,13 @@ function Empty({ query, onClear }: { query: string; onClear: () => void }) {
           <p className="mt-1 text-sm text-zinc-500">
             Verifică scrierea username-ului sau caută după o parte din el.
           </p>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClear}
             className="mt-4 rounded-lg border border-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
           >
             Vezi toți utilizatorii
-          </button>
+          </Button>
         </>
       ) : (
         <p className="text-sm text-zinc-500">

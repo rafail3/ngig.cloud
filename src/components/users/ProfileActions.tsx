@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Send, MessageSquare } from "lucide-react";
 import { SendTransferModal } from "@/components/transfer/SendTransferModal";
@@ -14,18 +15,18 @@ export function ProfileActions({ profile }: { profile: PublicProfile }) {
   return (
     <>
       <div className="flex flex-col gap-2 sm:flex-row">
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => setSending(true)}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-950/40 transition hover:bg-indigo-500"
         >
           <Send className="h-4 w-4" />
           Trimite fișiere
-        </button>
+        </Button>
         {/* Deliberately disabled rather than hidden: the slot is real and
             arriving, and a visible-but-honest control beats a button that
             promises something it can't do yet. */}
-        <button
+        <Button variant="unstyled"
           type="button"
           disabled
           title="Mesageria directă vine în curând."
@@ -36,7 +37,7 @@ export function ProfileActions({ profile }: { profile: PublicProfile }) {
           <span className="rounded-full border border-zinc-800 bg-zinc-950/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
             În curând
           </span>
-        </button>
+        </Button>
       </div>
 
       {sending && (

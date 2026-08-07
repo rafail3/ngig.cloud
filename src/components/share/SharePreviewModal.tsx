@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { X, Download, Loader2 } from "lucide-react";
 import { ModalShell } from "@/components/drive/anim";
@@ -86,14 +87,14 @@ function Lightbox({
             >
               <Download className="h-4 w-4" />
             </a>
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={onClose}
               aria-label="Închide"
               className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 hover:text-zinc-100"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
 

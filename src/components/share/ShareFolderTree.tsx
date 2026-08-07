@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -86,7 +87,7 @@ function FolderRow({
   return (
     <li>
       <div className={rowClass}>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
@@ -104,7 +105,7 @@ function FolderRow({
             {node.name}
           </span>
           <span className="shrink-0 text-xs tabular-nums text-zinc-500">{count}</span>
-        </button>
+        </Button>
         <a
           href={`/s/${token}/download?folder=${node.id}`}
           aria-label={`Descarcă ${node.name} (.zip)`}
@@ -168,7 +169,7 @@ function FileRow({
     <li>
       <div className={rowClass}>
         {canPreview ? (
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() =>
               onPreview({ url: file.previewUrl!, kind: file.previewKind!, name: file.name })
@@ -177,7 +178,7 @@ function FileRow({
             className="flex min-w-0 flex-1 items-center gap-2 py-2 text-left"
           >
             {inner}
-          </button>
+          </Button>
         ) : (
           <div style={pad} className="flex min-w-0 flex-1 items-center gap-2 py-2">
             {inner}

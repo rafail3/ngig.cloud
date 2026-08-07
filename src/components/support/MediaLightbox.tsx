@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Download, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -39,7 +40,7 @@ export function MediaLightbox({
       <div className="flex items-center justify-between gap-3 px-2 py-1.5">
         <p className="min-w-0 truncate text-sm text-zinc-300">{item.name}</p>
         <div className="flex shrink-0 items-center gap-1">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={download}
             disabled={busy}
@@ -48,15 +49,15 @@ export function MediaLightbox({
             className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-100 disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             aria-label="Închide"
             className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-100"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 

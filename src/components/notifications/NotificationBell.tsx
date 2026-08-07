@@ -196,22 +196,22 @@ export function NotificationBell() {
             <p className="text-sm font-semibold text-zinc-100">Notificări</p>
             <div className="flex items-center gap-3">
               {unread > 0 && (
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={markAll}
                   className="flex items-center gap-1 text-xs text-indigo-400 transition hover:text-indigo-300"
                 >
                   <CheckCheck className="h-3.5 w-3.5" /> Marchează citite
-                </button>
+                </Button>
               )}
               {items.length > 0 && (
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={clearAll}
                   className="flex items-center gap-1 text-xs text-zinc-400 transition hover:text-red-400"
                 >
                   <Trash2 className="h-3.5 w-3.5" /> Golește
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -260,7 +260,7 @@ export function NotificationBell() {
                     </span>
                     {n.read_at && <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-zinc-600" />}
                   </div>
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={() => removeItem(n.id)}
                     aria-label="Șterge notificarea"
@@ -268,7 +268,7 @@ export function NotificationBell() {
                     className="flex shrink-0 items-center px-3 text-zinc-500 opacity-100 transition hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     <X className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               ))
             )}

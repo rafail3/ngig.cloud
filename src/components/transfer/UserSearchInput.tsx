@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { Search, Loader2, X, Star } from "lucide-react";
 import {
@@ -112,7 +113,7 @@ export function UserSearchInput({
             <p className="px-3.5 py-3 text-sm text-zinc-500">Niciun utilizator găsit.</p>
           )}
           {visibleResults.map((u) => (
-            <button
+            <Button variant="unstyled"
               key={u.id}
               type="button"
               onClick={() => pick(u)}
@@ -120,7 +121,7 @@ export function UserSearchInput({
             >
               <Avatar username={u.username} className="h-7 w-7 text-xs" />
               <span className="truncate text-sm text-zinc-100">{u.username}</span>
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -136,7 +137,7 @@ export function UserSearchInput({
             Frecvenți
           </span>
           {visibleFrequent.map((u) => (
-            <button
+            <Button variant="unstyled"
               key={u.id}
               type="button"
               onClick={() => pick(u)}
@@ -144,7 +145,7 @@ export function UserSearchInput({
             >
               <Avatar username={u.username} className="h-5 w-5 text-[9px]" />
               {u.username}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -158,14 +159,14 @@ export function UserSearchInput({
             >
               <Avatar username={u.username} className="h-5 w-5 text-[9px]" />
               {u.username}
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => onRemove(u.id)}
                 aria-label={`Scoate ${u.username}`}
                 className="rounded-full p-0.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
               >
                 <X className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </span>
           ))}
         </div>
