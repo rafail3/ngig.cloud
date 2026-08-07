@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -8,7 +8,12 @@ import type { NotificationRow } from "@/server/notifications/service";
 import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useMenuModality } from "@/lib/useMenuModality";
 import {
   getNotificationsAction,
@@ -35,6 +40,18 @@ export function NotificationBell() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const menu = useMenuModality();
+
+  // The panel hangs off the whole navbar action cluster, not off the bell: the
+  // bell sits to the left of the theme toggle and the user menu, so anchoring
+  // to it would leave the panel floating mid-header instead of tucked against
+  // the edge of the page, where it has always been. Falls back to the bell if
+  // the marker is ever missing.
+  const anchor = useRef<HTMLElement | null>(null);
+  const takeAnchor = (el: HTMLButtonElement | null) => {
+    anchor.current = el
+      ? (el.closest<HTMLElement>("[data-navbar-actions]") ?? el)
+      : null;
+  };
 
   const { data, mutate } = useSWR("notifications", () => getNotificationsAction(), {
     revalidateOnFocus: true,
@@ -168,8 +185,10 @@ export function NotificationBell() {
     // the document. Anchored to the bell instead, it stays put on any viewport,
     // closes on Escape as well as on an outside click, and hands focus back.
     <Popover open={open} onOpenChange={setOpen}>
+      <PopoverAnchor virtualRef={anchor} />
       <PopoverTrigger asChild {...menu.triggerProps}>
         <Button
+          ref={takeAnchor}
           variant="unstyled"
           type="button"
           aria-label={unread > 0 ? `Notificări (${unread} necitite)` : "Notificări"}
@@ -187,7 +206,9 @@ export function NotificationBell() {
 
       <PopoverContent
         align="end"
-        sideOffset={8}
+        // Enough to clear the rest of the header, so the panel starts at its
+        // bottom edge the way it used to.
+        sideOffset={12}
         collisionPadding={12}
         className="flex max-h-[70vh] w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border-zinc-800 bg-zinc-900 p-0 shadow-xl"
         {...menu.contentProps}

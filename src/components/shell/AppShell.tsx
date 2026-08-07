@@ -247,8 +247,10 @@ export function AppShell({
           </Link>
         </div>
 
-        {/* right: notifications + theme + user menu (profile & logout live inside) */}
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+        {/* right: notifications + theme + user menu (profile & logout live inside).
+            The marker lets the notification panel hang off this cluster's right
+            edge rather than off the bell, which sits in the middle of it. */}
+        <div data-navbar-actions className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
           <NotificationBell />
           <ThemeToggle />
           <DropdownMenu>
