@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -22,6 +21,7 @@ import { dashboardSignOut } from "@/app/dashboard/actions";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Avatar } from "./Avatar";
+import { Wordmark } from "./Wordmark";
 import { AppVersion } from "./AppVersion";
 import { RoleBadge } from "@/components/dashboard/RoleBadge";
 import { Button } from "@/components/ui/button";
@@ -198,23 +198,8 @@ export function DashboardShell({
             select-none: chrome is not content — dragging across it must never
             leave it highlighted. */}
         <div className="flex h-16 shrink-0 select-none items-center gap-2 px-5">
-          <Link href="/" aria-label="Overview" className="flex shrink-0 items-center">
-            <Image
-              src="/ngig-logo.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="hidden h-8 w-auto dark:block"
-            />
-            <Image
-              src="/ngig-logo-light.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="block h-8 w-auto dark:hidden"
-            />
+          <Link href="/" aria-label="ngig.cloud — Overview" className="flex shrink-0 items-center">
+            <Wordmark size="sm" />
           </Link>
           <span className="shrink-0">
             <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
@@ -262,23 +247,8 @@ export function DashboardShell({
           {/* White-wordmark logo for dark mode, black-wordmark for light.
               Click → dashboard overview. select-none: it is chrome, not content,
               so dragging across the header must not highlight it. */}
-          <Link href="/" aria-label="Overview" className="flex shrink-0 select-none items-center">
-            <Image
-              src="/ngig-logo.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="hidden h-8 w-auto shrink-0 dark:block sm:h-10"
-            />
-            <Image
-              src="/ngig-logo-light.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="block h-8 w-auto shrink-0 dark:hidden sm:h-10"
-            />
+          <Link href="/" aria-label="ngig.cloud — Overview" className="flex shrink-0 items-center">
+            <Wordmark size="sm" />
           </Link>
           <span className="hidden sm:inline">
             <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />

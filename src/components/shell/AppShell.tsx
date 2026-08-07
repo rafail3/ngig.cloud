@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { MotionConfig } from "motion/react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, ShieldCheck, UserRound, Trash2, Archive, LifeBuoy, Link2, Send, UsersRound, UploadCloud } from "lucide-react";
@@ -17,6 +16,7 @@ import { ContextMenuProvider } from "@/components/drive/ContextMenu";
 import { prefetchDrive, useDriveRealtime, useFolder } from "@/components/drive/useDriveData";
 import { OfficeStatusProvider } from "@/components/drive/OfficeStatusProvider";
 import { Avatar } from "./Avatar";
+import { Wordmark } from "./Wordmark";
 import { AppVersion } from "./AppVersion";
 import { Button } from "@/components/ui/button";
 import { useMenuModality } from "@/lib/useMenuModality";
@@ -231,23 +231,8 @@ export function AppShell({
             that has nothing to its left. select-none: it is chrome, not content,
             so dragging across it must never leave it highlighted. */}
         <div className="flex h-16 shrink-0 items-center px-5">
-          <Link href="/" aria-label="Acasă" className="flex select-none items-center">
-            <Image
-              src="/ngig-logo.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="hidden h-10 w-auto dark:block"
-            />
-            <Image
-              src="/ngig-logo-light.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="block h-10 w-auto dark:hidden"
-            />
+          <Link href="/" aria-label="ngig.cloud — Acasă" className="flex items-center">
+            <Wordmark />
           </Link>
         </div>
 
@@ -296,23 +281,8 @@ export function AppShell({
           </Sheet>
           {/* select-none: the wordmark is chrome, not content — dragging across
               the header should never leave it highlighted. */}
-          <Link href="/" aria-label="Acasă" className="flex shrink-0 select-none items-center">
-            <Image
-              src="/ngig-logo.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="hidden h-8 w-auto shrink-0 dark:block sm:h-10"
-            />
-            <Image
-              src="/ngig-logo-light.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="block h-8 w-auto shrink-0 dark:hidden sm:h-10"
-            />
+          <Link href="/" aria-label="ngig.cloud — Acasă" className="flex shrink-0 items-center">
+            <Wordmark />
           </Link>
         </div>
 

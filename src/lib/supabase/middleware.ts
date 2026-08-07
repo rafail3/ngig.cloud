@@ -5,6 +5,25 @@ import { DASHBOARD_HOST, isDashboardHost } from "@/lib/dashboard";
 // Public routes reachable without a session (main site).
 const PUBLIC_PATHS = ["/login", "/register", "/reset", "/cere-invitatie"];
 
+/* Next's metadata file conventions, which are served as routes. In production
+   the generated ones carry a cache-busting suffix on the segment itself
+   (`opengraph-image-<hash>`), so this matches a prefix of the last segment
+   rather than the whole path. */
+const METADATA_SEGMENTS = [
+  "opengraph-image",
+  "twitter-image",
+  "icon",
+  "apple-icon",
+  "robots.txt",
+  "sitemap.xml",
+  "manifest.webmanifest",
+];
+
+function isMetadataRoute(path: string): boolean {
+  const last = path.split("/").pop() ?? "";
+  return METADATA_SEGMENTS.some((s) => last === s || last.startsWith(`${s}-`));
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -59,6 +78,15 @@ export async function updateSession(request: NextRequest) {
   // the token, no session required, and never bounced home for logged-in users.
   // The token is the sole authority; auth plays no part here.
   if (path.startsWith("/s/")) {
+    return supabaseResponse;
+  }
+
+  // Metadata routes are public by definition — a preview card is fetched by a
+  // chat server or a crawler that has no session and never will. Sending them
+  // to /login means the unfurled link shows the login page's card instead of
+  // ours, or no image at all. Matched on the last segment so the convention
+  // holds wherever it is colocated.
+  if (isMetadataRoute(path)) {
     return supabaseResponse;
   }
 
