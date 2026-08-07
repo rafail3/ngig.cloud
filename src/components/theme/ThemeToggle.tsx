@@ -3,6 +3,7 @@
 import { Sun, Moon, Monitor } from "lucide-react";
 import { useTheme, type Theme } from "./ThemeProvider";
 import { Button } from "@/components/ui/button";
+import { useMenuModality } from "@/lib/useMenuModality";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
 // close, and `aria-checked` announcing the active theme to a screen reader.
 export function ThemeToggle() {
   const { theme, resolved, setTheme } = useTheme();
+  const menu = useMenuModality();
 
   // The trigger always shows the EFFECTIVE theme (moon/sun) — even in "system"
   // mode we show what the user is actually looking at, never the monitor. The
@@ -35,7 +37,7 @@ export function ThemeToggle() {
           focus style. A bare trigger has none, so the browser draws its own
           outline — the white square that showed up after picking a theme, since
           Radix hands focus back to the trigger when the menu closes. */}
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild {...menu.triggerProps}>
         <Button
           variant="ghost"
           size="icon"
@@ -43,11 +45,11 @@ export function ThemeToggle() {
           title="Temă"
           className="text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
         >
-          <TriggerIcon className="h-5 w-5" />
+          <TriggerIcon className="size-5" />
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-40">
+      <DropdownMenuContent align="end" className="w-40" {...menu.contentProps}>
         <DropdownMenuRadioGroup
           value={theme}
           onValueChange={(v) => setTheme(v as Theme)}

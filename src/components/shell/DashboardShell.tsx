@@ -25,6 +25,7 @@ import { Avatar } from "./Avatar";
 import { AppVersion } from "./AppVersion";
 import { RoleBadge } from "@/components/dashboard/RoleBadge";
 import { Button } from "@/components/ui/button";
+import { useMenuModality } from "@/lib/useMenuModality";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -174,6 +175,7 @@ export function DashboardShell({
 }) {
   // Controlled only so a nav link can close the drawer behind it.
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const userMenu = useMenuModality();
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
@@ -188,7 +190,7 @@ export function DashboardShell({
                 aria-label="Meniu"
                 className="-ml-1 text-zinc-300 hover:bg-zinc-900 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50 md:hidden"
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="size-5" />
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -238,7 +240,7 @@ export function DashboardShell({
           <NotificationBell />
           <ThemeToggle />
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild {...userMenu.triggerProps}>
               <Button
                 variant="ghost"
                 className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
@@ -251,7 +253,7 @@ export function DashboardShell({
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-64 p-0">
+            <DropdownMenuContent align="end" className="w-64 p-0" {...userMenu.contentProps}>
               <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3.5">
                 <Avatar username={user.username} className="h-9 w-9 text-sm" />
                 <div className="min-w-0">

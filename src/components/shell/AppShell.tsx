@@ -19,6 +19,7 @@ import { OfficeStatusProvider } from "@/components/drive/OfficeStatusProvider";
 import { Avatar } from "./Avatar";
 import { AppVersion } from "./AppVersion";
 import { Button } from "@/components/ui/button";
+import { useMenuModality } from "@/lib/useMenuModality";
 import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
@@ -113,6 +114,7 @@ export function AppShell({
   // Controlled (rather than left to the Sheet) only because a nav link has to
   // close it on click.
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const userMenu = useMenuModality();
   const pathname = usePathname();
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin").map((i) =>
     i.href === "/transfers" ? { ...i, badge: pendingTransfers } : i,
@@ -145,7 +147,7 @@ export function AppShell({
                 aria-label="Meniu"
                 className="h-auto gap-2 rounded-lg border-zinc-800/80 bg-zinc-900/50 px-2.5 py-2 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:border-zinc-700 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="size-5" />
                 <span className="hidden font-medium sm:inline">Meniu</span>
               </Button>
             </SheetTrigger>
@@ -248,7 +250,7 @@ export function AppShell({
           <NotificationBell />
           <ThemeToggle />
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild {...userMenu.triggerProps}>
               <Button
                 variant="ghost"
                 className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
@@ -263,7 +265,7 @@ export function AppShell({
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-64 p-0">
+            <DropdownMenuContent align="end" className="w-64 p-0" {...userMenu.contentProps}>
               <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3.5">
                 <Avatar username={user.username} className="h-9 w-9 text-sm" />
                 <div className="min-w-0">
