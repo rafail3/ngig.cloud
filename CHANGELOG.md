@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.47.0](https://github.com/rafail3/ngig.cloud/compare/v2.46.0...v2.47.0) (2026-08-07)
+
+
+### Features
+
+* **shell:** full-height navigation column and a lifted content panel ([9f4b1e6](https://github.com/rafail3/ngig.cloud/commit/9f4b1e61474001526b3ea33ce42a2055902a1c18))
+* **shell:** full-height navigation column and a lifted content panel ([af4a291](https://github.com/rafail3/ngig.cloud/commit/af4a291433f881b26a6081c958be1ff4a7e5f7c9))
+
+
+### Bug Fixes
+
+* **shell:** narrow filter chips, badge beside the wordmark, chrome is unselectable ([566faf9](https://github.com/rafail3/ngig.cloud/commit/566faf99dcfdf884cf7ee1be4acb3b8fc0fb6b33))
+* **shell:** soften the panel lift so hairline borders stay readable in dark ([bec95f7](https://github.com/rafail3/ngig.cloud/commit/bec95f72743152861e21efd38dcecf1255532e06))
+* **shell:** wordmark heads the sidebar again, and the sticky header is opaque ([59295fc](https://github.com/rafail3/ngig.cloud/commit/59295fc12d7cc472e56ab22277a6301b9fede4ec))
+
+
+### Reverts
+
+* **shell:** put the wordmark, search and upload controls back where they were ([baffca1](https://github.com/rafail3/ngig.cloud/commit/baffca169e2b5e45debf5177c0e68fde345781a0))
+
 ## [2.46.0](https://github.com/rafail3/ngig.cloud/compare/v2.45.3...v2.46.0) (2026-08-07)
 
 
