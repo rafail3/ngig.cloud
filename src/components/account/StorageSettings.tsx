@@ -6,6 +6,7 @@ import { Info, HardDrive, BellRing } from "lucide-react";
 import { setSelfMaxTotalAction, setStorageAlertAction } from "@/app/(app)/profil/actions";
 import { useToastState } from "@/lib/useToastState";
 import { formatBytes } from "@/lib/format";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { MyStorageSettings } from "@/server/account/profile";
 import type { AccountState } from "@/lib/account-state";
 
@@ -16,6 +17,10 @@ const inputCls =
   "w-full rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-50 outline-none transition placeholder:text-zinc-600 focus:border-indigo-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-indigo-500/15";
 const saveCls =
   "rounded-lg bg-indigo-500 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-400 active:bg-indigo-600 disabled:opacity-60";
+// One segment of a filter pill row: the primitive's dot is dropped because the
+// choice reads from the filled background instead.
+const SEGMENT =
+  "inline-flex aspect-auto size-auto items-center rounded-md border-0 px-2.5 py-1 text-xs font-medium text-zinc-400 shadow-none transition hover:text-zinc-200 data-[state=checked]:bg-indigo-500 data-[state=checked]:text-white dark:bg-transparent [&>[data-slot=radio-group-indicator]]:hidden";
 
 // The saved value lives in a small chip next to the input — never inside it.
 function CurrentChip({ children }: { children: React.ReactNode }) {
@@ -87,22 +92,23 @@ function UnitPicker({
   onChange: (u: string) => void;
 }) {
   return (
-    <div role="radiogroup" aria-label="Unitate" className="flex gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1">
+    <RadioGroup
+      value={value}
+      onValueChange={onChange}
+      aria-label="Unitate"
+      className="flex gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
+    >
       {["MB", "GB"].map((u) => (
-        <button
+        // The dot is dropped: the choice reads from the filled pill.
+        <RadioGroupItem
           key={u}
-          type="button"
-          role="radio"
-          aria-checked={value === u}
-          onClick={() => onChange(u)}
-          className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-            value === u ? "bg-indigo-500 text-white" : "text-zinc-400 hover:text-zinc-200"
-          }`}
+          value={u}
+          className="inline-flex aspect-auto size-auto items-center rounded-md border-0 px-2.5 py-1 text-xs font-medium text-zinc-400 shadow-none transition hover:text-zinc-200 data-[state=checked]:bg-indigo-500 data-[state=checked]:text-white dark:bg-transparent [&>[data-slot=radio-group-indicator]]:hidden"
         >
           {u}
-        </button>
+        </RadioGroupItem>
       ))}
-    </div>
+    </RadioGroup>
   );
 }
 
@@ -261,36 +267,24 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
             cobori sub el.
           </p>
 
-          <div
-            role="radiogroup"
+          <RadioGroup
+            value={mode}
+            onValueChange={(v) => setMode(v as typeof mode)}
             aria-label="Tip prag"
             className="flex w-fit gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
           >
-            <button
-              type="button"
-              role="radio"
-              aria-checked={mode === "percent"}
+            <RadioGroupItem
+              value="percent"
               disabled={!hasQuota}
-              onClick={() => setMode("percent")}
               title={hasQuota ? undefined : "Necesită o cotă (a adminului sau plafonul tău propriu)."}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                mode === "percent" ? "bg-indigo-500 text-white" : "text-zinc-400 hover:text-zinc-200"
-              }`}
+              className={`${SEGMENT} disabled:cursor-not-allowed disabled:opacity-40`}
             >
               % din cotă
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={mode === "absolute"}
-              onClick={() => setMode("absolute")}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                mode === "absolute" ? "bg-indigo-500 text-white" : "text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
+            </RadioGroupItem>
+            <RadioGroupItem value="absolute" className={SEGMENT}>
               Valoare fixă
-            </button>
-          </div>
+            </RadioGroupItem>
+          </RadioGroup>
           {!hasQuota && (
             <p className="text-xs text-zinc-600">
               Pragul procentual devine disponibil când există o cotă — a adminului sau plafonul tău propriu.

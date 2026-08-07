@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { UserRound, ShieldCheck, Sparkles } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TABS = [
   { id: "cont", label: "Cont", icon: UserRound },
@@ -42,26 +43,26 @@ export function ProfileTabs({
   const panels: Record<TabId, React.ReactNode> = { cont, securitate, activitate };
 
   return (
-    <div>
-      <div
-        role="tablist"
+    // The roles and the id pairing were already written out here; what was
+    // missing is the movement — arrow keys between tabs, and one tab stop
+    // instead of three.
+    <Tabs value={active} onValueChange={(v) => select(v as TabId)} className="gap-0">
+      <TabsList
+        variant="line"
         aria-label="Secțiuni profil"
-        className="flex gap-6 overflow-x-auto border-b border-zinc-900 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="w-full justify-start gap-6 overflow-x-auto rounded-none border-b border-zinc-900 bg-transparent p-0 group-data-[orientation=horizontal]/tabs:h-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {TABS.map((t) => {
           const on = t.id === active;
           const Icon = t.icon;
           return (
-            <button
+            <TabsTrigger
               key={t.id}
-              type="button"
-              role="tab"
-              id={`tab-${t.id}`}
-              aria-selected={on}
-              aria-controls={`panel-${t.id}`}
-              onClick={() => select(t.id)}
-              className={`relative flex shrink-0 items-center gap-2 whitespace-nowrap pb-3 pt-1 text-sm outline-none transition-colors focus-visible:text-zinc-50 ${
-                on ? "font-medium text-zinc-50" : "text-zinc-500 hover:text-zinc-300"
+              value={t.id}
+              className={`relative h-auto flex-none shrink-0 gap-2 whitespace-nowrap rounded-none border-0 px-0 pb-3 pt-1 text-sm transition-colors after:hidden ${
+                on
+                  ? "font-medium text-zinc-50 dark:text-zinc-50"
+                  : "text-zinc-500 hover:text-zinc-300 dark:text-zinc-500 dark:hover:text-zinc-300"
               }`}
             >
               <Icon className={`h-4 w-4 ${on ? "text-indigo-400" : ""}`} />
@@ -73,23 +74,23 @@ export function ProfileTabs({
                   transition={{ type: "spring", stiffness: 500, damping: 40 }}
                 />
               )}
-            </button>
+            </TabsTrigger>
           );
         })}
-      </div>
+      </TabsList>
 
+      {/* forceMount: the panels have to stay mounted, or switching tabs would
+          throw away half-typed form input and the insights fetch. */}
       {TABS.map((t) => (
-        <div
+        <TabsContent
           key={t.id}
-          role="tabpanel"
-          id={`panel-${t.id}`}
-          aria-labelledby={`tab-${t.id}`}
-          hidden={t.id !== active}
-          className="pt-6"
+          value={t.id}
+          forceMount
+          className="pt-6 data-[state=inactive]:hidden"
         >
           {panels[t.id]}
-        </div>
+        </TabsContent>
       ))}
-    </div>
+    </Tabs>
   );
 }
