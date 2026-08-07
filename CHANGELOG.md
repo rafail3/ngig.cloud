@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.48.1](https://github.com/rafail3/ngig.cloud/compare/v2.48.0...v2.48.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **dashboard:** a deleted record explains itself instead of 404ing ([a31c34d](https://github.com/rafail3/ngig.cloud/commit/a31c34d0459403b2e2aa2574139a471c43093927))
+* **dashboard:** delete an account or a ticket without landing on a 404 ([8aee828](https://github.com/rafail3/ngig.cloud/commit/8aee82816ae8d51b3daee474c458132c39da3534))
+* **dashboard:** deleting a record no longer strands you on a 404 ([f47dbc2](https://github.com/rafail3/ngig.cloud/commit/f47dbc215ac6cdd2a1b87b5041baae2bfbf0fb75))
+
 ## [2.48.0](https://github.com/rafail3/ngig.cloud/compare/v2.47.0...v2.48.0) (2026-08-07)
 
 
