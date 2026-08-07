@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState, lazy, Suspense } from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { X, Download, Loader2 } from "lucide-react";
+import { ModalShell } from "@/components/drive/anim";
 import type { SharePreviewKind } from "@/lib/share";
 
 // pdf.js + CodeMirror are heavy — keep them out of the public page's initial
@@ -29,11 +28,12 @@ export type SharePreviewTarget = {
   name: string;
 };
 
-// A pop-up lightbox preview for a shared file, PORTALED to document.body so it
-// escapes the share card's backdrop-blur (which creates a containing block that
-// would otherwise trap `position: fixed` inside the card). PDFs render via
-// pdf.js (canvas, no cross-origin iframe → not blocked by Brave); text loads
-// into the code viewer; image/video/audio use native elements.
+// A pop-up lightbox preview for a shared file. It goes through the shared modal
+// shell, which portals it to the body — that matters here, because the share
+// card's backdrop-blur creates a containing block that would otherwise trap
+// `position: fixed` inside the card. PDFs render via pdf.js (canvas, no
+// cross-origin iframe → not blocked by Brave); text loads into the code viewer;
+// image/video/audio use native elements.
 export function SharePreviewModal({
   target,
   onClose,
@@ -45,22 +45,8 @@ export function SharePreviewModal({
   // is nested inside another modal) — see InfoModal's identical prop.
   lockScroll?: boolean;
 }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-
-  const tree = (
-    <AnimatePresence>
-      {target && (
-        <Lightbox key="lightbox" target={target} onClose={onClose} lockScroll={lockScroll} />
-      )}
-    </AnimatePresence>
-  );
-
-  if (!mounted) return null;
-  return createPortal(tree, document.body);
+  if (!target) return null;
+  return <Lightbox target={target} onClose={onClose} lockScroll={lockScroll} />;
 }
 
 function Lightbox({
@@ -73,39 +59,19 @@ function Lightbox({
   lockScroll: boolean;
 }) {
   const { url, kind, name } = target;
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    if (lockScroll) document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      if (lockScroll) document.body.style.overflow = "";
-    };
-  }, [onClose, lockScroll]);
-
   const download = () => window.open(url, "_blank", "noopener");
 
   return (
-    <motion.div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
+    // Escape, the scrim, the body scroll lock and the portal were four separate
+    // pieces of hand-written wiring; the shell is all four.
+    <ModalShell
+      onClose={onClose}
+      title={name}
+      lockScroll={lockScroll}
+      scrim="bg-black/85"
+      className="flex max-h-[96dvh] w-[min(96vw,80rem)] max-w-none flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl"
     >
-      <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" onClick={onClose} />
-
-      <motion.div
-        className="relative flex max-h-[96dvh] w-[min(96vw,80rem)] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl"
-        initial={{ opacity: 0, scale: 0.97, y: 8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.98, y: 6 }}
-        transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.7 }}
-      >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-800 px-4 py-2.5">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-800 px-4 py-2.5">
           <p className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-100">
             {name}
           </p>
@@ -131,11 +97,10 @@ function Lightbox({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-zinc-950/50">
-          <PreviewBody url={url} kind={kind} name={name} onDownload={download} />
-        </div>
-      </motion.div>
-    </motion.div>
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-zinc-950/50">
+        <PreviewBody url={url} kind={kind} name={name} onDownload={download} />
+      </div>
+    </ModalShell>
   );
 }
 

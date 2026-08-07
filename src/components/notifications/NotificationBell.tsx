@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { NotificationRow } from "@/server/notifications/service";
 import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useClickOutside } from "@/lib/useClickOutside";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useMenuModality } from "@/lib/useMenuModality";
 import {
   getNotificationsAction,
   markNotificationReadAction,
@@ -32,8 +34,7 @@ function ago(iso: string): string {
 export function NotificationBell() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false), open);
+  const menu = useMenuModality();
 
   const { data, mutate } = useSWR("notifications", () => getNotificationsAction(), {
     revalidateOnFocus: true,
@@ -163,29 +164,34 @@ export function NotificationBell() {
   }
 
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={unread > 0 ? `Notificări (${unread} necitite)` : "Notificări"}
-        title="Notificări"
-        aria-expanded={open}
-        className={`relative rounded-md p-2 transition-colors ${
-          open
-            ? "bg-zinc-900 text-zinc-50"
-            : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
-        }`}
-      >
-        <Bell className="h-5 w-5" />
-        {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-semibold leading-none text-white">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
-      </button>
+    // The panel used to be pinned to a fixed corner and closed by a listener on
+    // the document. Anchored to the bell instead, it stays put on any viewport,
+    // closes on Escape as well as on an outside click, and hands focus back.
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild {...menu.triggerProps}>
+        <Button
+          variant="unstyled"
+          type="button"
+          aria-label={unread > 0 ? `Notificări (${unread} necitite)` : "Notificări"}
+          title="Notificări"
+          className="relative rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+        >
+          <Bell className="h-5 w-5" />
+          {unread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-semibold leading-none text-white">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
 
-      {open && (
-        <div className="fixed right-3 top-16 z-50 flex max-h-[70vh] w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        collisionPadding={12}
+        className="flex max-h-[70vh] w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border-zinc-800 bg-zinc-900 p-0 shadow-xl"
+        {...menu.contentProps}
+      >
           <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
             <p className="text-sm font-semibold text-zinc-100">Notificări</p>
             <div className="flex items-center gap-3">
@@ -266,9 +272,8 @@ export function NotificationBell() {
                 </div>
               ))
             )}
-          </div>
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }
