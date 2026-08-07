@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.45.2](https://github.com/rafail3/ngig.cloud/compare/v2.45.1...v2.45.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **drive:** keep the page furniture out of a selection ([b595b28](https://github.com/rafail3/ngig.cloud/commit/b595b2823a96f65281836a5f6a3009303fb98096))
+* **shell:** stop the wordmark and username highlighting ([ae485d9](https://github.com/rafail3/ngig.cloud/commit/ae485d913471062283b266fc6fae5abc5e079e64))
+* **ui:** keep button labels and empty fields out of a selection ([4094363](https://github.com/rafail3/ngig.cloud/commit/4094363a0263612a05a3e98307f126e0007fa7b4))
+
 ## [2.45.1](https://github.com/rafail3/ngig.cloud/compare/v2.45.0...v2.45.1) (2026-08-07)
 
 
