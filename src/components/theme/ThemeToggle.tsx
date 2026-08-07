@@ -1,9 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Sun, Moon, Monitor, Check } from "lucide-react";
+import { Sun, Moon, Monitor } from "lucide-react";
 import { useTheme, type Theme } from "./ThemeProvider";
-import { useClickOutside } from "@/lib/useClickOutside";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Luminos", icon: Sun },
@@ -11,56 +16,44 @@ const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "system", label: "Sistem", icon: Monitor },
 ];
 
+// Three mutually exclusive choices, which is exactly a radio group — so it is
+// built as one. Radix then supplies what the hand-rolled version never had:
+// arrow-key navigation, Escape, typeahead, focus returning to the trigger on
+// close, and `aria-checked` announcing the active theme to a screen reader.
 export function ThemeToggle() {
   const { theme, resolved, setTheme } = useTheme();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false), open);
 
-  // Trigger icon always reflects the EFFECTIVE theme (moon/sun) — even in
-  // "system" mode we show the resolved icon, never the monitor. The monitor
-  // stays only as the "Sistem" option inside the dropdown.
+  // The trigger always shows the EFFECTIVE theme (moon/sun) — even in "system"
+  // mode we show what the user is actually looking at, never the monitor. The
+  // monitor stays as the "Sistem" option inside the menu.
   const TriggerIcon = resolved === "dark" ? Moon : Sun;
 
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
+    <DropdownMenu>
+      <DropdownMenuTrigger
         aria-label="Schimbă tema"
         title="Temă"
-        className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-50"
+        className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
       >
         <TriggerIcon className="h-5 w-5" />
-      </button>
+      </DropdownMenuTrigger>
 
-      {open && (
-          <div className="absolute right-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
-            {OPTIONS.map((o) => {
-              const active = theme === o.value;
-              const Icon = o.icon;
-              return (
-                <button
-                  key={o.value}
-                  type="button"
-                  onClick={() => {
-                    setTheme(o.value);
-                    setOpen(false);
-                  }}
-                  className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors ${
-                    active
-                      ? "bg-zinc-800 text-zinc-50"
-                      : "text-zinc-300 hover:bg-zinc-800/60 hover:text-zinc-100"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {o.label}
-                  {active && <Check className="ml-auto h-3.5 w-3.5 text-indigo-400" />}
-                </button>
-              );
-            })}
-          </div>
-      )}
-    </div>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuRadioGroup
+          value={theme}
+          onValueChange={(v) => setTheme(v as Theme)}
+        >
+          {OPTIONS.map((o) => {
+            const Icon = o.icon;
+            return (
+              <DropdownMenuRadioItem key={o.value} value={o.value}>
+                <Icon className="h-4 w-4" />
+                {o.label}
+              </DropdownMenuRadioItem>
+            );
+          })}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
