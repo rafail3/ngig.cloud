@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.45.3](https://github.com/rafail3/ngig.cloud/compare/v2.45.2...v2.45.3) (2026-08-07)
+
+
+### Bug Fixes
+
+* **notifications:** hang the panel off the edge of the header again ([57c234e](https://github.com/rafail3/ngig.cloud/commit/57c234e8ed4ea29ca17f7cc348f8ef4307eedd5a))
+* **notifications:** stop the panel measuring nothing and landing top-left ([38ce066](https://github.com/rafail3/ngig.cloud/commit/38ce0664f4d356172b4c2af7e633b05a342e19f0))
+
 ## [2.45.2](https://github.com/rafail3/ngig.cloud/compare/v2.45.1...v2.45.2) (2026-08-07)
 
 
