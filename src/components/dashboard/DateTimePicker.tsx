@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight, Clock } from "lucide-react";
-import { useClickOutside } from "@/lib/useClickOutside";
+import { ModalShell } from "@/components/drive/anim";
 
 const WEEKDAYS = ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"];
 const MONTHS = [
@@ -84,8 +84,6 @@ export function DateTimePicker({
   // in render). Drives "today" highlighting and past-date disabling.
   const [now, setNow] = useState<Date | null>(null);
   const [view, setView] = useState<{ y: number; m: number } | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false), open);
 
   const selected = fromLocalString(value);
   const hh = selected ? selected.getHours() : 0;
@@ -125,7 +123,7 @@ export function DateTimePicker({
     : "Alege data și ora";
 
   return (
-    <div ref={ref} className="relative w-full sm:w-72">
+    <div className="relative w-full sm:w-72">
       <button
         type="button"
         onClick={toggle}
@@ -138,13 +136,16 @@ export function DateTimePicker({
         <span className="truncate">{label}</span>
       </button>
 
+      {/* The panel was already a modal — a scrim over the page with the calendar
+          centred on it — so it says so now: focus stays inside it, Escape
+          closes it, and the page behind it stops scrolling. */}
       {open && now && view && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
-          />
-          <div className="relative max-h-[85vh] w-[20rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900 p-3 shadow-2xl">
+        <ModalShell
+          onClose={() => setOpen(false)}
+          title="Alege data și ora"
+          scrim="bg-black/60"
+          className="max-h-[85vh] w-[20rem] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900 p-3 shadow-2xl"
+        >
           {/* Month nav */}
           <div className="mb-2 flex items-center justify-between">
             <button
@@ -202,8 +203,7 @@ export function DateTimePicker({
               Gata
             </button>
           </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
     </div>
   );
