@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.46.0](https://github.com/rafail3/ngig.cloud/compare/v2.45.3...v2.46.0) (2026-08-07)
+
+
+### Features
+
+* **shell:** persistent desktop sidebar for the app surface ([14a76f1](https://github.com/rafail3/ngig.cloud/commit/14a76f10812c6c1a243c828fcf4e3ae3f8f36a22))
+* **ui:** site-wide layout polish — persistent sidebar, unified tables, empty states ([b2cd373](https://github.com/rafail3/ngig.cloud/commit/b2cd37316eb2213b3b0413f68237f9686ae55af8))
+
 ## [2.45.3](https://github.com/rafail3/ngig.cloud/compare/v2.45.2...v2.45.3) (2026-08-07)
 
 
