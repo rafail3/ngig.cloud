@@ -95,8 +95,11 @@ function SidebarNav({
       (!i.section || sections == null || sections.includes(i.section)),
   );
 
+  // select-none across the whole column: navigation is chrome, not content —
+  // nobody copies a menu label, and dragging across it only ever highlighted it
+  // by accident.
   return (
-    <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+    <nav className="flex-1 select-none space-y-0.5 overflow-y-auto px-3 py-4">
       <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
         Administrare
       </p>
@@ -187,19 +190,22 @@ export function DashboardShell({
        per theme because the light palette mirrors the zinc scale. */
     <div className="flex min-h-screen bg-[var(--surface-chrome)] text-zinc-50">
       {/* ===== Desktop navigation column ===== */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col md:flex">
-        {/* The wordmark heads the column, on the same line as the header beside
-            it — otherwise this band sits empty. White-wordmark for dark mode,
-            black-wordmark for light. select-none: it is chrome, not content. */}
-        <div className="flex h-16 shrink-0 items-center gap-2 px-5">
-          <Link href="/" aria-label="Overview" className="flex shrink-0 select-none items-center">
+      {/* w-72, not the app shell's w-64: the wordmark and the role badge share
+          this column's first line, and at 64 they do not both fit. */}
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col md:flex">
+        {/* The wordmark heads the column with the role badge on its right, as it
+            has always sat. White-wordmark for dark mode, black for light.
+            select-none: chrome is not content — dragging across it must never
+            leave it highlighted. */}
+        <div className="flex h-16 shrink-0 select-none items-center gap-2 px-5">
+          <Link href="/" aria-label="Overview" className="flex shrink-0 items-center">
             <Image
               src="/ngig-logo.png"
               alt="ngig.cloud"
               width={352}
               height={96}
               priority
-              className="hidden h-10 w-auto dark:block"
+              className="hidden h-8 w-auto dark:block"
             />
             <Image
               src="/ngig-logo-light.png"
@@ -207,12 +213,12 @@ export function DashboardShell({
               width={352}
               height={96}
               priority
-              className="block h-10 w-auto dark:hidden"
+              className="block h-8 w-auto dark:hidden"
             />
           </Link>
-        </div>
-        <div className="px-5 pb-3">
-          <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
+          <span className="shrink-0">
+            <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
+          </span>
         </div>
         <SidebarNav user={user} badges={badges} sections={sections} />
       </aside>
@@ -225,7 +231,7 @@ export function DashboardShell({
       <header className="sticky top-0 z-40 flex h-16 items-center gap-3 bg-[var(--surface-chrome)] px-3 sm:px-5">
         {/* left: drawer trigger + wordmark — mobile only, since on desktop the
             navigation column carries both */}
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2 md:hidden">
+        <div className="flex shrink-0 select-none items-center gap-0.5 sm:gap-2 md:hidden">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
               <Button
@@ -239,7 +245,7 @@ export function DashboardShell({
             </SheetTrigger>
             <SheetContent
               side="left"
-              className="top-16 h-[calc(100%-4rem)] w-64 border-r border-zinc-800/60 bg-[var(--surface-chrome)] p-0 sm:max-w-64 md:hidden"
+              className="top-16 h-[calc(100%-4rem)] w-72 border-r border-zinc-800/60 bg-[var(--surface-chrome)] p-0 sm:max-w-72 md:hidden"
               overlayClassName="top-16 md:hidden"
             >
               <SheetHeader className="sr-only">

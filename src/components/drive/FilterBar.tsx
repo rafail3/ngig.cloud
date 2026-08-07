@@ -151,7 +151,7 @@ export function FilterBar() {
           overflow after the height animation to keep them from being clipped. */}
       <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
         <div className="pt-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Type — multi-select; closes after each pick */}
             <FilterMenu
               label={typeLabel}
@@ -261,13 +261,16 @@ function FilterMenu({
   const menu = useMenuModality();
 
   return (
-    <div className="min-w-0 flex-1" data-keep-selection>
+    // Sized to its own label rather than stretched across the row: a filter
+    // that spans a third of the page reads as an input field, not as a chip,
+    // and the three of them together made the bar look like a form.
+    <div className="min-w-0" data-keep-selection>
       <DropdownMenu>
         <DropdownMenuTrigger asChild {...menu.triggerProps}>
           <Button
             type="button"
             variant="outline"
-            className={`group h-auto w-full justify-between gap-1.5 rounded-lg px-3.5 py-2 shadow-none ${
+            className={`group h-auto justify-between gap-1.5 rounded-lg px-3.5 py-2 shadow-none ${
               active
                 ? "border-indigo-500/50 bg-indigo-500/10 text-zinc-100 dark:border-indigo-500/50 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/15"
                 : "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-900"

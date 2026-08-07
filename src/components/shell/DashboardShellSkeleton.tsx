@@ -10,12 +10,10 @@ export function DashboardShellSkeleton() {
   return (
     <div className="flex min-h-screen bg-[var(--surface-chrome)] text-zinc-50">
       {/* Navigation column */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col md:flex">
-        <div className="flex h-16 shrink-0 items-center px-5">
-          <Skeleton className="h-10 w-32 rounded bg-zinc-800/60 dark:bg-zinc-900" />
-        </div>
-        <div className="px-5 pb-3">
-          <Skeleton className="h-5 w-24 rounded-full bg-zinc-800/60 dark:bg-zinc-900" />
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col md:flex">
+        <div className="flex h-16 shrink-0 items-center gap-2 px-5">
+          <Skeleton className="h-8 w-28 rounded bg-zinc-800/60 dark:bg-zinc-900" />
+          <Skeleton className="h-5 w-24 shrink-0 rounded-full bg-zinc-800/60 dark:bg-zinc-900" />
         </div>
         <nav className="flex-1 space-y-1 px-3 py-4">
           {Array.from({ length: 5 }).map((_, i) => (

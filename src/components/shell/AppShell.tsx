@@ -80,8 +80,11 @@ function AppNav({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  // select-none across the whole column: navigation is chrome, not content —
+  // nobody copies a menu label, and dragging across it only ever highlighted it
+  // by accident.
   return (
-    <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+    <nav className="flex-1 select-none space-y-0.5 overflow-y-auto px-3 py-4">
       <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
         Navigare
       </p>
@@ -261,7 +264,7 @@ export function AppShell({
       <header className="sticky top-0 z-40 flex h-16 items-center gap-2 bg-[var(--surface-chrome)] px-3 sm:gap-3 sm:px-5">
         {/* left: drawer trigger + wordmark — mobile only, since on desktop the
             navigation column carries both */}
-        <div className="flex shrink-0 items-center gap-2 md:hidden">
+        <div className="flex shrink-0 select-none items-center gap-2 md:hidden">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
               <Button
