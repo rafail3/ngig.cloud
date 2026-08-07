@@ -24,10 +24,14 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Avatar } from "./Avatar";
 import { AppVersion } from "./AppVersion";
 import { RoleBadge } from "@/components/dashboard/RoleBadge";
+import { Button } from "@/components/ui/button";
+import { useMenuModality } from "@/lib/useMenuModality";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -171,6 +175,7 @@ export function DashboardShell({
 }) {
   // Controlled only so a nav link can close the drawer behind it.
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const userMenu = useMenuModality();
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
@@ -178,11 +183,15 @@ export function DashboardShell({
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/90 px-3 backdrop-blur-md sm:px-5">
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger
-              aria-label="Meniu"
-              className="-ml-1 rounded-lg p-2 text-zinc-300 transition-colors hover:bg-zinc-900 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50 md:hidden"
-            >
-              <Menu className="h-5 w-5" />
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Meniu"
+                className="-ml-1 text-zinc-300 hover:bg-zinc-900 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50 md:hidden"
+              >
+                <Menu className="size-5" />
+              </Button>
             </SheetTrigger>
             <SheetContent
               side="left"
@@ -231,15 +240,20 @@ export function DashboardShell({
           <NotificationBell />
           <ThemeToggle />
           <DropdownMenu>
-            <DropdownMenuTrigger className="group flex items-center gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50">
-              <Avatar username={user.username} />
-              <span className="hidden max-w-[120px] truncate font-medium sm:inline">
-                {user.username}
-              </span>
-              <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />
+            <DropdownMenuTrigger asChild {...userMenu.triggerProps}>
+              <Button
+                variant="ghost"
+                className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+              >
+                <Avatar username={user.username} />
+                <span className="hidden max-w-[120px] truncate font-medium sm:inline">
+                  {user.username}
+                </span>
+                <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />
+              </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-64 p-0">
+            <DropdownMenuContent align="end" className="w-64 p-0" {...userMenu.contentProps}>
               <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3.5">
                 <Avatar username={user.username} className="h-9 w-9 text-sm" />
                 <div className="min-w-0">
@@ -253,19 +267,17 @@ export function DashboardShell({
 
               {/* A read-only fact, so deliberately not a menu item: it must not
                   take focus or look clickable. */}
-              <div className="p-1.5">
-                <div className="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm">
-                  <span className="flex items-center gap-2.5 text-zinc-400">
-                    <ShieldCheck className="h-4 w-4" /> Rol
-                  </span>
-                  <span className="font-medium text-zinc-200">
-                    {user.isSuperAdmin ? "Super admin" : "Manager"}
-                  </span>
-                </div>
-              </div>
+              <DropdownMenuLabel className="mx-1.5 flex items-center justify-between px-2.5 py-2 font-normal">
+                <span className="flex items-center gap-2.5 text-zinc-400">
+                  <ShieldCheck className="h-4 w-4" /> Rol
+                </span>
+                <span className="font-medium text-zinc-200">
+                  {user.isSuperAdmin ? "Super admin" : "Manager"}
+                </span>
+              </DropdownMenuLabel>
 
               <DropdownMenuSeparator className="mx-0" />
-              <div className="p-1.5">
+              <DropdownMenuGroup className="p-1.5">
                 <DropdownMenuItem
                   variant="destructive"
                   onSelect={() => {
@@ -274,7 +286,7 @@ export function DashboardShell({
                 >
                   <LogOut className="h-4 w-4" /> Deconectează-te
                 </DropdownMenuItem>
-              </div>
+              </DropdownMenuGroup>
 
               <div className="border-t border-zinc-800 px-4 py-2 text-center">
                 <AppVersion />

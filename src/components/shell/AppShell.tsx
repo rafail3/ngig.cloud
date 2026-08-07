@@ -18,11 +18,15 @@ import { prefetchDrive, useDriveRealtime, useFolder } from "@/components/drive/u
 import { OfficeStatusProvider } from "@/components/drive/OfficeStatusProvider";
 import { Avatar } from "./Avatar";
 import { AppVersion } from "./AppVersion";
+import { Button } from "@/components/ui/button";
+import { useMenuModality } from "@/lib/useMenuModality";
 import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -110,6 +114,7 @@ export function AppShell({
   // Controlled (rather than left to the Sheet) only because a nav link has to
   // close it on click.
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const userMenu = useMenuModality();
   const pathname = usePathname();
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin").map((i) =>
     i.href === "/transfers" ? { ...i, badge: pendingTransfers } : i,
@@ -136,12 +141,15 @@ export function AppShell({
         {/* left: menu button (all sizes) + logo */}
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger
-              aria-label="Meniu"
-              className="flex items-center gap-2 rounded-lg border border-zinc-800/80 bg-zinc-900/50 px-2.5 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:border-zinc-700 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
-            >
-              <Menu className="h-5 w-5" />
-              <span className="hidden font-medium sm:inline">Meniu</span>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                aria-label="Meniu"
+                className="h-auto gap-2 rounded-lg border-zinc-800/80 bg-zinc-900/50 px-2.5 py-2 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:border-zinc-700 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+              >
+                <Menu className="size-5" />
+                <span className="hidden font-medium sm:inline">Meniu</span>
+              </Button>
             </SheetTrigger>
 
             {/* The drawer sits under the navbar, as it always has. What is new
@@ -242,17 +250,22 @@ export function AppShell({
           <NotificationBell />
           <ThemeToggle />
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50">
-              <Avatar username={user.username} />
-              <span className="hidden max-w-[140px] truncate font-medium sm:inline">
-                {user.username}
-              </span>
+            <DropdownMenuTrigger asChild {...userMenu.triggerProps}>
+              <Button
+                variant="ghost"
+                className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+              >
+                <Avatar username={user.username} />
+                <span className="hidden max-w-[140px] truncate font-medium sm:inline">
+                  {user.username}
+                </span>
               {/* Rotates from the menu's own state rather than from a boolean we
                   keep in parallel — one source of truth for "open". */}
-              <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />
+                <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />
+              </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-64 p-0">
+            <DropdownMenuContent align="end" className="w-64 p-0" {...userMenu.contentProps}>
               <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3.5">
                 <Avatar username={user.username} className="h-9 w-9 text-sm" />
                 <div className="min-w-0">
@@ -268,26 +281,31 @@ export function AppShell({
                 </div>
               </div>
 
-              <div className="p-1.5">
+              {/* Group, not a plain div. Radix collects the navigable items
+                  through these components — arrow keys walk what is inside a
+                  Group, and a Label is explicitly skipped. Wrapping items in an
+                  anonymous div is what left the menu tabbable but not
+                  arrow-navigable. */}
+              <DropdownMenuGroup className="p-1.5">
                 <DropdownMenuItem asChild>
                   <Link href="/profil">
                     <UserRound className="h-4 w-4 text-zinc-400" /> Profilul meu
                   </Link>
                 </DropdownMenuItem>
-                {/* Not an item: it is a read-only fact, so it must not be
-                    focusable or look clickable. */}
-                <div className="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm">
+                {/* A read-only fact: a Label rather than an item, so it is
+                    announced but never focused or made to look clickable. */}
+                <DropdownMenuLabel className="flex items-center justify-between px-2.5 py-2 font-normal">
                   <span className="flex items-center gap-2.5 text-zinc-400">
                     <ShieldCheck className="h-4 w-4" /> Rol
                   </span>
                   <span className="font-medium capitalize text-zinc-200">
                     {user.role || "user"}
                   </span>
-                </div>
-              </div>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
 
               <DropdownMenuSeparator className="mx-0" />
-              <div className="p-1.5">
+              <DropdownMenuGroup className="p-1.5">
                 {/* The server action is called directly instead of through a
                     form: a menu item that submits a form has to survive the menu
                     closing around it, and the action redirects anyway. */}
@@ -299,7 +317,7 @@ export function AppShell({
                 >
                   <LogOut className="h-4 w-4" /> Deconectează-te
                 </DropdownMenuItem>
-              </div>
+              </DropdownMenuGroup>
 
               <div className="border-t border-zinc-800 px-4 py-2 text-center">
                 <AppVersion />
