@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.45.0](https://github.com/rafail3/ngig.cloud/compare/v2.44.0...v2.45.0) (2026-08-07)
+
+
+### Features
+
+* **ui:** shadcn foundation on Radix, and the drive's two worst layout shifts ([0e27b89](https://github.com/rafail3/ngig.cloud/commit/0e27b89064379a8f90091ef9ac46bfed55dd4fa4))
+* **ui:** shadcn foundation on Radix, and the drive's two worst layout shifts ([78d0366](https://github.com/rafail3/ngig.cloud/commit/78d0366bcaf41fa24d703e373fc8b0173103cd14))
+
 ## [2.44.0](https://github.com/rafail3/ngig.cloud/compare/v2.43.1...v2.44.0) (2026-08-06)
 
 
