@@ -188,24 +188,51 @@ export function DashboardShell({
     <div className="flex min-h-screen bg-[var(--surface-chrome)] text-zinc-50">
       {/* ===== Desktop navigation column ===== */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col md:flex">
-        {/* An empty band the height of the header, so the navigation starts on
-            the same line as the content panel below it. The wordmark lives in
-            the header. */}
-        <div className="h-16 shrink-0" />
+        {/* The wordmark heads the column, on the same line as the header beside
+            it — otherwise this band sits empty. White-wordmark for dark mode,
+            black-wordmark for light. select-none: it is chrome, not content. */}
+        <div className="flex h-16 shrink-0 items-center gap-2 px-5">
+          <Link href="/" aria-label="Overview" className="flex shrink-0 select-none items-center">
+            <Image
+              src="/ngig-logo.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="hidden h-10 w-auto dark:block"
+            />
+            <Image
+              src="/ngig-logo-light.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="block h-10 w-auto dark:hidden"
+            />
+          </Link>
+        </div>
+        <div className="px-5 pb-3">
+          <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
+        </div>
         <SidebarNav user={user} badges={badges} sections={sections} />
       </aside>
 
       {/* ===== Content column ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
-      <header className="sticky top-0 z-40 flex h-16 items-center gap-3 px-3 sm:px-5">
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+      {/* Opaque, not transparent: the page scrolls underneath a sticky header,
+          so without a background the rows travel visibly across the bell and
+          the avatar. */}
+      <header className="sticky top-0 z-40 flex h-16 items-center gap-3 bg-[var(--surface-chrome)] px-3 sm:px-5">
+        {/* left: drawer trigger + wordmark — mobile only, since on desktop the
+            navigation column carries both */}
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2 md:hidden">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Meniu"
-                className="-ml-1 text-zinc-300 hover:bg-zinc-800/60 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50 md:hidden"
+                className="-ml-1 text-zinc-300 hover:bg-zinc-800/60 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
               >
                 <Menu className="size-5" />
               </Button>

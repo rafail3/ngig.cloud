@@ -223,10 +223,30 @@ export function AppShell({
     <div className="flex min-h-screen bg-[var(--surface-chrome)] text-zinc-50">
       {/* ===== Desktop navigation column ===== */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col md:flex">
-        {/* An empty band the height of the header, so the navigation starts on
-            the same line as the content panel below it. The wordmark lives in
-            the header, not here. */}
-        <div className="h-16 shrink-0" />
+        {/* The wordmark heads the column, on the same line as the header beside
+            it — otherwise this band sits empty while the header carries a logo
+            that has nothing to its left. select-none: it is chrome, not content,
+            so dragging across it must never leave it highlighted. */}
+        <div className="flex h-16 shrink-0 items-center px-5">
+          <Link href="/" aria-label="Acasă" className="flex select-none items-center">
+            <Image
+              src="/ngig-logo.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="hidden h-10 w-auto dark:block"
+            />
+            <Image
+              src="/ngig-logo-light.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="block h-10 w-auto dark:hidden"
+            />
+          </Link>
+        </div>
 
         <AppNav items={items} />
         <DrawerStorage />
@@ -234,24 +254,28 @@ export function AppShell({
 
       {/* ===== Content column: its own header, then the lifted panel ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
-      <header className="sticky top-0 z-40 flex h-16 items-center gap-2 px-3 sm:gap-3 sm:px-5">
-        {/* left: drawer trigger (mobile only — the sidebar is always there on
-            desktop) + the wordmark */}
-        <div className="flex shrink-0 items-center gap-2">
+      {/* Opaque, not transparent: the page scrolls underneath a sticky header,
+          so without a background the rows travel visibly across the bell and
+          the avatar. It repaints the chrome exactly — the colour step down to
+          the content panel below is what separates the two, so no border. */}
+      <header className="sticky top-0 z-40 flex h-16 items-center gap-2 bg-[var(--surface-chrome)] px-3 sm:gap-3 sm:px-5">
+        {/* left: drawer trigger + wordmark — mobile only, since on desktop the
+            navigation column carries both */}
+        <div className="flex shrink-0 items-center gap-2 md:hidden">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Meniu"
-                className="-ml-1 text-zinc-300 hover:bg-zinc-800/60 hover:text-zinc-50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50 md:hidden"
+                className="-ml-1 text-zinc-300 hover:bg-zinc-800/60 hover:text-zinc-50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
               >
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
 
-            {/* The drawer sits under the header, which owns the wordmark on
-                every size. Everything the hand-rolled version lacked is still
+            {/* The drawer sits under the header, which carries the wordmark at
+                this size. Everything the hand-rolled version lacked is still
                 here: the page behind it stops scrolling, focus is trapped
                 inside and handed back to the burger on close, and Escape
                 works. */}
