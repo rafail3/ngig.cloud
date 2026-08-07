@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.45.1](https://github.com/rafail3/ngig.cloud/compare/v2.45.0...v2.45.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **ui:** give bare borders the theme colour instead of the text colour ([51c6d2c](https://github.com/rafail3/ngig.cloud/commit/51c6d2cc823ecbf1f21ce794e5c78cdcbecf7750))
+* **ui:** give menu triggers a focus style of their own ([a9758c6](https://github.com/rafail3/ngig.cloud/commit/a9758c6ecf6d2ab212d46f9dd974525083e4166b))
+* **ui:** size the trigger icons correctly and drop the ring after a click ([1ddeefc](https://github.com/rafail3/ngig.cloud/commit/1ddeefcc977a8d726571eb0e745615cbc874a818))
+* **ui:** stop focus rings appearing for mouse users ([eb9ca16](https://github.com/rafail3/ngig.cloud/commit/eb9ca1689c73a42b20be5663e7a60a1503f887c8))
+* **ui:** stop focus rings appearing for mouse users ([f682dc0](https://github.com/rafail3/ngig.cloud/commit/f682dc0f014e4fc6ee83151ca262415716f4838b))
+
 ## [2.45.0](https://github.com/rafail3/ngig.cloud/compare/v2.44.0...v2.45.0) (2026-08-07)
 
 
