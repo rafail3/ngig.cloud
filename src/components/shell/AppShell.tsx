@@ -80,8 +80,11 @@ function AppNav({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  // select-none across the whole column: navigation is chrome, not content —
+  // nobody copies a menu label, and dragging across it only ever highlighted it
+  // by accident.
   return (
-    <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+    <nav className="flex-1 select-none space-y-0.5 overflow-y-auto px-3 py-4">
       <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
         Navigare
       </p>
@@ -96,13 +99,16 @@ function AppNav({
             >
               {item.icon}
               <span>{item.label}</span>
-              <span className="ml-auto rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
+              <span className="ml-auto rounded bg-zinc-800/70 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
                 soon
               </span>
             </span>
           );
         }
         return (
+          // Hover is zinc-800/60, not zinc-900: the nav now sits on the chrome
+          // surface, which IS zinc-900 in light mode — the old hover would have
+          // been invisible there.
           <Link
             key={item.label}
             href={item.href}
@@ -111,7 +117,7 @@ function AppNav({
             className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
               active
                 ? "bg-indigo-500/10 font-medium text-indigo-300"
-                : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
+                : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
             }`}
           >
             {active && (
@@ -147,7 +153,10 @@ function DrawerStorage() {
   const { used, quota } = data;
   const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
   return (
-    <div className="select-none border-t border-zinc-900 px-4 py-4">
+    // The separator and the track sit on the CHROME surface, which the light
+    // mirror renders as a near-white grey — zinc-900 would vanish into it there.
+    // zinc-800/70 reads as a hairline in both modes.
+    <div className="select-none border-t border-zinc-800/70 px-4 py-4">
       <div className="mb-1.5 flex items-center justify-between text-xs">
         <span className="font-medium text-zinc-400">Spațiu folosit</span>
         {quota ? <span className="tabular-nums text-zinc-500">{pct}%</span> : null}
@@ -158,7 +167,7 @@ function DrawerStorage() {
       <Progress
         value={quota ? pct : 100}
         aria-label="Spațiu folosit"
-        className={`h-1.5 bg-zinc-900 ${quota ? "" : "opacity-30"}`}
+        className={`h-1.5 bg-zinc-800/70 ${quota ? "" : "opacity-30"}`}
         indicatorClassName="bg-indigo-500"
       />
       <p className="mt-1.5 text-xs text-zinc-500">
@@ -203,33 +212,79 @@ export function AppShell({
     <ContextMenuProvider>
     <OfficeStatusProvider>
     <UploadProvider>
-    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
-      {/* ===== Top navbar ===== */}
-      <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/90 px-3 backdrop-blur-md sm:px-5">
-        {/* left: menu button (all sizes) + logo */}
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+    {/* The frame: a full-height navigation column beside a content column that
+        owns its own header. The alternative — a full-width bar across the top
+        with the sidebar hung underneath it — is what made the two meet in an
+        awkward crossing of borders at the corner. Here they never cross: the
+        sidebar runs the whole height, the header starts where the sidebar ends.
+
+        Two surfaces, one step apart: the chrome (this element, the sidebar and
+        the header) sits behind, and the content panel below is lifted off it.
+        The pairs are written explicitly per theme because the light palette
+        mirrors the zinc scale — `zinc-900` is the DARKER of the two in light
+        and the LIGHTER in dark, so one class cannot express "lifted" in both. */}
+    <div className="flex min-h-screen bg-[var(--surface-chrome)] text-zinc-50">
+      {/* ===== Desktop navigation column ===== */}
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col md:flex">
+        {/* The wordmark heads the column, on the same line as the header beside
+            it — otherwise this band sits empty while the header carries a logo
+            that has nothing to its left. select-none: it is chrome, not content,
+            so dragging across it must never leave it highlighted. */}
+        <div className="flex h-16 shrink-0 items-center px-5">
+          <Link href="/" aria-label="Acasă" className="flex select-none items-center">
+            <Image
+              src="/ngig-logo.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="hidden h-10 w-auto dark:block"
+            />
+            <Image
+              src="/ngig-logo-light.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="block h-10 w-auto dark:hidden"
+            />
+          </Link>
+        </div>
+
+        <AppNav items={items} />
+        <DrawerStorage />
+      </aside>
+
+      {/* ===== Content column: its own header, then the lifted panel ===== */}
+      <div className="flex min-w-0 flex-1 flex-col">
+      {/* Opaque, not transparent: the page scrolls underneath a sticky header,
+          so without a background the rows travel visibly across the bell and
+          the avatar. It repaints the chrome exactly — the colour step down to
+          the content panel below is what separates the two, so no border. */}
+      <header className="sticky top-0 z-40 flex h-16 items-center gap-2 bg-[var(--surface-chrome)] px-3 sm:gap-3 sm:px-5">
+        {/* left: drawer trigger + wordmark — mobile only, since on desktop the
+            navigation column carries both */}
+        <div className="flex shrink-0 select-none items-center gap-2 md:hidden">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
               <Button
-                variant="outline"
+                variant="ghost"
+                size="icon"
                 aria-label="Meniu"
-                className="h-auto gap-2 rounded-lg border-zinc-800/80 bg-zinc-900/50 px-2.5 py-2 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:border-zinc-700 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50 md:hidden"
+                className="-ml-1 text-zinc-300 hover:bg-zinc-800/60 hover:text-zinc-50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
               >
                 <Menu className="size-5" />
-                <span className="hidden font-medium sm:inline">Meniu</span>
               </Button>
             </SheetTrigger>
 
-            {/* The drawer sits under the navbar, as it always has. What is new
-                is everything the hand-rolled version lacked: the page behind it
-                stops scrolling, focus is trapped inside and handed back to the
-                burger on close, and Escape works. */}
+            {/* The drawer sits under the header, which carries the wordmark at
+                this size. Everything the hand-rolled version lacked is still
+                here: the page behind it stops scrolling, focus is trapped
+                inside and handed back to the burger on close, and Escape
+                works. */}
             <SheetContent
               side="left"
-              // Height is explicit: the primitive ships `h-full`, which with a
-              // top of 4rem would hang 4rem past the bottom of the screen and
-              // push the storage footer out of view.
-              className="top-16 h-[calc(100%-4rem)] w-72 border-r border-zinc-900 bg-zinc-950/95 p-0 backdrop-blur sm:max-w-72 md:hidden"
+              className="top-16 h-[calc(100%-4rem)] w-72 border-r border-zinc-800/60 bg-[var(--surface-chrome)] p-0 sm:max-w-72 md:hidden"
               overlayClassName="top-16 backdrop-blur-sm md:hidden"
             >
               <SheetHeader className="sr-only">
@@ -264,14 +319,14 @@ export function AppShell({
         {/* right: notifications + theme + user menu (profile & logout live inside).
             The marker lets the notification panel hang off this cluster's right
             edge rather than off the bell, which sits in the middle of it. */}
-        <div data-navbar-actions className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+        <div data-navbar-actions className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
           <NotificationBell />
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild {...userMenu.triggerProps}>
               <Button
                 variant="ghost"
-                className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+                className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-800/60 hover:text-zinc-50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
               >
                 <Avatar username={user.username} />
                 <span className="hidden max-w-[140px] select-none truncate font-medium sm:inline">
@@ -347,17 +402,13 @@ export function AppShell({
         </div>
       </header>
 
-      {/* ===== Body: sidebar + content ===== */}
-      <div className="flex flex-1">
-        {/* Desktop keeps the column in the flow — it is navigation, not an
-            overlay, so it should not trap focus or dim the page. Same pattern
-            as the admin DashboardShell. */}
-        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 flex-col border-r border-zinc-900 bg-zinc-950 md:flex">
-          <AppNav items={items} />
-          <DrawerStorage />
-        </aside>
-
-        <main className="min-w-0 flex-1">{children}</main>
+      {/* The lifted content panel. The rounded corner and the one-step surface
+          change are what make this read as an application frame rather than a
+          web page with a menu beside it. Only the corner meeting the sidebar is
+          rounded, and only where a sidebar exists. */}
+      <main className="min-w-0 flex-1 border-zinc-200/70 bg-[var(--surface-panel)] dark:border-zinc-800/60 md:rounded-tl-2xl md:border-l md:border-t">
+        {children}
+      </main>
       </div>
 
       {/* Floating upload progress panel (visible across all app pages) */}

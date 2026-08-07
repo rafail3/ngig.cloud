@@ -73,10 +73,11 @@ export function DriveBoard() {
         thumbFailedAt: f.thumb_failed_at,
       }))}
     >
-      {/* Search + filters stick to the top (just under the navbar) as you
-          scroll. Solid background + hairline so scrolled content tucks cleanly
-          underneath without fading the content at rest. */}
-      <div className="sticky top-16 z-30 -mx-4 mb-6 border-b border-zinc-900 bg-zinc-950 px-4 pb-3 pt-3 sm:-mx-6 sm:px-6">
+      {/* Search + filters stick to the top (just under the header) as you
+          scroll. The background is the content panel's own surface token, not a
+          zinc shade: it has to repaint the panel exactly, or the rows scrolling
+          underneath would show through a mismatched band. */}
+      <div className="sticky top-16 z-30 -mx-4 mb-6 border-b border-zinc-800/60 bg-[var(--surface-panel)] px-4 pb-3 pt-3 sm:-mx-6 sm:px-6">
         <FilterBar />
       </div>
 

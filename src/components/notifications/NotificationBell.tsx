@@ -198,7 +198,7 @@ export function NotificationBell() {
           type="button"
           aria-label={unread > 0 ? `Notificări (${unread} necitite)` : "Notificări"}
           title="Notificări"
-          className="relative rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+          className="relative rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-800/60 hover:text-zinc-50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
         >
           <Bell className="h-5 w-5" />
           {unread > 0 && (
