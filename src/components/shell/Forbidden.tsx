@@ -1,5 +1,6 @@
 import { ShieldX } from "lucide-react";
 import { dashboardSignOut } from "@/app/dashboard/actions";
+import { Button } from "@/components/ui/button";
 
 // Shown when a logged-in non-admin reaches the dashboard panel. Signing out
 // here also breaks any redirect loop for a stray non-admin session.
@@ -16,12 +17,13 @@ export function Forbidden() {
         </p>
       </div>
       <form action={dashboardSignOut}>
-        <button
+        <Button
           type="submit"
-          className="rounded-xl border border-zinc-800 px-4 py-2.5 text-sm text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
+          variant="outline"
+          className="h-auto rounded-xl border-zinc-800 bg-transparent px-4 py-2.5 text-zinc-300 hover:border-zinc-700 hover:bg-transparent hover:text-zinc-50"
         >
           Deconectează-te
-        </button>
+        </Button>
       </form>
     </div>
   );
