@@ -122,8 +122,18 @@ export function DriveBoard() {
           </HiddenWhileSearching>
 
           {/* Suggested (recent) files — only on the home root, hidden while
-              searching/filtering. */}
-          {folderId === null && <SuggestedFiles />}
+              searching/filtering.
+
+              Gated on the LOADED DATA rather than on the URL parameter, and
+              that distinction is the fix for the drive's worst flicker. The two
+              change at different times: the URL flips the instant you click a
+              folder, while the folder's data lands ~300ms later. Reading the
+              layout off the URL therefore removed this section immediately
+              (everything jumped up 86px) and then added the breadcrumb when the
+              data arrived (everything dropped back 36px) — two visible jumps for
+              one navigation. Off the data, both happen in the same frame: one
+              step, which reads as "the page changed" rather than as a glitch. */}
+          {breadcrumb.length === 0 && <SuggestedFiles />}
 
           <SelectionBar />
 

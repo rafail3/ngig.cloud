@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Keyframes the shadcn primitives animate their open/closed states with. */
+@import "tw-animate-css";
 
 /* Dark mode is driven by a `.dark` class on <html> (set by the theme script /
    ThemeProvider), not by the OS media query — so the toggle can force a theme. */
@@ -7,6 +9,78 @@
 @theme inline {
   --font-sans: var(--font-manrope, ui-sans-serif);
   --font-mono: var(--font-geist-mono, ui-monospace);
+
+  /* shadcn's semantic tokens. They exist so a primitive can say `bg-card`
+     instead of naming a shade, which is what makes one component look right on
+     every surface without knowing where it was dropped. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ===========================================================================
+   The semantic tokens are DERIVED from the scales above, never defined beside
+   them. That is the whole trick: light mode already works by remapping
+   `--color-zinc-*` (see below), and because these point AT those variables, the
+   shadcn primitives inherit that remap for free — in both modes, from one
+   source of truth. Define them independently and the two systems drift apart
+   the first time someone touches one of them.
+   =========================================================================== */
+:root {
+  /* Cards are rounded-xl in this design; the derived md/sm land on the button
+     and input radii already in use. */
+  --radius: 0.625rem;
+
+  --background: var(--color-zinc-950);
+  --foreground: var(--color-zinc-100);
+  --card: var(--color-zinc-900);
+  --card-foreground: var(--color-zinc-100);
+  --popover: var(--color-zinc-900);
+  --popover-foreground: var(--color-zinc-100);
+
+  /* The brand accent. The remap below already points the indigo scale at
+     electric blue, so naming indigo-500 here follows the brand without stating
+     the colour a second place — and the light mirror leaves 500 untouched, so
+     one reference is correct in both modes. */
+  --primary: var(--color-indigo-500);
+  --primary-foreground: var(--color-white);
+
+  --secondary: var(--color-zinc-800);
+  --secondary-foreground: var(--color-zinc-100);
+  --muted: var(--color-zinc-800);
+  /* zinc-400 deliberately, not 500: 500 measures under 4.5:1 on these surfaces,
+     and secondary text still has to be readable. */
+  --muted-foreground: var(--color-zinc-400);
+  --accent: var(--color-zinc-800);
+  --accent-foreground: var(--color-zinc-50);
+
+  --destructive: var(--color-red-500);
+  --destructive-foreground: var(--color-white);
+
+  --border: var(--color-zinc-800);
+  --input: var(--color-zinc-800);
+  --ring: var(--color-indigo-500);
 }
 
 /* ===========================================================================
