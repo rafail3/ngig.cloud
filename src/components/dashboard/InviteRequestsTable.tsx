@@ -1,7 +1,8 @@
 "use client";
 
+import { ModalShell } from "@/components/drive/anim";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Check, Copy, Trash2, ChevronDown } from "lucide-react";
 import {
   approveRequestAction,
@@ -152,49 +153,36 @@ function ConfirmDeleteModal({
   email: string;
   onClose: () => void;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose]);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
-          <Trash2 className="h-5 w-5 text-red-400" />
-        </div>
-        <h3 className="mt-4 text-base font-semibold text-zinc-100">Ștergi cererea?</h3>
-        <p className="mt-1.5 text-sm text-zinc-400">
-          Cererea de la{" "}
-          <span className="break-all text-zinc-300">{email}</span>{" "}
-          dispare definitiv din istoric. Acțiunea nu poate fi anulată.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="unstyled"
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
-          >
-            Anulează
-          </Button>
-          <form action={deleteRequestAction}>
-            <input type="hidden" name="id" value={id} />
-            <Button variant="unstyled"
-              type="submit"
-              className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
-            >
-              Șterge
-            </Button>
-          </form>
-        </div>
+    <ModalShell onClose={onClose} title="Ștergi cererea?">
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
+        <Trash2 className="h-5 w-5 text-red-400" />
       </div>
-    </div>
+      <h3 className="mt-4 text-base font-semibold text-zinc-100">Ștergi cererea?</h3>
+      <p className="mt-1.5 text-sm text-zinc-400">
+        Cererea de la{" "}
+        <span className="break-all text-zinc-300">{email}</span>{" "}
+        dispare definitiv din istoric. Acțiunea nu poate fi anulată.
+      </p>
+      <div className="mt-5 flex justify-end gap-2">
+        <Button variant="unstyled"
+          type="button"
+          onClick={onClose}
+          className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+        >
+          Anulează
+        </Button>
+        <form action={deleteRequestAction}>
+          <input type="hidden" name="id" value={id} />
+          <Button variant="unstyled"
+            type="submit"
+            className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500"
+          >
+            Șterge
+          </Button>
+        </form>
+      </div>
+    </ModalShell>
   );
 }
 

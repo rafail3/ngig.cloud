@@ -25,18 +25,23 @@ export function SettingSwitch({
   checked: boolean;
   onCheckedChange: () => void;
   disabled?: boolean;
-  size?: "default" | "sm";
+  size?: "default" | "md" | "sm";
   tone?: "indigo" | "red";
   ariaLabel?: string;
 }) {
-  const track =
-    size === "sm"
-      ? "h-4 w-7 data-[size=default]:h-4 data-[size=default]:w-7"
-      : "h-6 w-11 data-[size=default]:h-6 data-[size=default]:w-11";
-  const thumb =
-    size === "sm"
-      ? "size-3 group-data-[size=default]/switch:size-3 data-[state=checked]:translate-x-3.5 data-[state=unchecked]:translate-x-0.5"
-      : "size-5 group-data-[size=default]/switch:size-5 data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0.5";
+  // The track sizes are written twice because the primitive states its own
+  // through a data attribute, which outranks a bare utility class.
+  const track = {
+    sm: "h-4 w-7 data-[size=default]:h-4 data-[size=default]:w-7",
+    md: "h-5 w-9 data-[size=default]:h-5 data-[size=default]:w-9",
+    default: "h-6 w-11 data-[size=default]:h-6 data-[size=default]:w-11",
+  }[size];
+  const thumb = {
+    sm: "size-3 group-data-[size=default]/switch:size-3 data-[state=checked]:translate-x-3.5 data-[state=unchecked]:translate-x-0.5",
+    md: "size-3.5 group-data-[size=default]/switch:size-3.5 data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-1",
+    default:
+      "size-5 group-data-[size=default]/switch:size-5 data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0.5",
+  }[size];
 
   return (
     <Switch

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { saveUploadTypesAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { SettingSwitch } from "./SettingSwitch";
+import { SettingSwitch } from "@/components/common/SettingSwitch";
 
 // One segment of a filter pill row: the primitive's dot is dropped because the
 // choice reads from the filled background instead.

@@ -1,12 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { ModalShell } from "@/components/drive/anim";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { User, Shield, Plus, BellOff, Pencil, X, RotateCcw, Search } from "lucide-react";
 import { Select } from "@/components/support/Select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { SettingSwitch } from "./SettingSwitch";
+import { SettingSwitch } from "@/components/common/SettingSwitch";
 import {
   setNotificationEnabledAction,
   setNotificationTemplateAction,
@@ -272,19 +273,6 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
     onClose();
   }
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") attemptClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirty]);
-
   function save() {
     const tt = title.trim();
     const bb = body.trim();
@@ -315,9 +303,13 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={attemptClose} />
-      <div className="relative flex max-h-[85vh] w-full max-w-lg flex-col overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
+    // attemptClose rather than onClose: Escape and the scrim both go through
+    // the unsaved-changes prompt, exactly as the close button does.
+    <ModalShell
+      onClose={attemptClose}
+      title="Editează mesajul"
+      className="flex max-h-[85vh] max-w-lg flex-col overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl"
+    >
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-base font-semibold text-zinc-100">Editează mesajul</h3>
@@ -396,8 +388,7 @@ function EditModal({ t, onClose }: { t: NotificationTypeStatus; onClose: () => v
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 

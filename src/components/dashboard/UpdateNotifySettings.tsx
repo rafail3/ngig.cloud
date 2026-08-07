@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
-import { ToggleRow } from "./SettingSwitch";
+import { ToggleRow } from "@/components/common/SettingSwitch";
 import { AnimatePresence, motion } from "motion/react";
 import { Megaphone, Shield, User } from "lucide-react";
 import { saveUpdateNotifySettingsAction } from "@/app/dashboard/(panel)/settings/actions";

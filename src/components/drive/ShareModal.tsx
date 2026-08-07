@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { SettingSwitch } from "@/components/common/SettingSwitch";
+import { useId, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Share2,
@@ -416,30 +417,24 @@ function SwitchRow({
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const id = useId();
   return (
-    <Button variant="unstyled"
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="flex w-full items-center gap-2.5 text-left"
-    >
+    // A label pointing at the switch, not a button wrapping a drawn one: the
+    // whole row stays clickable and the control is a real switch.
+    <div className="flex w-full items-center gap-2.5 text-left">
       <Icon
         className={`h-4 w-4 shrink-0 transition-colors ${checked ? "text-indigo-400" : "text-zinc-500"}`}
       />
-      <span className="flex-1 text-sm font-medium text-zinc-200">{label}</span>
-      <span
-        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-          checked ? "bg-indigo-500" : "bg-zinc-700"
-        }`}
-      >
-        <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-            checked ? "translate-x-4" : "translate-x-1"
-          }`}
-        />
-      </span>
-    </Button>
+      <label htmlFor={id} className="flex-1 cursor-pointer text-sm font-medium text-zinc-200">
+        {label}
+      </label>
+      <SettingSwitch
+        id={id}
+        size="md"
+        checked={checked}
+        onCheckedChange={() => onChange(!checked)}
+      />
+    </div>
   );
 }
 
