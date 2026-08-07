@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { registerWithInvite } from "@/app/register/actions";
 import type { RegisterState } from "@/lib/auth-state";
@@ -77,7 +79,7 @@ export function RegisterForm({ initialCode }: { initialCode?: string }) {
         <label htmlFor="code" className={labelCls}>
           Cod de invitație
         </label>
-        <input
+        <Input variant="unstyled"
           id="code"
           type="text"
           name="code"
@@ -91,7 +93,7 @@ export function RegisterForm({ initialCode }: { initialCode?: string }) {
         <label htmlFor="username" className={labelCls}>
           Username
         </label>
-        <input
+        <Input variant="unstyled"
           id="username"
           type="text"
           name="username"
@@ -108,7 +110,7 @@ export function RegisterForm({ initialCode }: { initialCode?: string }) {
         <label htmlFor="email" className={labelCls}>
           Email
         </label>
-        <input
+        <Input variant="unstyled"
           id="email"
           type="email"
           name="email"
@@ -136,14 +138,14 @@ export function RegisterForm({ initialCode }: { initialCode?: string }) {
 
       <Turnstile resetSignal={state} onStatus={setBotReady} />
 
-      <button
+      <Button variant="unstyled"
         type="submit"
         disabled={busy || blocked}
         className="relative mt-1 rounded-xl bg-indigo-500 hover:bg-indigo-400 px-4 py-2.5 text-base font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
       >
         {pending || queued ? "Se creează contul…" : "Creează cont"}
         {busy && <Spinner className="absolute right-4 top-1/2 -translate-y-1/2" />}
-      </button>
+      </Button>
     </form>
   );
 }

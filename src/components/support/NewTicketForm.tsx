@@ -1,5 +1,8 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Send, Shapes, Flag } from "lucide-react";
@@ -77,7 +80,7 @@ export function NewTicketForm() {
     >
       <div>
         <label htmlFor="subject" className={labelCls}>Subiect</label>
-        <input
+        <Input variant="unstyled"
           id="subject"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
@@ -112,7 +115,7 @@ export function NewTicketForm() {
 
       <div>
         <label htmlFor="body" className={labelCls}>Mesaj</label>
-        <textarea
+        <Textarea variant="unstyled"
           id="body"
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -128,14 +131,14 @@ export function NewTicketForm() {
       </div>
 
       <div className="flex items-center gap-3">
-        <button
+        <Button variant="unstyled"
           type="submit"
           disabled={busy}
           className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-400 active:bg-indigo-600 disabled:opacity-60"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {uploading ? "Se încarcă…" : pending ? "Se trimite…" : "Trimite ticketul"}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Loader2 } from "lucide-react";
@@ -61,7 +63,7 @@ export function TicketComposer({
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-zinc-800/70 bg-zinc-900/40 p-4">
-      <textarea
+      <Textarea variant="unstyled"
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder={placeholder}
@@ -71,7 +73,7 @@ export function TicketComposer({
       />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <AttachmentPicker files={files} onChange={setFiles} disabled={busy} />
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={submit}
           disabled={busy}
@@ -79,7 +81,7 @@ export function TicketComposer({
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {uploading ? "Se încarcă…" : pending ? "Se trimite…" : "Trimite"}
-        </button>
+        </Button>
       </div>
       {hint && <p className="text-xs text-zinc-500">{hint}</p>}
     </div>

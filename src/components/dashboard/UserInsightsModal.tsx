@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ModalShell } from "@/components/drive/anim";
 import { useEffect, useState, useTransition } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import {
   X,
   Upload,
@@ -130,25 +130,14 @@ export function UserInsightsModal({
   }));
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:p-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      >
-        <motion.div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Activitate ${username}`}
-          className="my-4 w-full max-w-3xl overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/50"
-          initial={{ opacity: 0, y: 16, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 16, scale: 0.98 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          onClick={(e) => e.stopPropagation()}
-        >
+    // Through the shell it gains what the hand-rolled version never had: focus
+    // stays inside, Escape closes it, and the page behind it stops scrolling.
+    <ModalShell
+      onClose={onClose}
+      title={`Activitate ${username}`}
+      className="my-4 max-h-[92dvh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/50"
+    >
+      <div>
           {/* Header */}
           <div className="flex items-center gap-3 border-b border-zinc-800 bg-zinc-900/40 px-4 py-4 sm:px-6">
             <Avatar username={detail?.username ?? username} className="h-11 w-11 text-base" />
@@ -284,8 +273,7 @@ export function UserInsightsModal({
               </div>
             )}
           </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
+    </ModalShell>
   );
 }

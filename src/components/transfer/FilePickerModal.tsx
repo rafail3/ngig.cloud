@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Search, Loader2, Folder, File as FileIcon, Check, X } from "lucide-react";
 import { ModalShell } from "@/components/drive/anim";
@@ -145,20 +147,20 @@ export function FilePickerModal({
         <h3 className="min-w-0 truncate text-base font-semibold text-zinc-100">
           Alege ce trimiți
         </h3>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onCancel}
           aria-label="Închide"
           className="rounded p-1 text-zinc-400 transition hover:text-zinc-100"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       <div className="border-b border-zinc-800 p-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-          <input
+          <Input variant="unstyled"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Caută în drive-ul tău…"
@@ -186,7 +188,7 @@ export function FilePickerModal({
               const on = pickedIds.has(`${row.type}:${row.id}`);
               return (
                 <li key={`${row.type}:${row.id}`}>
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={() => toggle(row)}
                     aria-pressed={on}
@@ -222,7 +224,7 @@ export function FilePickerModal({
                         {row.size != null && ` · ${formatBytes(row.size)}`}
                       </span>
                     </span>
-                  </button>
+                  </Button>
                 </li>
               );
             })}
@@ -237,14 +239,14 @@ export function FilePickerModal({
             : `${picked.length} ${picked.length === 1 ? "element ales" : "elemente alese"}`}
         </span>
         <div className="flex gap-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onCancel}
             className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
           >
             Anulează
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={() => onConfirm(picked)}
             disabled={picked.length === 0}
@@ -252,7 +254,7 @@ export function FilePickerModal({
           >
             <FileIcon className="h-4 w-4" />
             Confirmă
-          </button>
+          </Button>
         </div>
       </div>
     </ModalShell>

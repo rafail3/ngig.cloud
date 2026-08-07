@@ -17,7 +17,7 @@ import {
 import { setManagerPermissionsAction } from "@/app/dashboard/(panel)/users/actions";
 import { useToastState } from "@/lib/useToastState";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ToggleRow } from "./SettingSwitch";
+import { ToggleRow } from "@/components/common/SettingSwitch";
 import type { UserActionState } from "@/lib/user-presence";
 
 // Mirrors DASHBOARD_SECTIONS (server/admin/guard.ts) with the nav's labels and

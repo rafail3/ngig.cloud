@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useActionState, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -53,7 +55,7 @@ function EditableRow({
           <p className="text-sm font-medium text-zinc-100">{label}</p>
           <p className="mt-0.5 truncate text-sm text-zinc-500">{value}</p>
         </div>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onToggle}
           aria-expanded={open}
@@ -64,7 +66,7 @@ function EditableRow({
           }`}
         >
           Schimbă
-        </button>
+        </Button>
       </div>
 
       <AnimatePresence initial={false}>
@@ -96,12 +98,12 @@ function FormActions({
 }) {
   return (
     <div className="flex items-center gap-2 pt-0.5">
-      <button type="submit" disabled={pending || disabled} className={saveCls}>
+      <Button variant="unstyled" type="submit" disabled={pending || disabled} className={saveCls}>
         {pending ? "Se salvează…" : "Salvează"}
-      </button>
-      <button type="button" onClick={onCancel} className={cancelCls}>
+      </Button>
+      <Button variant="unstyled" type="button" onClick={onCancel} className={cancelCls}>
         Anulează
-      </button>
+      </Button>
     </div>
   );
 }
@@ -122,7 +124,7 @@ export function UsernameForm({ currentUsername }: { currentUsername: string }) {
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor="username" className={labelCls}>Username nou</label>
-            <input
+            <Input variant="unstyled"
               id="username"
               name="username"
               type="text"
@@ -197,7 +199,7 @@ export function EmailForm({ currentEmail }: { currentEmail: string }) {
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor="email" className={labelCls}>Email nou</label>
-            <input
+            <Input variant="unstyled"
               id="email"
               name="email"
               type="email"

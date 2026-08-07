@@ -1,7 +1,9 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { SettingSwitch } from "@/components/common/SettingSwitch";
+import { useId, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Share2,
@@ -243,7 +245,7 @@ export function ShareModal({
                   transition={{ duration: 0.2, ease: "easeOut" }}
                   className="overflow-hidden"
                 >
-                  <input
+                  <Input variant="unstyled"
                     type="datetime-local"
                     value={customValue}
                     onChange={(e) => setCustomValue(e.target.value)}
@@ -264,7 +266,7 @@ export function ShareModal({
               <SwitchRow icon={Lock} label="Protejează cu parolă" checked={pwOn} onChange={setPwOn} />
               <Reveal show={pwOn}>
                 <div className="relative mt-2.5">
-                  <input
+                  <Input variant="unstyled"
                     type={showPw ? "text" : "password"}
                     value={pw}
                     onChange={(e) => setPw(e.target.value)}
@@ -291,7 +293,7 @@ export function ShareModal({
                 onChange={setLimitOn}
               />
               <Reveal show={limitOn}>
-                <input
+                <Input variant="unstyled"
                   type="number"
                   min={1}
                   value={limit}
@@ -354,7 +356,7 @@ function GeneratedView({
   return (
     <div className="mt-4">
       <div className="flex items-stretch gap-2">
-        <input
+        <Input variant="unstyled"
           readOnly
           value={generated.absoluteUrl}
           onFocus={(e) => e.currentTarget.select()}
@@ -416,30 +418,24 @@ function SwitchRow({
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const id = useId();
   return (
-    <Button variant="unstyled"
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="flex w-full items-center gap-2.5 text-left"
-    >
+    // A label pointing at the switch, not a button wrapping a drawn one: the
+    // whole row stays clickable and the control is a real switch.
+    <div className="flex w-full items-center gap-2.5 text-left">
       <Icon
         className={`h-4 w-4 shrink-0 transition-colors ${checked ? "text-indigo-400" : "text-zinc-500"}`}
       />
-      <span className="flex-1 text-sm font-medium text-zinc-200">{label}</span>
-      <span
-        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-          checked ? "bg-indigo-500" : "bg-zinc-700"
-        }`}
-      >
-        <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-            checked ? "translate-x-4" : "translate-x-1"
-          }`}
-        />
-      </span>
-    </Button>
+      <label htmlFor={id} className="flex-1 cursor-pointer text-sm font-medium text-zinc-200">
+        {label}
+      </label>
+      <SettingSwitch
+        id={id}
+        size="md"
+        checked={checked}
+        onCheckedChange={() => onChange(!checked)}
+      />
+    </div>
   );
 }
 

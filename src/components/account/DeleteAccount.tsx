@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { AnimatePresence } from "motion/react";
 import { TriangleAlert, Loader2 } from "lucide-react";
@@ -73,13 +75,13 @@ export function DeleteAccount({ username }: { username: string }) {
             Îți șterge definitiv contul, toate fișierele și tot istoricul. Nu poate fi anulat.
           </p>
         </div>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => setStep("form")}
           className="shrink-0 rounded-lg border border-red-500/40 px-3.5 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/10"
         >
           Șterge contul
-        </button>
+        </Button>
       </div>
 
       <AnimatePresence>
@@ -113,7 +115,7 @@ export function DeleteAccount({ username }: { username: string }) {
                 <label htmlFor="del-confirm" className="mb-1 block text-sm font-medium text-zinc-300">
                   Scrie <span className="font-mono text-zinc-100">{username}</span> ca să confirmi
                 </label>
-                <input
+                <Input variant="unstyled"
                   id="del-confirm"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
@@ -125,15 +127,15 @@ export function DeleteAccount({ username }: { username: string }) {
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={close}
                 disabled={checking}
                 className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-60"
               >
                 Anulează
-              </button>
-              <button
+              </Button>
+              <Button variant="unstyled"
                 type="button"
                 onClick={proceed}
                 disabled={!armed || checking}
@@ -141,7 +143,7 @@ export function DeleteAccount({ username }: { username: string }) {
               >
                 {checking && <Loader2 className="h-4 w-4 animate-spin" />}
                 {checking ? "Se verifică…" : "Continuă"}
-              </button>
+              </Button>
             </div>
           </ModalShell>
         )}
@@ -160,15 +162,15 @@ export function DeleteAccount({ username }: { username: string }) {
               lui dispar definitiv și nu mai pot fi recuperate.
             </p>
             <div className="mt-5 flex justify-end gap-2">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={close}
                 disabled={pending}
                 className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-60"
               >
                 Anulează
-              </button>
-              <button
+              </Button>
+              <Button variant="unstyled"
                 type="button"
                 onClick={remove}
                 disabled={pending}
@@ -176,7 +178,7 @@ export function DeleteAccount({ username }: { username: string }) {
               >
                 {pending && <Loader2 className="h-4 w-4 animate-spin" />}
                 {pending ? "Se șterge…" : "Da, șterge definitiv"}
-              </button>
+              </Button>
             </div>
           </ModalShell>
         )}

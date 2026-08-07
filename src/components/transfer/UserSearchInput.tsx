@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { useEffect, useState } from "react";
 import { Search, Loader2, X, Star } from "lucide-react";
 import {
   searchUsersAction,
@@ -8,7 +16,6 @@ import {
 } from "@/app/(app)/transfers/actions";
 import { Avatar } from "@/components/shell/Avatar";
 import type { UserSearchResult } from "@/lib/transfer";
-import { useClickOutside } from "@/lib/useClickOutside";
 
 const MAX_RECIPIENTS = 10;
 
@@ -31,8 +38,6 @@ export function UserSearchInput({
   const [frequent, setFrequent] = useState<UserSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
-  useClickOutside(boxRef, () => setOpen(false), open);
 
   useEffect(() => {
     void (async () => {
@@ -73,13 +78,24 @@ export function UserSearchInput({
   }
 
   return (
-    <div ref={boxRef} className="relative">
+    // A combobox, so it is built as one: the results answer to the arrow keys
+    // and Enter, the highlighted one is announced, and the list closes on blur
+    // rather than through a listener on the document. Filtering stays off — the
+    // server already decided what matches.
+    <Command
+      shouldFilter={false}
+      className="relative overflow-visible bg-transparent"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
+      }}
+    >
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-        <input
+        <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+        <CommandInput
+          showIcon={false}
+          wrapperClassName="h-auto border-b-0 p-0"
           value={query}
-          onChange={(e) => {
-            const v = e.target.value;
+          onValueChange={(v) => {
             setQuery(v);
             setOpen(true);
             // Loading/clearing state changes synchronously here (in the event
@@ -99,7 +115,7 @@ export function UserSearchInput({
               ? `Ai atins limita de ${MAX_RECIPIENTS} destinatari`
               : "Caută după username…"
           }
-          className="w-full rounded-xl border border-zinc-800 bg-zinc-950/60 py-2.5 pl-9 pr-9 text-sm text-zinc-100 outline-none transition focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40 disabled:opacity-60"
+          className="h-auto w-full rounded-xl border border-zinc-800 bg-zinc-950/60 py-2.5 pl-9 pr-9 text-sm text-zinc-100 transition focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40 disabled:opacity-60"
         />
         {loading && (
           <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-zinc-500" />
@@ -107,22 +123,24 @@ export function UserSearchInput({
       </div>
 
       {open && !atCap && query.trim().length >= 2 && (
-        <div className="absolute inset-x-0 top-full z-10 mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
-          {!loading && visibleResults.length === 0 && (
-            <p className="px-3.5 py-3 text-sm text-zinc-500">Niciun utilizator găsit.</p>
+        <CommandList className="absolute inset-x-0 top-full z-10 mt-1.5 max-h-64 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
+          {!loading && (
+            <CommandEmpty className="px-3.5 py-3 text-left text-sm text-zinc-500">
+              Niciun utilizator găsit.
+            </CommandEmpty>
           )}
           {visibleResults.map((u) => (
-            <button
+            <CommandItem
               key={u.id}
-              type="button"
-              onClick={() => pick(u)}
-              className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition hover:bg-zinc-800/70"
+              value={u.id}
+              onSelect={() => pick(u)}
+              className="flex w-full items-center gap-2.5 rounded-none px-3.5 py-2.5 text-left data-[selected=true]:bg-zinc-800/70"
             >
               <Avatar username={u.username} className="h-7 w-7 text-xs" />
               <span className="truncate text-sm text-zinc-100">{u.username}</span>
-            </button>
+            </CommandItem>
           ))}
-        </div>
+        </CommandList>
       )}
 
       {/* Always visible under the search bar (not gated by focus) — a repeat
@@ -136,7 +154,7 @@ export function UserSearchInput({
             Frecvenți
           </span>
           {visibleFrequent.map((u) => (
-            <button
+            <Button variant="unstyled"
               key={u.id}
               type="button"
               onClick={() => pick(u)}
@@ -144,7 +162,7 @@ export function UserSearchInput({
             >
               <Avatar username={u.username} className="h-5 w-5 text-[9px]" />
               {u.username}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -158,18 +176,18 @@ export function UserSearchInput({
             >
               <Avatar username={u.username} className="h-5 w-5 text-[9px]" />
               {u.username}
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => onRemove(u.id)}
                 aria-label={`Scoate ${u.username}`}
                 className="rounded-full p-0.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
               >
                 <X className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </span>
           ))}
         </div>
       )}
-    </div>
+    </Command>
   );
 }

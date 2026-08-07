@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useActionState, useState } from "react";
 import { dashboardLogin } from "@/app/dashboard/login/actions";
 import type { LoginState } from "@/lib/auth-state";
@@ -27,7 +29,7 @@ export function DashboardLoginForm() {
         <label htmlFor="username" className={labelCls}>
           Username
         </label>
-        <input
+        <Input variant="unstyled"
           id="username"
           type="text"
           name="username"
@@ -51,14 +53,14 @@ export function DashboardLoginForm() {
 
       <Turnstile resetSignal={state} onStatus={setBotReady} />
 
-      <button
+      <Button variant="unstyled"
         type="submit"
         disabled={busy}
         className="relative mt-1 rounded-xl bg-indigo-500 hover:bg-indigo-400 px-4 py-2.5 text-base font-medium text-white shadow-lg shadow-indigo-500/25 transition disabled:cursor-not-allowed disabled:opacity-60 sm:py-3"
       >
         {pending || queued ? "Se autentifică…" : "Intră în dashboard"}
         {busy && <Spinner className="absolute right-4 top-1/2 -translate-y-1/2" />}
-      </button>
+      </Button>
     </form>
   );
 }

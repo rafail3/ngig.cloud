@@ -4,6 +4,7 @@ import { useActionState, useRef, useState } from "react";
 import { Eye, FileText, ServerCog, Wand2, Loader2 } from "lucide-react";
 import { saveOfficeModeAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   OFFICE_SERVICE_MODES,
   type OfficeServiceMode,
@@ -49,41 +50,34 @@ export function OfficeModeSettings({ status }: { status: OfficeStatus }) {
 
       {/* Auto-saves on selection (a single click applies the mode) — no button. */}
       <form ref={formRef} action={formAction} className="flex flex-col gap-2.5">
-        <div
-          role="radiogroup"
+        {/* `name` makes the group post its value with the form, exactly as the
+            three hidden radios did. */}
+        <RadioGroup
+          name="officeMode"
+          value={picked}
+          onValueChange={(v) => {
+            setPicked(v as OfficeServiceMode);
+            // Apply immediately — a single click is the whole interaction.
+            requestAnimationFrame(() => formRef.current?.requestSubmit());
+          }}
           aria-label="Mod de funcționare"
           className="grid grid-cols-3 gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
         >
           {OFFICE_SERVICE_MODES.map((m) => {
             const Icon = MODE_ICON[m.value];
-            const on = picked === m.value;
             return (
-              <label
+              // The dot is dropped: the choice reads from the filled pill.
+              <RadioGroupItem
                 key={m.value}
-                className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium transition ${
-                  on
-                    ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
+                value={m.value}
+                className="inline-flex aspect-auto size-auto items-center justify-center gap-1.5 rounded-md border-0 px-2 py-1.5 text-sm font-medium text-zinc-400 shadow-none transition hover:text-zinc-200 data-[state=checked]:bg-indigo-500 data-[state=checked]:text-white data-[state=checked]:shadow-sm data-[state=checked]:shadow-indigo-500/25 dark:bg-transparent [&>[data-slot=radio-group-indicator]]:hidden"
               >
-                <input
-                  type="radio"
-                  name="officeMode"
-                  value={m.value}
-                  checked={on}
-                  onChange={() => {
-                    setPicked(m.value);
-                    // Apply immediately.
-                    formRef.current?.requestSubmit();
-                  }}
-                  className="sr-only"
-                />
                 <Icon className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{SHORT_LABEL[m.value]}</span>
-              </label>
+              </RadioGroupItem>
             );
           })}
-        </div>
+        </RadioGroup>
 
         {active && (
           <p className="flex items-start gap-2 text-xs leading-relaxed text-zinc-400">

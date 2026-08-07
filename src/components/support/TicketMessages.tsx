@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { Check, CheckCheck, Paperclip, Play } from "lucide-react";
@@ -42,7 +43,7 @@ function Media({
 }) {
   if (item.kind === "image") {
     return (
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => onOpen(item)}
         title={item.name}
@@ -57,13 +58,13 @@ function Media({
           loading="lazy"
           className="max-h-64 w-auto max-w-full object-cover"
         />
-      </button>
+      </Button>
     );
   }
 
   if (item.kind === "video") {
     return (
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => onOpen(item)}
         title={item.name}
@@ -82,7 +83,7 @@ function Media({
             <Play className="ml-0.5 h-5 w-5 fill-white text-white" />
           </span>
         </span>
-      </button>
+      </Button>
     );
   }
 

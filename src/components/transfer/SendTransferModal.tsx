@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Send, X } from "lucide-react";
 import { ModalShell } from "@/components/drive/anim";
 import { SendTransferPanel } from "./SendTransferPanel";
@@ -38,14 +39,14 @@ export function SendTransferModal({
             <p className="truncate text-xs text-zinc-500">{subtitle}</p>
           </div>
         </div>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onClose}
           aria-label="Închide"
           className="shrink-0 rounded p-1 text-zinc-400 transition hover:text-zinc-100"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       <SendTransferPanel

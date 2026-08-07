@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import {
   X,
@@ -44,7 +44,7 @@ import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { PdfViewer } from "./PdfViewer";
 import { CodeViewer } from "./CodeViewer";
-import { panelSpring } from "./anim";
+import { ModalShell } from "./anim";
 
 // CodeMirror is heavy — only load it when the user actually edits.
 const TextEditor = lazy(() => import("./TextEditor"));
@@ -245,19 +245,6 @@ export function PreviewModal({
     };
   }, [file.id, k]);
 
-  useEffect(() => {
-    // While editing, Escape must not close the modal (it would discard the edit).
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !editing) onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose, editing]);
-
   // When the modal is opened by a single click (e.g. a suggested-file card), the
   // second click of an accidental double-click would otherwise land on the
   // freshly-mounted backdrop and close it instantly. Ignore backdrop closes for
@@ -266,7 +253,12 @@ export function PreviewModal({
   useEffect(() => {
     openedAt.current = performance.now();
   }, []);
-  const closeFromBackdrop = () => {
+
+  // Every way out of the modal — Escape, the scrim, the close button — comes
+  // through here. While editing, none of them may close it: that would discard
+  // the edit. The shell keeps the dialog open when this declines.
+  const dismiss = () => {
+    if (editing) return;
     if (performance.now() - openedAt.current < 350) return;
     onClose();
   };
@@ -301,40 +293,26 @@ export function PreviewModal({
   }
 
   return (
-    <motion.div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+    <ModalShell
+      onClose={dismiss}
+      title={file.name}
+      scrim="bg-black/80"
+      className={`relative flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
         selectable ? "" : "select-none"
+      } ${
+        big
+          ? "h-[92vh] w-[min(96vw,80rem)] max-w-[96vw]"
+          : "max-h-[90vh] w-auto max-w-[min(92vw,52rem)]"
       }`}
-      role="dialog"
-      aria-modal="true"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
     >
-      <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={editing ? undefined : closeFromBackdrop}
-      />
-
-      {/* Video loads behind a simple full-screen blur + centered spinner. */}
+      {/* Video loads behind a blur + centered spinner, covering the panel. */}
       {k === "video" && !videoReady && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-2xl">
+        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-2xl">
           <Loader2 className="h-12 w-12 animate-spin text-indigo-300 [animation-duration:0.7s]" />
         </div>
       )}
 
-      <motion.div
-        className={`relative flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
-          big
-            ? "h-[92vh] w-[min(96vw,80rem)] max-w-[96vw]"
-            : "max-h-[90vh] w-auto max-w-[min(92vw,52rem)]"
-        }`}
-        initial={{ opacity: 0, scale: 0.96, y: 8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.97, y: 6 }}
-        transition={panelSpring}
-      >
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-3">
           <p className="min-w-0 max-w-[min(60vw,32rem)] truncate text-sm font-medium text-zinc-100">
             {file.name}
@@ -554,7 +532,7 @@ export function PreviewModal({
             </>
           )}
         </div>
-      </motion.div>
+      </div>
 
       <AnimatePresence>
         {sharing && (
@@ -583,6 +561,6 @@ export function PreviewModal({
           />
         )}
       </AnimatePresence>
-    </motion.div>
+    </ModalShell>
   );
 }

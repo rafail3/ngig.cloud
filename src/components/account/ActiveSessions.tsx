@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Monitor, Smartphone, Tablet, LogOut } from "lucide-react";
@@ -54,7 +55,7 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
           </p>
         </div>
         {otherCount > 0 && (
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => run("all", revokeOtherSessionsAction)}
             disabled={pending}
@@ -63,7 +64,7 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
             {busy === "all"
               ? "Se deconectează…"
               : "Deconectează toate celelalte"}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -104,7 +105,7 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
               </div>
 
               {!s.is_current && (
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={() => run(s.id, () => revokeSessionAction(s.id))}
                   disabled={pending}
@@ -112,7 +113,7 @@ export function ActiveSessions({ sessions }: { sessions: ActiveSession[] }) {
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   {busy === s.id ? "Se deconectează…" : "Deconectează"}
-                </button>
+                </Button>
               )}
             </div>
           );

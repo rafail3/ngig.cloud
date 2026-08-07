@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 
@@ -10,7 +11,7 @@ export function ShareThemeToggle() {
   const { resolved, setTheme } = useTheme();
   const dark = resolved === "dark";
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={() => setTheme(dark ? "light" : "dark")}
       aria-label={dark ? "Comută pe temă luminoasă" : "Comută pe temă întunecată"}
@@ -18,6 +19,6 @@ export function ShareThemeToggle() {
       className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-2 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-100"
     >
       {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-    </button>
+    </Button>
   );
 }

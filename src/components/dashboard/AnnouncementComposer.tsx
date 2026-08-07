@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { ModalShell } from "@/components/drive/anim";
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -112,7 +114,7 @@ export function AnnouncementComposer() {
           <label htmlFor="ann-title" className={labelCls}>
             Titlu
           </label>
-          <input
+          <Input variant="unstyled"
             id="ann-title"
             name="title"
             type="text"
@@ -138,7 +140,7 @@ export function AnnouncementComposer() {
           <label htmlFor="ann-link" className={labelCls}>
             Link <span className="text-zinc-600">(opțional)</span>
           </label>
-          <input
+          <Input variant="unstyled"
             id="ann-link"
             name="link"
             type="text"
@@ -233,69 +235,55 @@ function ConfirmSend({
   onConfirm: () => void;
   onClose: () => void;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose]);
-
   const scheduled = scheduleLabel != null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
+    <ModalShell
+      onClose={onClose}
+      title={scheduled ? "Programezi anunțul?" : "Trimiți anunțul?"}
     >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-500/40 bg-indigo-500/10">
-          {scheduled ? (
-            <Clock className="h-5 w-5 text-indigo-300" />
-          ) : (
-            <Megaphone className="h-5 w-5 text-indigo-300" />
-          )}
-        </div>
-        <h3 className="mt-4 text-base font-semibold text-zinc-100">
-          {scheduled ? "Programezi anunțul?" : "Trimiți anunțul?"}
-        </h3>
-        <p className="mt-1.5 text-sm text-zinc-400">
-          {scheduled ? (
-            <>
-              Se trimite automat la <span className="text-zinc-200">{scheduleLabel}</span> către
-              toți utilizatorii. Îl poți anula până atunci din istoric.
-            </>
-          ) : (
-            <>
-              Anunțul ajunge la <span className="text-zinc-200">toți utilizatorii</span> ca
-              notificare. Îl poți retrage ulterior din istoric.
-            </>
-          )}
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="unstyled"
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
-          >
-            <X className="h-4 w-4" />
-            Anulează
-          </Button>
-          <Button variant="unstyled"
-            type="button"
-            disabled={pending}
-            onClick={onConfirm}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
-          >
-            {scheduled ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-            {scheduled ? "Programează" : "Trimite"}
-          </Button>
-        </div>
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-500/40 bg-indigo-500/10">
+        {scheduled ? (
+          <Clock className="h-5 w-5 text-indigo-300" />
+        ) : (
+          <Megaphone className="h-5 w-5 text-indigo-300" />
+        )}
       </div>
-    </div>
+      <h3 className="mt-4 text-base font-semibold text-zinc-100">
+        {scheduled ? "Programezi anunțul?" : "Trimiți anunțul?"}
+      </h3>
+      <p className="mt-1.5 text-sm text-zinc-400">
+        {scheduled ? (
+          <>
+            Se trimite automat la <span className="text-zinc-200">{scheduleLabel}</span> către
+            toți utilizatorii. Îl poți anula până atunci din istoric.
+          </>
+        ) : (
+          <>
+            Anunțul ajunge la <span className="text-zinc-200">toți utilizatorii</span> ca
+            notificare. Îl poți retrage ulterior din istoric.
+          </>
+        )}
+      </p>
+      <div className="mt-5 flex justify-end gap-2">
+        <Button variant="unstyled"
+          type="button"
+          onClick={onClose}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+        >
+          <X className="h-4 w-4" />
+          Anulează
+        </Button>
+        <Button variant="unstyled"
+          type="button"
+          disabled={pending}
+          onClick={onConfirm}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
+        >
+          {scheduled ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+          {scheduled ? "Programează" : "Trimite"}
+        </Button>
+      </div>
+    </ModalShell>
   );
 }

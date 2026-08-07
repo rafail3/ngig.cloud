@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -66,7 +67,7 @@ export function TicketsTable({ tickets }: { tickets: AdminTicketRow[] }) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-          <input
+          <Input variant="unstyled"
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}

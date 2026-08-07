@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight, Clock } from "lucide-react";
@@ -51,7 +52,7 @@ function TimeField({
   const [focused, setFocused] = useState(false);
   const [text, setText] = useState("");
   return (
-    <input
+    <Input variant="unstyled"
       type="text"
       inputMode="numeric"
       maxLength={2}

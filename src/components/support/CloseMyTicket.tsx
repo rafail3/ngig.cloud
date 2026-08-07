@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -25,7 +26,7 @@ export function CloseMyTicket({ ticketId }: { ticketId: string }) {
   }
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={close}
       disabled={pending}
@@ -37,6 +38,6 @@ export function CloseMyTicket({ ticketId }: { ticketId: string }) {
         <CheckCircle2 className="h-3.5 w-3.5" />
       )}
       {pending ? "Se închide…" : "Marchează rezolvat"}
-    </button>
+    </Button>
   );
 }

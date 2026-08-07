@@ -1,7 +1,8 @@
 "use client";
 
+import { ModalShell } from "@/components/drive/anim";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Trash2, Users, ExternalLink, Link2, RefreshCw, Clock } from "lucide-react";
 import {
@@ -75,53 +76,36 @@ function ConfirmResend({
     });
   }
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose]);
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-500/40 bg-indigo-500/10">
-          <RefreshCw className="h-5 w-5 text-indigo-300" />
-        </div>
-        <h3 className="mt-4 text-base font-semibold text-zinc-100">Retrimiți anunțul?</h3>
-        <p className="mt-1.5 text-sm text-zinc-400">
-          „<span className="text-zinc-300">{title}</span>” va fi trimis din nou tuturor
-          utilizatorilor, ca un anunț nou.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="unstyled"
-            type="button"
-            onClick={onClose}
-            disabled={pending}
-            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
-          >
-            Anulează
-          </Button>
-          <Button variant="unstyled"
-            type="button"
-            disabled={pending}
-            onClick={doResend}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
-          >
-            <RefreshCw className={`h-4 w-4 ${pending ? "animate-spin" : ""}`} />
-            {pending ? "Se retrimite…" : "Retrimite"}
-          </Button>
-        </div>
+    <ModalShell onClose={onClose} title="Retrimiți anunțul?">
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-500/40 bg-indigo-500/10">
+        <RefreshCw className="h-5 w-5 text-indigo-300" />
       </div>
-    </div>
+      <h3 className="mt-4 text-base font-semibold text-zinc-100">Retrimiți anunțul?</h3>
+      <p className="mt-1.5 text-sm text-zinc-400">
+        „<span className="text-zinc-300">{title}</span>” va fi trimis din nou tuturor
+        utilizatorilor, ca un anunț nou.
+      </p>
+      <div className="mt-5 flex justify-end gap-2">
+        <Button variant="unstyled"
+          type="button"
+          onClick={onClose}
+          disabled={pending}
+          className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
+        >
+          Anulează
+        </Button>
+        <Button variant="unstyled"
+          type="button"
+          disabled={pending}
+          onClick={doResend}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
+        >
+          <RefreshCw className={`h-4 w-4 ${pending ? "animate-spin" : ""}`} />
+          {pending ? "Se retrimite…" : "Retrimite"}
+        </Button>
+      </div>
+    </ModalShell>
   );
 }
 
@@ -185,64 +169,50 @@ function ConfirmDelete({
     });
   }
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose]);
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
+    <ModalShell
+      onClose={onClose}
+      title={scheduled ? "Anulezi programarea?" : "Ștergi anunțul?"}
     >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
-          <Trash2 className="h-5 w-5 text-red-400" />
-        </div>
-        <h3 className="mt-4 text-base font-semibold text-zinc-100">
-          {scheduled ? "Anulezi programarea?" : "Ștergi anunțul?"}
-        </h3>
-        <p className="mt-1.5 text-sm text-zinc-400">
-          {scheduled ? (
-            <>
-              „<span className="text-zinc-300">{title}</span>” nu va mai fi trimis. Acțiunea nu
-              poate fi anulată.
-            </>
-          ) : (
-            <>
-              „<span className="text-zinc-300">{title}</span>” dispare din istoric și e{" "}
-              <span className="text-zinc-300">retras din notificările tuturor utilizatorilor</span>
-              . Acțiunea nu poate fi anulată.
-            </>
-          )}
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="unstyled"
-            type="button"
-            onClick={onClose}
-            disabled={pending}
-            className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
-          >
-            Anulează
-          </Button>
-          <Button variant="unstyled"
-            type="button"
-            onClick={doDelete}
-            disabled={pending}
-            className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-60"
-          >
-            {pending ? "Se șterge…" : scheduled ? "Anulează programarea" : "Șterge"}
-          </Button>
-        </div>
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-900/50 bg-red-950/40">
+        <Trash2 className="h-5 w-5 text-red-400" />
       </div>
-    </div>
+      <h3 className="mt-4 text-base font-semibold text-zinc-100">
+        {scheduled ? "Anulezi programarea?" : "Ștergi anunțul?"}
+      </h3>
+      <p className="mt-1.5 text-sm text-zinc-400">
+        {scheduled ? (
+          <>
+            „<span className="text-zinc-300">{title}</span>” nu va mai fi trimis. Acțiunea nu
+            poate fi anulată.
+          </>
+        ) : (
+          <>
+            „<span className="text-zinc-300">{title}</span>” dispare din istoric și e{" "}
+            <span className="text-zinc-300">retras din notificările tuturor utilizatorilor</span>
+            . Acțiunea nu poate fi anulată.
+          </>
+        )}
+      </p>
+      <div className="mt-5 flex justify-end gap-2">
+        <Button variant="unstyled"
+          type="button"
+          onClick={onClose}
+          disabled={pending}
+          className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-50"
+        >
+          Anulează
+        </Button>
+        <Button variant="unstyled"
+          type="button"
+          onClick={doDelete}
+          disabled={pending}
+          className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-zinc-50 transition hover:bg-red-500 disabled:opacity-60"
+        >
+          {pending ? "Se șterge…" : scheduled ? "Anulează programarea" : "Șterge"}
+        </Button>
+      </div>
+    </ModalShell>
   );
 }
 

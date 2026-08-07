@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import type { SharePageData } from "@/lib/share";
@@ -51,7 +53,7 @@ export function ShareGate({ token }: { token: string }) {
 
         <form onSubmit={submit} className="mt-6">
           <div className="relative">
-            <input
+            <Input variant="unstyled"
               autoFocus
               type={show ? "text" : "password"}
               value={password}
@@ -59,26 +61,26 @@ export function ShareGate({ token }: { token: string }) {
               placeholder="Parolă"
               className="w-full rounded-xl border border-zinc-800 bg-zinc-950/60 px-3.5 py-2.5 pr-11 text-sm text-zinc-100 outline-none transition focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
             />
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => setShow((v) => !v)}
               aria-label={show ? "Ascunde parola" : "Arată parola"}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-zinc-500 transition hover:text-zinc-200"
             >
               {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+            </Button>
           </div>
 
           {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
 
-          <button
+          <Button variant="unstyled"
             type="submit"
             disabled={busy || !password}
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
             {busy ? "Se verifică…" : "Deblochează"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

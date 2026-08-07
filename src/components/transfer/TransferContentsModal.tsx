@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { File as FileIcon, Folder, FolderOpen, ChevronRight, Eye, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -56,14 +57,14 @@ export function TransferContentsModal({
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <h3 className="min-w-0 break-all text-base font-semibold text-zinc-100">{title}</h3>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onClose}
           aria-label="Închide"
           className="shrink-0 rounded p-1 text-zinc-400 transition hover:text-zinc-100"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       {error ? (
@@ -110,7 +111,7 @@ function FolderRow({
   return (
     <li>
       <div className={rowClass}>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
@@ -128,7 +129,7 @@ function FolderRow({
             {node.name}
           </span>
           <span className="shrink-0 text-xs tabular-nums text-zinc-500">{count}</span>
-        </button>
+        </Button>
       </div>
 
       <AnimatePresence initial={false}>
@@ -182,7 +183,7 @@ function FileRow({
     <li>
       <div className={rowClass}>
         {canPreview ? (
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() =>
               onPreview({ url: file.previewUrl!, kind: file.previewKind!, name: file.name })
@@ -191,7 +192,7 @@ function FileRow({
             className="flex min-w-0 flex-1 items-center gap-2 py-2 text-left"
           >
             {inner}
-          </button>
+          </Button>
         ) : (
           <div style={pad} className="flex min-w-0 flex-1 items-center gap-2 py-2">
             {inner}

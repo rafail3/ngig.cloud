@@ -7,7 +7,14 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { NotificationRow } from "@/server/notifications/service";
 import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useClickOutside } from "@/lib/useClickOutside";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useMenuModality } from "@/lib/useMenuModality";
 import {
   getNotificationsAction,
   markNotificationReadAction,
@@ -32,8 +39,25 @@ function ago(iso: string): string {
 export function NotificationBell() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false), open);
+  const menu = useMenuModality();
+
+  // The panel hangs off the whole navbar action cluster, not off the bell: the
+  // bell sits to the left of the theme toggle and the user menu, so anchoring
+  // to it would leave the panel floating mid-header instead of tucked against
+  // the edge of the page, where it has always been.
+  //
+  // A measurable rather than a ref to the node: a ref is still empty when the
+  // anchor is first read, and an anchor that measures nothing puts the panel in
+  // the top-left corner. This resolves the cluster at measure time, every time,
+  // and falls back to the bell's own header if the marker is ever missing.
+  const anchor = useRef({
+    getBoundingClientRect: () => {
+      const el =
+        document.querySelector("[data-navbar-actions]") ??
+        document.querySelector("header");
+      return (el ?? document.body).getBoundingClientRect();
+    },
+  });
 
   const { data, mutate } = useSWR("notifications", () => getNotificationsAction(), {
     revalidateOnFocus: true,
@@ -163,49 +187,57 @@ export function NotificationBell() {
   }
 
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={unread > 0 ? `Notificări (${unread} necitite)` : "Notificări"}
-        title="Notificări"
-        aria-expanded={open}
-        className={`relative rounded-md p-2 transition-colors ${
-          open
-            ? "bg-zinc-900 text-zinc-50"
-            : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
-        }`}
-      >
-        <Bell className="h-5 w-5" />
-        {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-semibold leading-none text-white">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
-      </button>
+    // The panel used to be pinned to a fixed corner and closed by a listener on
+    // the document. Anchored to the bell instead, it stays put on any viewport,
+    // closes on Escape as well as on an outside click, and hands focus back.
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverAnchor virtualRef={anchor} />
+      <PopoverTrigger asChild {...menu.triggerProps}>
+        <Button
+          variant="unstyled"
+          type="button"
+          aria-label={unread > 0 ? `Notificări (${unread} necitite)` : "Notificări"}
+          title="Notificări"
+          className="relative rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+        >
+          <Bell className="h-5 w-5" />
+          {unread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-semibold leading-none text-white">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
 
-      {open && (
-        <div className="fixed right-3 top-16 z-50 flex max-h-[70vh] w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
+      <PopoverContent
+        align="end"
+        // Enough to clear the rest of the header, so the panel starts at its
+        // bottom edge the way it used to.
+        sideOffset={12}
+        collisionPadding={12}
+        className="flex max-h-[70vh] w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border-zinc-800 bg-zinc-900 p-0 shadow-xl"
+        {...menu.contentProps}
+      >
           <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
             <p className="text-sm font-semibold text-zinc-100">Notificări</p>
             <div className="flex items-center gap-3">
               {unread > 0 && (
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={markAll}
                   className="flex items-center gap-1 text-xs text-indigo-400 transition hover:text-indigo-300"
                 >
                   <CheckCheck className="h-3.5 w-3.5" /> Marchează citite
-                </button>
+                </Button>
               )}
               {items.length > 0 && (
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={clearAll}
                   className="flex items-center gap-1 text-xs text-zinc-400 transition hover:text-red-400"
                 >
                   <Trash2 className="h-3.5 w-3.5" /> Golește
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -254,7 +286,7 @@ export function NotificationBell() {
                     </span>
                     {n.read_at && <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-zinc-600" />}
                   </div>
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={() => removeItem(n.id)}
                     aria-label="Șterge notificarea"
@@ -262,13 +294,12 @@ export function NotificationBell() {
                     className="flex shrink-0 items-center px-3 text-zinc-500 opacity-100 transition hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     <X className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               ))
             )}
-          </div>
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }

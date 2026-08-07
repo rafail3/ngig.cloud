@@ -1,5 +1,7 @@
 "use client";
 
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { Link2, Wand2, Pencil, TriangleAlert } from "lucide-react";
@@ -81,44 +83,35 @@ export function OfficeServerUrl({ url, mode }: { url: string; mode: OfficeUrlMod
 
       <form action={formAction} className="flex flex-col gap-2.5">
         {/* Segmented Automat / Manual — compact track, active segment highlighted. */}
-        <div
-          role="radiogroup"
+        <RadioGroup
+          name="urlMode"
+          value={picked}
+          onValueChange={(v) => {
+            // Switching to manual starts from the address in force right now.
+            if (v === "manual") setTyped(live);
+            setPicked(v as typeof picked);
+          }}
           aria-label="Sursa adresei serverului"
           className="grid grid-cols-2 gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
         >
           {MODES.map((m) => {
             const Icon = m.icon;
-            const on = picked === m.value;
             return (
-              <label
+              // The dot is dropped: the choice reads from the filled pill.
+              <RadioGroupItem
                 key={m.value}
-                className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  on
-                    ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
+                value={m.value}
+                className="inline-flex aspect-auto size-auto items-center justify-center gap-1.5 rounded-md border-0 px-3 py-1.5 text-sm font-medium text-zinc-400 shadow-none transition hover:text-zinc-200 data-[state=checked]:bg-indigo-500 data-[state=checked]:text-white data-[state=checked]:shadow-sm data-[state=checked]:shadow-indigo-500/25 dark:bg-transparent [&>[data-slot=radio-group-indicator]]:hidden"
               >
-                <input
-                  type="radio"
-                  name="urlMode"
-                  value={m.value}
-                  checked={on}
-                  onChange={() => {
-                    // Switching to manual starts from the address in force right now.
-                    if (m.value === "manual") setTyped(live);
-                    setPicked(m.value);
-                  }}
-                  className="sr-only"
-                />
                 <Icon className="h-3.5 w-3.5" />
                 {m.label}
-              </label>
+              </RadioGroupItem>
             );
           })}
-        </div>
+        </RadioGroup>
 
         <div className="flex gap-2">
-          <input
+          <Input variant="unstyled"
             type="url"
             name="serverUrl"
             value={shown}

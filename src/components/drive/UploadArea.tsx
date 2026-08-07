@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
@@ -171,9 +172,9 @@ export function UploadArea({ folderId }: { folderId: string | null }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <input ref={filesRef} type="file" multiple hidden onChange={onPickFiles} />
+        <Input variant="unstyled" ref={filesRef} type="file" multiple hidden onChange={onPickFiles} />
         {/* webkitdirectory makes the picker select a whole folder */}
-        <input
+        <Input variant="unstyled"
           ref={folderRef}
           type="file"
           hidden
@@ -286,7 +287,7 @@ function CreateFolderModal({
     <ModalShell onClose={onClose}>
       <form onSubmit={submit}>
         <h3 className="text-base font-semibold text-zinc-100">Folder nou</h3>
-        <input
+        <Input variant="unstyled"
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}

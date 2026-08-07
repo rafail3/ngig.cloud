@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useRef } from "react";
 import { ImagePlus, X, Film, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -51,7 +53,7 @@ export function AttachmentPicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <input
+      <Input variant="unstyled"
         ref={inputRef}
         type="file"
         multiple
@@ -60,7 +62,7 @@ export function AttachmentPicker({
         disabled={disabled}
         onChange={(e) => add(e.target.files)}
       />
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={disabled || files.length >= TICKET_MAX_ATTACHMENTS}
@@ -68,7 +70,7 @@ export function AttachmentPicker({
       >
         <ImagePlus className="h-4 w-4" />
         Adaugă imagini sau video
-      </button>
+      </Button>
 
       {files.length > 0 && (
         <ul className="flex flex-col gap-1.5">
@@ -88,7 +90,7 @@ export function AttachmentPicker({
                   {formatBytes(f.size)}
                 </span>
               </span>
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => remove(i)}
                 disabled={disabled}
@@ -96,7 +98,7 @@ export function AttachmentPicker({
                 className="shrink-0 rounded p-0.5 text-zinc-500 transition hover:text-zinc-200 disabled:opacity-50"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
