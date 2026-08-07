@@ -27,7 +27,9 @@ import { RoleBadge } from "@/components/dashboard/RoleBadge";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -253,19 +255,17 @@ export function DashboardShell({
 
               {/* A read-only fact, so deliberately not a menu item: it must not
                   take focus or look clickable. */}
-              <div className="p-1.5">
-                <div className="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm">
-                  <span className="flex items-center gap-2.5 text-zinc-400">
-                    <ShieldCheck className="h-4 w-4" /> Rol
-                  </span>
-                  <span className="font-medium text-zinc-200">
-                    {user.isSuperAdmin ? "Super admin" : "Manager"}
-                  </span>
-                </div>
-              </div>
+              <DropdownMenuLabel className="mx-1.5 flex items-center justify-between px-2.5 py-2 font-normal">
+                <span className="flex items-center gap-2.5 text-zinc-400">
+                  <ShieldCheck className="h-4 w-4" /> Rol
+                </span>
+                <span className="font-medium text-zinc-200">
+                  {user.isSuperAdmin ? "Super admin" : "Manager"}
+                </span>
+              </DropdownMenuLabel>
 
               <DropdownMenuSeparator className="mx-0" />
-              <div className="p-1.5">
+              <DropdownMenuGroup className="p-1.5">
                 <DropdownMenuItem
                   variant="destructive"
                   onSelect={() => {
@@ -274,7 +274,7 @@ export function DashboardShell({
                 >
                   <LogOut className="h-4 w-4" /> Deconectează-te
                 </DropdownMenuItem>
-              </div>
+              </DropdownMenuGroup>
 
               <div className="border-t border-zinc-800 px-4 py-2 text-center">
                 <AppVersion />

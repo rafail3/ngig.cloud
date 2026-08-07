@@ -22,7 +22,9 @@ import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -268,26 +270,31 @@ export function AppShell({
                 </div>
               </div>
 
-              <div className="p-1.5">
+              {/* Group, not a plain div. Radix collects the navigable items
+                  through these components — arrow keys walk what is inside a
+                  Group, and a Label is explicitly skipped. Wrapping items in an
+                  anonymous div is what left the menu tabbable but not
+                  arrow-navigable. */}
+              <DropdownMenuGroup className="p-1.5">
                 <DropdownMenuItem asChild>
                   <Link href="/profil">
                     <UserRound className="h-4 w-4 text-zinc-400" /> Profilul meu
                   </Link>
                 </DropdownMenuItem>
-                {/* Not an item: it is a read-only fact, so it must not be
-                    focusable or look clickable. */}
-                <div className="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm">
+                {/* A read-only fact: a Label rather than an item, so it is
+                    announced but never focused or made to look clickable. */}
+                <DropdownMenuLabel className="flex items-center justify-between px-2.5 py-2 font-normal">
                   <span className="flex items-center gap-2.5 text-zinc-400">
                     <ShieldCheck className="h-4 w-4" /> Rol
                   </span>
                   <span className="font-medium capitalize text-zinc-200">
                     {user.role || "user"}
                   </span>
-                </div>
-              </div>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
 
               <DropdownMenuSeparator className="mx-0" />
-              <div className="p-1.5">
+              <DropdownMenuGroup className="p-1.5">
                 {/* The server action is called directly instead of through a
                     form: a menu item that submits a form has to survive the menu
                     closing around it, and the action redirects anyway. */}
@@ -299,7 +306,7 @@ export function AppShell({
                 >
                   <LogOut className="h-4 w-4" /> Deconectează-te
                 </DropdownMenuItem>
-              </div>
+              </DropdownMenuGroup>
 
               <div className="border-t border-zinc-800 px-4 py-2 text-center">
                 <AppVersion />
