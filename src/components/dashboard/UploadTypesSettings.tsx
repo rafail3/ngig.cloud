@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { FileCheck2, Search, ShieldBan, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { saveUploadTypesAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
+import { SettingSwitch } from "./SettingSwitch";
 import { EXT_CATALOG, normalizeExtList, type UploadTypesConfig } from "@/lib/upload-types";
 import type { SettingsState } from "@/lib/settings-state";
 
@@ -25,37 +26,34 @@ function ExtToggle({
   on: boolean;
   onFlip: () => void;
 }) {
+  const id = useId();
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={`Blochează .${ext}`}
-      onClick={onFlip}
-      className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition ${
+    // A label, not a button: the switch inside is the control, and a button
+    // cannot live inside another button. Pointing the label at it keeps the
+    // whole pill clickable.
+    <label
+      htmlFor={id}
+      className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition ${
         on
           ? "border-red-500/40 bg-red-500/10"
           : "border-zinc-800/80 bg-zinc-950/40 hover:border-zinc-700 hover:bg-zinc-900/60"
       }`}
     >
-      <span
-        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition ${
-          on ? "bg-red-500" : "bg-zinc-700"
-        }`}
-      >
-        <span
-          className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition ${
-            on ? "translate-x-3.5" : "translate-x-0.5"
-          }`}
-        />
-      </span>
+      <SettingSwitch
+        id={id}
+        size="sm"
+        tone="red"
+        checked={on}
+        onCheckedChange={onFlip}
+        ariaLabel={`Blochează .${ext}`}
+      />
       <span
         className={`font-mono text-xs font-semibold ${on ? "text-red-300 line-through" : "text-zinc-200"}`}
       >
         .{ext}
       </span>
       <span className="ml-auto truncate text-[10px] text-zinc-500">{label}</span>
-    </button>
+    </label>
   );
 }
 

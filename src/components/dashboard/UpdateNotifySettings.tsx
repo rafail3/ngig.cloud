@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { ToggleRow } from "./SettingSwitch";
 import { AnimatePresence, motion } from "motion/react";
 import { Megaphone, Shield, User } from "lucide-react";
 import { saveUpdateNotifySettingsAction } from "@/app/dashboard/(panel)/settings/actions";
@@ -9,42 +10,6 @@ import type { SettingsState } from "@/lib/settings-state";
 import type { UpdateNotifySettings as Settings } from "@/server/updates/service";
 
 const initial: SettingsState = {};
-
-// A compact, whole-row toggle: the switch sits right next to its label (w-fit),
-// so it never stretches across the screen. The visual switch is a span (the
-// row itself is the button).
-function ToggleRow({
-  on,
-  onFlip,
-  children,
-}: {
-  on: boolean;
-  onFlip: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={onFlip}
-      className="flex w-fit items-center gap-3 text-left"
-    >
-      <span
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
-          on ? "bg-indigo-600" : "bg-zinc-700"
-        }`}
-      >
-        <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-            on ? "translate-x-5" : "translate-x-0.5"
-          }`}
-        />
-      </span>
-      {children}
-    </button>
-  );
-}
 
 export function UpdateNotifySettings({ settings }: { settings: Settings }) {
   const [state, action, pending] = useActionState(saveUpdateNotifySettingsAction, initial);

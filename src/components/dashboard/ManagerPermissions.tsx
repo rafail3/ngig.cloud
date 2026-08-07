@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { setManagerPermissionsAction } from "@/app/dashboard/(panel)/users/actions";
 import { useToastState } from "@/lib/useToastState";
+import { ToggleRow } from "./SettingSwitch";
 import type { UserActionState } from "@/lib/user-presence";
 
 // Mirrors DASHBOARD_SECTIONS (server/admin/guard.ts) with the nav's labels and
@@ -29,41 +30,6 @@ const SECTIONS = [
 ] as const;
 
 const initial: UserActionState = {};
-
-// Same compact whole-row switch as the notification settings: the row is the
-// button, the visual switch is a span.
-function ToggleRow({
-  on,
-  onFlip,
-  children,
-}: {
-  on: boolean;
-  onFlip: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={onFlip}
-      className="flex w-fit items-center gap-3 text-left"
-    >
-      <span
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
-          on ? "bg-indigo-600" : "bg-zinc-700"
-        }`}
-      >
-        <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-            on ? "translate-x-5" : "translate-x-0.5"
-          }`}
-        />
-      </span>
-      {children}
-    </button>
-  );
-}
 
 // Super-admin card on a manager's detail: choose full access or a custom
 // per-section allowlist for the dashboard nav/pages.

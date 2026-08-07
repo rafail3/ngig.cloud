@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from "reac
 import { toast } from "sonner";
 import { User, Shield, Plus, BellOff, Pencil, X, RotateCcw, Search } from "lucide-react";
 import { Select } from "@/components/support/Select";
+import { SettingSwitch } from "./SettingSwitch";
 import {
   setNotificationEnabledAction,
   setNotificationTemplateAction,
@@ -57,24 +58,7 @@ function Toggle({
   onFlip: () => void;
   pending: boolean;
 }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      onClick={onFlip}
-      disabled={pending}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-60 ${
-        enabled ? "bg-indigo-600" : "bg-zinc-700"
-      }`}
-    >
-      <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-          enabled ? "translate-x-5" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
+  return <SettingSwitch checked={enabled} onCheckedChange={onFlip} disabled={pending} />;
 }
 
 // Render text with {placeholder} tokens highlighted (known vars = indigo chip,

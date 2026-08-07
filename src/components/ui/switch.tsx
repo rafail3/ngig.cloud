@@ -7,10 +7,15 @@ import { cn } from "@/lib/utils"
 
 function Switch({
   className,
+  thumbClassName,
   size = "default",
   ...props
 }: React.ComponentProps<typeof SwitchPrimitive.Root> & {
   size?: "sm" | "default"
+  // The track can be restyled from the call site, so the thumb has to be
+  // reachable too — a wider track with the default travel leaves the thumb
+  // short of the far edge. Same escape hatch Progress has for its indicator.
+  thumbClassName?: string
 }) {
   return (
     <SwitchPrimitive.Root
@@ -25,7 +30,8 @@ function Switch({
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
         className={cn(
-          "pointer-events-none block rounded-full bg-background ring-0 transition-transform group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3 data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0 dark:data-[state=checked]:bg-primary-foreground dark:data-[state=unchecked]:bg-foreground"
+          "pointer-events-none block rounded-full bg-background ring-0 transition-transform group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3 data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0 dark:data-[state=checked]:bg-primary-foreground dark:data-[state=unchecked]:bg-foreground",
+          thumbClassName
         )}
       />
     </SwitchPrimitive.Root>
