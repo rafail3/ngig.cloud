@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from "reac
 import { toast } from "sonner";
 import { User, Shield, Plus, BellOff, Pencil, X, RotateCcw, Search } from "lucide-react";
 import { Select } from "@/components/support/Select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SettingSwitch } from "./SettingSwitch";
 import {
   setNotificationEnabledAction,
@@ -520,32 +521,27 @@ function ExistingTab({ types }: { types: NotificationTypeStatus[] }) {
           )}
         </div>
 
-        <div
-          role="radiogroup"
+        {/* One tab stop with arrow keys between the options, instead of three
+            stops that only answered to a click. */}
+        <RadioGroup
+          value={aud}
+          onValueChange={(v) => setAud(v as typeof aud)}
           aria-label="Filtrează după audiență"
           className="flex shrink-0 gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
         >
-          {AUD_FILTERS.map((f) => {
-            const on = aud === f.value;
-            return (
-              <button
-                key={f.value}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => setAud(f.value)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition sm:flex-none ${
-                  on
-                    ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
+          {AUD_FILTERS.map((f) => (
+            <RadioGroupItem
+              key={f.value}
+              value={f.value}
+              className="inline-flex aspect-auto size-auto flex-1 items-center justify-center gap-1.5 rounded-md border-0 px-3 py-1.5 text-sm font-medium text-zinc-400 shadow-none transition hover:text-zinc-200 data-[state=checked]:bg-indigo-500 data-[state=checked]:text-white data-[state=checked]:shadow-sm data-[state=checked]:shadow-indigo-500/25 dark:bg-transparent sm:flex-none [&>[data-slot=radio-group-indicator]]:hidden"
+            >
+              <span className="flex items-center gap-1.5">
                 {f.icon}
                 {f.label}
-              </button>
-            );
-          })}
-        </div>
+              </span>
+            </RadioGroupItem>
+          ))}
+        </RadioGroup>
       </div>
 
       {filtered.length === 0 ? (

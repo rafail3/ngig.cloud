@@ -6,7 +6,13 @@ import { FileCheck2, Search, ShieldBan, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { saveUploadTypesAction } from "@/app/dashboard/(panel)/settings/actions";
 import { useToastState } from "@/lib/useToastState";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SettingSwitch } from "./SettingSwitch";
+
+// One segment of a filter pill row: the primitive's dot is dropped because the
+// choice reads from the filled background instead.
+const SEGMENT =
+  "inline-flex aspect-auto size-auto items-center rounded-md border-0 px-2.5 py-1 text-xs font-medium text-zinc-400 shadow-none transition hover:text-zinc-200 data-[state=checked]:text-white data-[state=checked]:shadow-sm dark:bg-transparent [&>[data-slot=radio-group-indicator]]:hidden";
 import { EXT_CATALOG, normalizeExtList, type UploadTypesConfig } from "@/lib/upload-types";
 import type { SettingsState } from "@/lib/settings-state";
 
@@ -239,36 +245,23 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
                 </div>
 
                 {/* All / blocked-only filter */}
-                <div
-                  role="radiogroup"
+                <RadioGroup
+                  value={onlyBlocked ? "blocked" : "all"}
+                  onValueChange={(v) => setOnlyBlocked(v === "blocked")}
                   aria-label="Filtru extensii"
                   className="flex gap-1 rounded-lg border border-zinc-800 bg-zinc-950/60 p-1"
                 >
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={!onlyBlocked}
-                    onClick={() => setOnlyBlocked(false)}
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                      !onlyBlocked ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25" : "text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
+                  <RadioGroupItem value="all" className={`${SEGMENT} data-[state=checked]:bg-indigo-500 data-[state=checked]:shadow-indigo-500/25`}>
                     Toate
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={onlyBlocked}
-                    onClick={() => setOnlyBlocked(true)}
-                    className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                      onlyBlocked ? "bg-red-500 text-white shadow-sm shadow-red-500/25" : "text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    <ShieldBan className="h-3 w-3" />
-                    Blocate
-                    <span className="tabular-nums">({blocked.size})</span>
-                  </button>
-                </div>
+                  </RadioGroupItem>
+                  <RadioGroupItem value="blocked" className={`${SEGMENT} data-[state=checked]:bg-red-500 data-[state=checked]:shadow-red-500/25`}>
+                    <span className="flex items-center gap-1">
+                      <ShieldBan className="h-3 w-3" />
+                      Blocate
+                      <span className="tabular-nums">({blocked.size})</span>
+                    </span>
+                  </RadioGroupItem>
+                </RadioGroup>
 
                 {/* Add a custom extension into the grid */}
                 <div className="flex min-w-0 items-center gap-1.5">
