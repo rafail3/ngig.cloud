@@ -1,9 +1,12 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
+  Search,
+  X,
   ChevronDown,
   Check,
+  SlidersHorizontal,
   Shapes,
   CalendarDays,
   HardDrive,
@@ -20,6 +23,12 @@ import {
 } from "lucide-react";
 import type { FileCategory } from "@/lib/file-type";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -66,6 +75,7 @@ const SIZE_OPTIONS: { key: SizeRange; label: string; short: string }[] = [
 
 export function FilterBar() {
   const f = useFilter();
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Hide the bar in a folder with nothing to filter — keeps an empty folder calm.
   if (f.totalItems === 0) return null;
@@ -79,62 +89,124 @@ export function FilterBar() {
   const dateLabel = DATE_OPTIONS.find((d) => d.key === f.date)?.short ?? "Oricând";
   const sizeLabel = SIZE_OPTIONS.find((s) => s.key === f.size)?.short ?? "Mărime";
 
-  /* Search moved to the header (it belongs to the whole app, not to this page),
-     so the refinements can sit out in the open as chips rather than hiding
-     behind a "Filtre" toggle — one less click to reach the thing that was only
-     collapsed to make room for a search field that is no longer here. */
+  const activeFilters =
+    f.types.size + (f.date !== "any" ? 1 : 0) + (f.size !== "any" ? 1 : 0);
+
   return (
-    <div data-keep-selection className="flex flex-wrap items-center gap-2">
-      {/* Type — multi-select; closes after each pick */}
-      <FilterMenu
-        label={typeLabel}
-        icon={Shapes}
-        active={f.types.size > 0}
-        align="start"
-        width="w-52"
-      >
-        {/* Items sit directly under the content — a wrapper div would hide
-            them from the primitive's arrow-key navigation. */}
-        {TYPE_OPTIONS.map((t) => {
-          const Icon = t.icon;
-          return (
-            <DropdownMenuCheckboxItem
-              key={t.key}
-              checked={f.types.has(t.key)}
-              onCheckedChange={() => f.toggleType(t.key)}
-              className={OPTION_CLASS}
+    // Collapsible owns the expanded/collapsed state, so the toggle gets
+    // aria-expanded and aria-controls from the primitive instead of by hand, and
+    // the panel is really hidden from assistive tech while closed.
+    <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen} data-keep-selection>
+      <div className="flex items-center gap-2.5">
+        {/* Name search — fuzzy, instant. Quiet field that sharpens on focus. */}
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <Input
+            type="text"
+            value={f.query}
+            onChange={(e) => f.setQuery(e.target.value)}
+            placeholder="Caută pe tot cloud-ul…"
+            aria-label="Caută fișiere și foldere pe tot cloud-ul"
+            className="h-auto rounded-xl border-zinc-800 bg-zinc-900/60 py-2.5 pl-10 pr-10 text-zinc-100 shadow-none placeholder:text-zinc-500 focus-visible:border-indigo-500/60 focus-visible:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-indigo-500/15"
+          />
+          {f.query && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => f.setQuery("")}
+              aria-label="Șterge căutarea"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full text-zinc-500 hover:bg-transparent hover:text-zinc-200 dark:hover:bg-transparent"
             >
-              <Icon className="h-4 w-4 shrink-0 text-zinc-400" />
-              <span className="flex-1">{t.label}</span>
-              {f.types.has(t.key) && (
-                <Check className="h-4 w-4 shrink-0 text-indigo-400" />
-              )}
-            </DropdownMenuCheckboxItem>
-          );
-        })}
-      </FilterMenu>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
 
-      {/* Date — single-select */}
-      <FilterMenu label={dateLabel} icon={CalendarDays} active={f.date !== "any"} align="start" width="w-48">
-        <RadioList options={DATE_OPTIONS} value={f.date} onPick={f.setDate} />
-      </FilterMenu>
+        {/* Filters toggle — the Tip/Dată/Mărime controls live behind this. */}
+        <CollapsibleTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            className={`group h-auto shrink-0 gap-2 rounded-xl px-3.5 py-2.5 shadow-none ${
+              filtersOpen || activeFilters > 0
+                ? "border-indigo-500/50 bg-indigo-500/10 text-zinc-100 dark:border-indigo-500/50 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/15"
+                : "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-900"
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4 text-zinc-400" />
+            <span className="hidden sm:inline">Filtre</span>
+            {activeFilters > 0 && (
+              <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-500 px-1 text-xs font-semibold text-white">
+                {activeFilters}
+              </span>
+            )}
+            {/* Rotates from the Collapsible's own state — one source of truth. */}
+            <ChevronDown className="h-3.5 w-3.5 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />
+          </Button>
+        </CollapsibleTrigger>
+      </div>
 
-      {/* Size — single-select */}
-      <FilterMenu label={sizeLabel} icon={HardDrive} active={f.size !== "any"} align="start" width="w-48">
-        <RadioList options={SIZE_OPTIONS} value={f.size} onPick={f.setSize} />
-      </FilterMenu>
+      {/* The menus below are portalled, so nothing here needs to open its
+          overflow after the height animation to keep them from being clipped. */}
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+        <div className="pt-3">
+          <div className="flex items-center gap-2">
+            {/* Type — multi-select; closes after each pick */}
+            <FilterMenu
+              label={typeLabel}
+              icon={Shapes}
+              active={f.types.size > 0}
+              align="start"
+              width="w-52"
+            >
+              {/* Items sit directly under the content — a wrapper div would hide
+                  them from the primitive's arrow-key navigation. */}
+              {TYPE_OPTIONS.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={t.key}
+                    checked={f.types.has(t.key)}
+                    onCheckedChange={() => f.toggleType(t.key)}
+                    className={OPTION_CLASS}
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-zinc-400" />
+                    <span className="flex-1">{t.label}</span>
+                    {f.types.has(t.key) && (
+                      <Check className="h-4 w-4 shrink-0 text-indigo-400" />
+                    )}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </FilterMenu>
 
-      {f.active && (
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={f.reset}
-          className="h-auto rounded-full px-2.5 py-1 text-sm text-indigo-400 hover:bg-transparent hover:text-indigo-300 dark:hover:bg-transparent"
-        >
-          Resetează
-        </Button>
-      )}
-    </div>
+            {/* Date — single-select */}
+            <FilterMenu label={dateLabel} icon={CalendarDays} active={f.date !== "any"} align="start" width="w-48">
+              <RadioList options={DATE_OPTIONS} value={f.date} onPick={f.setDate} />
+            </FilterMenu>
+
+            {/* Size — single-select */}
+            <FilterMenu label={sizeLabel} icon={HardDrive} active={f.size !== "any"} width="w-48">
+              <RadioList options={SIZE_OPTIONS} value={f.size} onPick={f.setSize} />
+            </FilterMenu>
+          </div>
+
+          {/* Reset sits on its own row below the chips, so adding it never
+              pushes the filter chips onto a second line. */}
+          {f.active && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={f.reset}
+              className="mt-2 h-auto rounded-full px-2.5 py-1 text-sm text-indigo-400 hover:bg-transparent hover:text-indigo-300 dark:hover:bg-transparent"
+            >
+              Resetează
+            </Button>
+          )}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -189,22 +261,20 @@ function FilterMenu({
   const menu = useMenuModality();
 
   return (
-    <div className="min-w-0" data-keep-selection>
+    <div className="min-w-0 flex-1" data-keep-selection>
       <DropdownMenu>
         <DropdownMenuTrigger asChild {...menu.triggerProps}>
-          {/* Sized to its label, not stretched: these are chips in a row now,
-              and a stretched chip reads as an input field rather than a filter. */}
           <Button
             type="button"
             variant="outline"
-            className={`group h-auto justify-between gap-1.5 rounded-full px-3.5 py-1.5 text-sm shadow-none ${
+            className={`group h-auto w-full justify-between gap-1.5 rounded-lg px-3.5 py-2 shadow-none ${
               active
                 ? "border-indigo-500/50 bg-indigo-500/10 text-zinc-100 dark:border-indigo-500/50 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/15"
                 : "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:text-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-900"
             }`}
           >
             <span className="flex min-w-0 items-center gap-1.5">
-              {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />}
+              {Icon && <Icon className="hidden h-4 w-4 shrink-0 text-zinc-400 sm:block" />}
               <span className="truncate">{label}</span>
             </span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />

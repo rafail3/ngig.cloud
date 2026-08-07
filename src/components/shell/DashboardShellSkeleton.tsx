@@ -8,15 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 // pulses alike.
 export function DashboardShellSkeleton() {
   return (
-    <div className="flex min-h-screen bg-zinc-900 text-zinc-50 dark:bg-zinc-950">
+    <div className="flex min-h-screen bg-[var(--surface-chrome)] text-zinc-50">
       {/* Navigation column */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col md:flex">
-        <div className="flex h-16 shrink-0 items-center px-5">
-          <Skeleton className="h-9 w-32 rounded bg-zinc-800/60 dark:bg-zinc-900" />
-        </div>
-        <div className="px-5 pb-2">
-          <Skeleton className="h-5 w-24 rounded-full bg-zinc-800/60 dark:bg-zinc-900" />
-        </div>
+        {/* Empty band matching the header height — the wordmark lives there. */}
+        <div className="h-16 shrink-0" />
         <nav className="flex-1 space-y-1 px-3 py-4">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 rounded-lg px-3 py-2">
@@ -30,9 +26,9 @@ export function DashboardShellSkeleton() {
       {/* Content column: header + lifted panel */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-40 flex h-16 items-center gap-3 px-3 sm:px-5">
-          <div className="flex items-center gap-2 md:hidden">
-            <Skeleton className="h-9 w-9 rounded-lg bg-zinc-800/60 dark:bg-zinc-900" />
-            <Skeleton className="h-8 w-24 rounded bg-zinc-800/60 dark:bg-zinc-900" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-9 rounded-lg bg-zinc-800/60 md:hidden dark:bg-zinc-900" />
+            <Skeleton className="h-8 w-24 rounded bg-zinc-800/60 sm:h-10 sm:w-32 dark:bg-zinc-900" />
           </div>
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             <Skeleton className="h-8 w-8 rounded-md bg-zinc-800/60 dark:bg-zinc-900" />
@@ -41,7 +37,7 @@ export function DashboardShellSkeleton() {
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 border-zinc-200/70 bg-zinc-950 dark:border-zinc-800/60 dark:bg-zinc-900/30 md:rounded-tl-2xl md:border-l md:border-t">
+        <main className="min-w-0 flex-1 border-zinc-200/70 bg-[var(--surface-panel)] dark:border-zinc-800/60 md:rounded-tl-2xl md:border-l md:border-t">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
             <div>
               <Skeleton className="h-7 w-40 rounded-lg bg-zinc-900" />

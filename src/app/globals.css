@@ -99,6 +99,17 @@
 :root {
   color-scheme: dark;
 
+  /* The two shell surfaces. Chrome is what the navigation column and the header
+     sit on; the content panel is lifted one step off it. They are named here
+     rather than written as class pairs at each use site because the light
+     palette MIRRORS the zinc scale — `zinc-900` is the darker of the two in
+     light and the lighter in dark, so no single utility expresses "lifted" in
+     both directions. Solid colours, not alpha: anything sticky inside the panel
+     (the drive's filter bar) has to repaint the panel opaquely to hide the rows
+     scrolling under it. */
+  --surface-chrome: var(--color-zinc-950);
+  --surface-panel: color-mix(in oklab, var(--color-zinc-900) 30%, var(--color-zinc-950));
+
   /* Brand accent remap: the app is painted with `indigo-*` / `violet-*`
      utilities, but the brand accent is ELECTRIC BLUE — indigo is remapped to
      Tailwind's blue scale and violet to the sky scale (so legacy
@@ -131,6 +142,11 @@
 
 html.light {
   color-scheme: light;
+
+  /* Mirrored: here the chrome is the faint grey and the panel is the white one.
+     Same relationship, opposite ends of the scale. */
+  --surface-chrome: var(--color-zinc-900);
+  --surface-panel: var(--color-zinc-950);
 
     --color-zinc-50: oklch(14.1% 0.005 285.823);
     --color-zinc-100: oklch(21% 0.006 285.885);

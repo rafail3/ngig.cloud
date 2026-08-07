@@ -73,6 +73,14 @@ export function DriveBoard() {
         thumbFailedAt: f.thumb_failed_at,
       }))}
     >
+      {/* Search + filters stick to the top (just under the header) as you
+          scroll. The background is the content panel's own surface token, not a
+          zinc shade: it has to repaint the panel exactly, or the rows scrolling
+          underneath would show through a mismatched band. */}
+      <div className="sticky top-16 z-30 -mx-4 mb-6 border-b border-zinc-800/60 bg-[var(--surface-panel)] px-4 pb-3 pt-3 sm:-mx-6 sm:px-6">
+        <FilterBar />
+      </div>
+
       <SelectionProvider items={selItems} folderId={folderId}>
         <DriveDndProvider folderId={folderId}>
           {/* Breadcrumb only inside folders — the root needs no path. */}
@@ -106,17 +114,10 @@ export function DriveBoard() {
                   <span aria-hidden="true"> · </span>
                   {roCount(files.length, "fișier", "fișiere")}
                 </span>
+                <ViewToggle />
               </div>
             </div>
             <StorageMeter used={used} quota={quota} />
-          </div>
-
-          {/* Refinements and the layout switch share one calm row: both change
-              how you look at the same contents, so they belong together and
-              above them. */}
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-            <FilterBar />
-            <ViewToggle />
           </div>
 
           <HiddenWhileSearching>

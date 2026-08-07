@@ -185,80 +185,39 @@ export function DashboardShell({
        content column that owns its header, so the two never cross borders at
        the corner. Chrome behind, content panel lifted one step off it — written
        per theme because the light palette mirrors the zinc scale. */
-    <div className="flex min-h-screen bg-zinc-900 text-zinc-50 dark:bg-zinc-950">
+    <div className="flex min-h-screen bg-[var(--surface-chrome)] text-zinc-50">
       {/* ===== Desktop navigation column ===== */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col md:flex">
-        <div className="flex h-16 shrink-0 items-center gap-2 px-5">
-          {/* White-wordmark logo for dark mode, black-wordmark for light.
-              Click → dashboard overview. select-none: it is chrome, not content,
-              so dragging across it must not highlight it. */}
-          <Link href="/" aria-label="Overview" className="flex shrink-0 select-none items-center">
-            <Image
-              src="/ngig-logo.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="hidden h-9 w-auto dark:block"
-            />
-            <Image
-              src="/ngig-logo-light.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="block h-9 w-auto dark:hidden"
-            />
-          </Link>
-        </div>
-        <div className="px-5 pb-2">
-          <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
-        </div>
+        {/* An empty band the height of the header, so the navigation starts on
+            the same line as the content panel below it. The wordmark lives in
+            the header. */}
+        <div className="h-16 shrink-0" />
         <SidebarNav user={user} badges={badges} sections={sections} />
       </aside>
 
       {/* ===== Content column ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
       <header className="sticky top-0 z-40 flex h-16 items-center gap-3 px-3 sm:px-5">
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2 md:hidden">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Meniu"
-                className="-ml-1 text-zinc-300 hover:bg-zinc-800/60 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
+                className="-ml-1 text-zinc-300 hover:bg-zinc-800/60 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50 md:hidden"
               >
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
             <SheetContent
               side="left"
-              className="w-64 border-r border-zinc-800/60 bg-zinc-900 p-0 sm:max-w-64 md:hidden dark:bg-zinc-950"
-              overlayClassName="md:hidden"
+              className="top-16 h-[calc(100%-4rem)] w-64 border-r border-zinc-800/60 bg-[var(--surface-chrome)] p-0 sm:max-w-64 md:hidden"
+              overlayClassName="top-16 md:hidden"
             >
               <SheetHeader className="sr-only">
                 <SheetTitle>Administrare</SheetTitle>
               </SheetHeader>
-              <div className="flex h-16 shrink-0 items-center px-5">
-                <Image
-                  src="/ngig-logo.png"
-                  alt="ngig.cloud"
-                  width={352}
-                  height={96}
-                  className="hidden h-9 w-auto dark:block"
-                />
-                <Image
-                  src="/ngig-logo-light.png"
-                  alt="ngig.cloud"
-                  width={352}
-                  height={96}
-                  className="block h-9 w-auto dark:hidden"
-                />
-              </div>
-              <div className="px-5 pb-2">
-                <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
-              </div>
               <SidebarNav
                 user={user}
                 badges={badges}
@@ -267,6 +226,9 @@ export function DashboardShell({
               />
             </SheetContent>
           </Sheet>
+          {/* White-wordmark logo for dark mode, black-wordmark for light.
+              Click → dashboard overview. select-none: it is chrome, not content,
+              so dragging across the header must not highlight it. */}
           <Link href="/" aria-label="Overview" className="flex shrink-0 select-none items-center">
             <Image
               src="/ngig-logo.png"
@@ -274,7 +236,7 @@ export function DashboardShell({
               width={352}
               height={96}
               priority
-              className="hidden h-8 w-auto shrink-0 dark:block"
+              className="hidden h-8 w-auto shrink-0 dark:block sm:h-10"
             />
             <Image
               src="/ngig-logo-light.png"
@@ -282,9 +244,12 @@ export function DashboardShell({
               width={352}
               height={96}
               priority
-              className="block h-8 w-auto shrink-0 dark:hidden"
+              className="block h-8 w-auto shrink-0 dark:hidden sm:h-10"
             />
           </Link>
+          <span className="hidden sm:inline">
+            <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
+          </span>
         </div>
 
         {/* right: notifications + theme + user menu (logout lives inside). The
@@ -354,7 +319,7 @@ export function DashboardShell({
 
       {/* The lifted content panel — the rounded corner meeting the sidebar is
           what makes this read as an application frame. */}
-      <main className="min-w-0 flex-1 border-zinc-200/70 bg-zinc-950 dark:border-zinc-800/60 dark:bg-zinc-900/30 md:rounded-tl-2xl md:border-l md:border-t">
+      <main className="min-w-0 flex-1 border-zinc-200/70 bg-[var(--surface-panel)] dark:border-zinc-800/60 md:rounded-tl-2xl md:border-l md:border-t">
         {children}
       </main>
       </div>

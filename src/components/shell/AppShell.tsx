@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { MotionConfig } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,9 +16,6 @@ import { UploadPanel } from "@/components/drive/UploadPanel";
 import { ContextMenuProvider } from "@/components/drive/ContextMenu";
 import { prefetchDrive, useDriveRealtime, useFolder } from "@/components/drive/useDriveData";
 import { OfficeStatusProvider } from "@/components/drive/OfficeStatusProvider";
-import { DriveSearchProvider } from "@/components/drive/DriveSearchProvider";
-import { NewMenu } from "@/components/drive/NewMenu";
-import { HeaderSearch } from "./HeaderSearch";
 import { Avatar } from "./Avatar";
 import { AppVersion } from "./AppVersion";
 import { Button } from "@/components/ui/button";
@@ -212,7 +209,6 @@ export function AppShell({
     <ContextMenuProvider>
     <OfficeStatusProvider>
     <UploadProvider>
-    <DriveSearchProvider>
     {/* The frame: a full-height navigation column beside a content column that
         owns its own header. The alternative — a full-width bar across the top
         with the sidebar hung underneath it — is what made the two meet in an
@@ -224,38 +220,13 @@ export function AppShell({
         The pairs are written explicitly per theme because the light palette
         mirrors the zinc scale — `zinc-900` is the DARKER of the two in light
         and the LIGHTER in dark, so one class cannot express "lifted" in both. */}
-    <div className="flex min-h-screen bg-zinc-900 text-zinc-50 dark:bg-zinc-950">
+    <div className="flex min-h-screen bg-[var(--surface-chrome)] text-zinc-50">
       {/* ===== Desktop navigation column ===== */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col md:flex">
-        {/* The wordmark heads the navigation rather than the page, which is what
-            lets the header be about the current task instead of about the app. */}
-        <div className="flex h-16 shrink-0 items-center px-5">
-          <Link href="/" aria-label="Acasă" className="flex select-none items-center">
-            <Image
-              src="/ngig-logo.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="hidden h-9 w-auto dark:block"
-            />
-            <Image
-              src="/ngig-logo-light.png"
-              alt="ngig.cloud"
-              width={352}
-              height={96}
-              priority
-              className="block h-9 w-auto dark:hidden"
-            />
-          </Link>
-        </div>
-
-        <div className="px-3 pb-1">
-          {/* useSearchParams: the menu targets the folder you're looking at. */}
-          <Suspense fallback={<div className="h-[42px]" />}>
-            <NewMenu />
-          </Suspense>
-        </div>
+        {/* An empty band the height of the header, so the navigation starts on
+            the same line as the content panel below it. The wordmark lives in
+            the header, not here. */}
+        <div className="h-16 shrink-0" />
 
         <AppNav items={items} />
         <DrawerStorage />
@@ -264,59 +235,40 @@ export function AppShell({
       {/* ===== Content column: its own header, then the lifted panel ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
       <header className="sticky top-0 z-40 flex h-16 items-center gap-2 px-3 sm:gap-3 sm:px-5">
-        {/* left: drawer trigger + logo — mobile only, since the sidebar carries
-            both on desktop */}
-        <div className="flex shrink-0 items-center gap-2 md:hidden">
+        {/* left: drawer trigger (mobile only — the sidebar is always there on
+            desktop) + the wordmark */}
+        <div className="flex shrink-0 items-center gap-2">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Meniu"
-                className="-ml-1 text-zinc-300 hover:bg-zinc-800/60 hover:text-zinc-50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
+                className="-ml-1 text-zinc-300 hover:bg-zinc-800/60 hover:text-zinc-50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50 md:hidden"
               >
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
 
-            {/* Full-height on mobile too, so the drawer carries the same head
-                (logo + Nou) as the desktop column. Everything the hand-rolled
-                version lacked is still here: the page behind it stops scrolling,
-                focus is trapped inside and handed back to the burger on close,
-                and Escape works. */}
+            {/* The drawer sits under the header, which owns the wordmark on
+                every size. Everything the hand-rolled version lacked is still
+                here: the page behind it stops scrolling, focus is trapped
+                inside and handed back to the burger on close, and Escape
+                works. */}
             <SheetContent
               side="left"
-              className="w-72 border-r border-zinc-800/60 bg-zinc-900 p-0 sm:max-w-72 md:hidden dark:bg-zinc-950"
-              overlayClassName="backdrop-blur-sm md:hidden"
+              className="top-16 h-[calc(100%-4rem)] w-72 border-r border-zinc-800/60 bg-[var(--surface-chrome)] p-0 sm:max-w-72 md:hidden"
+              overlayClassName="top-16 backdrop-blur-sm md:hidden"
             >
               <SheetHeader className="sr-only">
                 <SheetTitle>Navigare</SheetTitle>
               </SheetHeader>
-              <div className="flex h-16 shrink-0 items-center px-5">
-                <Image
-                  src="/ngig-logo.png"
-                  alt="ngig.cloud"
-                  width={352}
-                  height={96}
-                  className="hidden h-9 w-auto dark:block"
-                />
-                <Image
-                  src="/ngig-logo-light.png"
-                  alt="ngig.cloud"
-                  width={352}
-                  height={96}
-                  className="block h-9 w-auto dark:hidden"
-                />
-              </div>
-              <div className="px-3 pb-1">
-                <Suspense fallback={<div className="h-[42px]" />}>
-                  <NewMenu onAction={() => setSidebarOpen(false)} />
-                </Suspense>
-              </div>
               <AppNav items={items} onNavigate={() => setSidebarOpen(false)} />
               <DrawerStorage />
             </SheetContent>
           </Sheet>
+          {/* select-none: the wordmark is chrome, not content — dragging across
+              the header should never leave it highlighted. */}
           <Link href="/" aria-label="Acasă" className="flex shrink-0 select-none items-center">
             <Image
               src="/ngig-logo.png"
@@ -324,7 +276,7 @@ export function AppShell({
               width={352}
               height={96}
               priority
-              className="hidden h-8 w-auto shrink-0 dark:block"
+              className="hidden h-8 w-auto shrink-0 dark:block sm:h-10"
             />
             <Image
               src="/ngig-logo-light.png"
@@ -332,14 +284,10 @@ export function AppShell({
               width={352}
               height={96}
               priority
-              className="block h-8 w-auto shrink-0 dark:hidden"
+              className="block h-8 w-auto shrink-0 dark:hidden sm:h-10"
             />
           </Link>
         </div>
-
-        {/* Search is the header's centre of gravity — reachable from every page,
-            not only from the files board. */}
-        <HeaderSearch />
 
         {/* right: notifications + theme + user menu (profile & logout live inside).
             The marker lets the notification panel hang off this cluster's right
@@ -431,7 +379,7 @@ export function AppShell({
           change are what make this read as an application frame rather than a
           web page with a menu beside it. Only the corner meeting the sidebar is
           rounded, and only where a sidebar exists. */}
-      <main className="min-w-0 flex-1 border-zinc-200/70 bg-zinc-950 dark:border-zinc-800/60 dark:bg-zinc-900/30 md:rounded-tl-2xl md:border-l md:border-t">
+      <main className="min-w-0 flex-1 border-zinc-200/70 bg-[var(--surface-panel)] dark:border-zinc-800/60 md:rounded-tl-2xl md:border-l md:border-t">
         {children}
       </main>
       </div>
@@ -439,7 +387,6 @@ export function AppShell({
       {/* Floating upload progress panel (visible across all app pages) */}
       <UploadPanel />
     </div>
-    </DriveSearchProvider>
     </UploadProvider>
     </OfficeStatusProvider>
     </ContextMenuProvider>
