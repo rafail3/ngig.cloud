@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Wordmark } from "./Wordmark";
 
 // Static placeholder for <DashboardShell>, shown as the <Suspense> fallback
 // while the panel's per-request data (auth + admin gate) streams in. Mirrors the
@@ -12,7 +13,7 @@ export function DashboardShellSkeleton() {
       {/* Navigation column */}
       <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col md:flex">
         <div className="flex h-16 shrink-0 items-center gap-2 px-5">
-          <Skeleton className="h-8 w-28 rounded bg-zinc-800/60 dark:bg-zinc-900" />
+          <Wordmark size="sm" />
           <Skeleton className="h-5 w-24 shrink-0 rounded-full bg-zinc-800/60 dark:bg-zinc-900" />
         </div>
         <nav className="flex-1 space-y-1 px-3 py-4">
@@ -30,7 +31,7 @@ export function DashboardShellSkeleton() {
         <header className="sticky top-0 z-40 flex h-16 items-center gap-3 bg-[var(--surface-chrome)] px-3 sm:px-5">
           <div className="flex items-center gap-2 md:hidden">
             <Skeleton className="h-9 w-9 rounded-lg bg-zinc-800/60 dark:bg-zinc-900" />
-            <Skeleton className="h-8 w-24 rounded bg-zinc-800/60 sm:h-10 sm:w-32 dark:bg-zinc-900" />
+            <Wordmark size="sm" />
           </div>
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             <Skeleton className="h-8 w-8 rounded-md bg-zinc-800/60 dark:bg-zinc-900" />

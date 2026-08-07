@@ -1,18 +1,67 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { CloudOff, Loader2 } from "lucide-react";
-import { getSharePage } from "@/server/share/service";
+import { getSharePage, getShareSummary } from "@/server/share/service";
+import { shareKindLabel, expiryLabel } from "@/lib/share";
+import { formatBytes } from "@/lib/format";
+import { Wordmark } from "@/components/shell/Wordmark";
 import { ShareThemeToggle } from "@/components/share/ShareThemeToggle";
 import { ShareContent } from "@/components/share/ShareContent";
 import { ShareGate } from "@/components/share/ShareGate";
 
-export const metadata: Metadata = {
-  title: "Fișier partajat",
-  // Share links are private capabilities — keep them out of search engines.
-  robots: { index: false, follow: false },
-};
+/* The link's own metadata.
+
+   A share link gets pasted into chats and mail far more often than it gets
+   typed, so the unfurled card IS the product's first impression. It names the
+   file, says what kind of thing it is and how long it lives — but stays generic
+   for a password-protected link, whose whole point is that holding the URL
+   should not be enough to learn what is behind it.
+
+   `robots` stays noindex/nofollow: a share link is a private capability, and
+   unfurling is not indexing. Crawlers that respect robots skip it; chat apps
+   read the OG tags either way, which is exactly the split we want. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  // The read-only lookup: building a preview must never count as a visit.
+  const share = await getShareSummary(token);
+
+  const robots = { index: false, follow: false } as const;
+
+  if (!share) {
+    return {
+      title: "Link indisponibil",
+      description: "Linkul a expirat, a fost revocat sau nu există.",
+      robots,
+    };
+  }
+
+  const kind = shareKindLabel(share.kind, share.itemCount);
+  const title = share.hasPassword ? `${kind} · protejat cu parolă` : share.name;
+  const description = share.hasPassword
+    ? "Linkul cere o parolă. Cere-o persoanei care ți l-a trimis."
+    : [
+        kind,
+        share.size ? formatBytes(share.size) : null,
+        expiryLabel(share.expiresAt, Date.now()).toLowerCase(),
+      ]
+        .filter(Boolean)
+        .join(" · ") + " — descarcă direct, fără cont.";
+
+  return {
+    title,
+    description,
+    robots,
+    // The image itself comes from opengraph-image.tsx in this folder; naming it
+    // here would override that file rather than add to it.
+    openGraph: { type: "website", siteName: "ngig.cloud", title, description },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 // The page shell is fully static (no dynamic data) so Cache Components can
 // prerender it instantly; the per-token lookup streams inside <Suspense>.
@@ -30,20 +79,8 @@ export default function SharePage({
       </div>
 
       <header className="relative z-30 flex items-center justify-between px-4 py-4 sm:px-8 sm:py-5">
-        <Link
-          href="https://ngig.cloud"
-          className="group flex items-center gap-2.5 text-lg font-semibold tracking-tight"
-        >
-          <Image
-            src="/ngig-mark.png"
-            alt="ngig.cloud"
-            width={72}
-            height={72}
-            className="h-9 w-9"
-          />
-          <span>
-            ngig<span className="text-indigo-400">.cloud</span>
-          </span>
+        <Link href="https://ngig.cloud" aria-label="ngig.cloud" className="flex items-center">
+          <Wordmark />
         </Link>
         <ShareThemeToggle />
       </header>

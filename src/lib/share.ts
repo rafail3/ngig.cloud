@@ -126,6 +126,19 @@ export function sharePreviewKind(name: string): SharePreviewKind {
   return PREVIEW_EXT[name.slice(dot + 1).toLowerCase()] ?? null;
 }
 
+/* What a link IS, in one line: "Fișier partajat", "Folder partajat",
+   "3 elemente partajate". Used by the page title, the social preview card and
+   the image on it, so a link says the same thing wherever it is unfurled. */
+export function shareKindLabel(kind: ShareLinkKind, itemCount = 1): string {
+  if (kind === "folder") return "Folder partajat";
+  if (kind === "bundle") {
+    return itemCount === 1
+      ? "Element partajat"
+      : `${itemCount} ${itemCount < 20 ? "elemente" : "de elemente"} partajate`;
+  }
+  return "Fișier partajat";
+}
+
 // Human label for a link's remaining life, e.g. "expiră în 6 zile" / "expiră azi"
 // / "niciodată". Kept here so the modal, the list and the public page all speak
 // the same way. `nowMs` is passed in so callers control the clock.

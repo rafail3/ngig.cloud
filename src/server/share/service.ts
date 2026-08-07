@@ -668,6 +668,83 @@ function bundleTitle(items: { kind: "file" | "folder" }[]): {
 
 // Everything the public page needs. A password-protected link returns a locked
 // payload (no content) and is NOT counted as an access until unlocked.
+/** What a link says about itself, for a page title or a preview card. */
+export type ShareSummary = {
+  kind: ShareLinkKind;
+  name: string;
+  size: number | null;
+  hasPassword: boolean;
+  expiresAt: string | null;
+  /** Members of a bundle — used to say "3 fișiere" rather than naming one. */
+  itemCount: number;
+};
+
+/* The link's public facts, with NO side effects.
+
+   `getSharePage` is the wrong function for metadata and preview images: it
+   registers an access and logs egress. Those run on every fetch of the page —
+   including the ones a chat app makes to build its link preview — so using it
+   here would let a single paste into a group chat count as a dozen visits and
+   bill a dozen previews. This reads and returns; nothing else.
+
+   It also does not delete a dead link the way `resolveShare` does. Metadata
+   generation is not the place to mutate: an unfurler hitting an expired link
+   should get "nothing here", not perform the cleanup. */
+export async function getShareSummary(token: string): Promise<ShareSummary | null> {
+  if (!isTokenShape(token)) return null;
+  const admin = createAdminClient();
+
+  const { data: link } = await admin
+    .from("share_links")
+    .select("*")
+    .eq("token", token)
+    .maybeSingle();
+  if (!link) return null;
+  const row = link as ShareLinkRow;
+  if (isLinkDead(row, Date.now())) return null;
+
+  const base = {
+    hasPassword: row.password_hash !== null,
+    expiresAt: row.expires_at,
+  };
+
+  if (row.target_type === "file") {
+    const { data: file } = await admin
+      .from("files")
+      .select("name, size, deleted_at")
+      .eq("id", row.file_id!)
+      .maybeSingle();
+    if (!file || file.deleted_at) return null;
+    return {
+      ...base,
+      kind: "file",
+      name: file.name as string,
+      size: Number(file.size ?? 0),
+      itemCount: 1,
+    };
+  }
+
+  if (row.target_type === "folder") {
+    const { data: folder } = await admin
+      .from("folders")
+      .select("name")
+      .eq("id", row.folder_id!)
+      .maybeSingle();
+    if (!folder) return null;
+    return { ...base, kind: "folder", name: folder.name as string, size: null, itemCount: 1 };
+  }
+
+  const items = await loadBundleItems(admin, row.id);
+  if (items.length === 0) return null;
+  return {
+    ...base,
+    kind: "bundle",
+    name: items[0].name,
+    size: null,
+    itemCount: items.length,
+  };
+}
+
 export async function getSharePage(token: string): Promise<SharePageData | null> {
   const share = await resolveShare(token);
   if (!share) return null;

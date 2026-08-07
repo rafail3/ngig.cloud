@@ -14,31 +14,34 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const DESCRIPTION =
+  "Cloudul tău privat — fișiere, foldere și partajări, rapid și sigur.";
+
+/* Site-wide metadata. The brand is written "ngig.cloud" everywhere now, as the
+   mark and the wordmark say it — the old "ngig Cloud" spelling survived only
+   here. The preview images are NOT listed: `opengraph-image.tsx` beside this
+   file provides them, and naming an `images` array here would override that
+   generated card with a flat logo. */
 export const metadata: Metadata = {
   metadataBase: new URL("https://ngig.cloud"),
   title: {
-    default: "ngig Cloud",
-    template: "%s — ngig Cloud",
+    default: "ngig.cloud",
+    template: "%s — ngig.cloud",
   },
-  description:
-    "ngig Cloud — serviciul tău profesional de cloud, 100% rapid și sigur.",
-  applicationName: "ngig Cloud",
+  description: DESCRIPTION,
+  applicationName: "ngig.cloud",
   openGraph: {
     type: "website",
-    siteName: "ngig Cloud",
-    title: "ngig Cloud",
-    description:
-      "ngig Cloud — serviciul tău profesional de cloud, 100% rapid și sigur.",
+    siteName: "ngig.cloud",
+    title: "ngig.cloud",
+    description: DESCRIPTION,
     url: "https://ngig.cloud",
     locale: "ro_RO",
-    images: [{ url: "/ngig-logo.png", alt: "ngig Cloud" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ngig Cloud",
-    description:
-      "ngig Cloud — serviciul tău profesional de cloud, 100% rapid și sigur.",
-    images: ["/ngig-logo.png"],
+    title: "ngig.cloud",
+    description: DESCRIPTION,
   },
 };
 
