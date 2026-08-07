@@ -259,6 +259,10 @@ html.light {
      already names one (`border-zinc-800`), so this only fills in the blank. */
   * {
     border-color: var(--border);
+    /* The other half of the same rule: if anything ever does fall back to the
+       browser's own focus outline, it lands in the brand colour rather than the
+       stark white Chrome draws on a dark surface. */
+    outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
   }
 
   /* Manrope everywhere; in-var fallback so a missing font never falls to serif. */

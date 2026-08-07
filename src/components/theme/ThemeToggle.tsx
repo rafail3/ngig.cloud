@@ -2,6 +2,7 @@
 
 import { Sun, Moon, Monitor } from "lucide-react";
 import { useTheme, type Theme } from "./ThemeProvider";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,12 +31,20 @@ export function ThemeToggle() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="Schimbă tema"
-        title="Temă"
-        className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
-      >
-        <TriggerIcon className="h-5 w-5" />
+      {/* asChild + Button is the documented pattern, and it is what supplies a
+          focus style. A bare trigger has none, so the browser draws its own
+          outline — the white square that showed up after picking a theme, since
+          Radix hands focus back to the trigger when the menu closes. */}
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Schimbă tema"
+          title="Temă"
+          className="text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+        >
+          <TriggerIcon className="h-5 w-5" />
+        </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-40">

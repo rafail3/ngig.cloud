@@ -24,6 +24,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Avatar } from "./Avatar";
 import { AppVersion } from "./AppVersion";
 import { RoleBadge } from "@/components/dashboard/RoleBadge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -180,11 +181,15 @@ export function DashboardShell({
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/90 px-3 backdrop-blur-md sm:px-5">
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger
-              aria-label="Meniu"
-              className="-ml-1 rounded-lg p-2 text-zinc-300 transition-colors hover:bg-zinc-900 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50 md:hidden"
-            >
-              <Menu className="h-5 w-5" />
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Meniu"
+                className="-ml-1 text-zinc-300 hover:bg-zinc-900 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50 md:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
             </SheetTrigger>
             <SheetContent
               side="left"
@@ -233,12 +238,17 @@ export function DashboardShell({
           <NotificationBell />
           <ThemeToggle />
           <DropdownMenu>
-            <DropdownMenuTrigger className="group flex items-center gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50">
-              <Avatar username={user.username} />
-              <span className="hidden max-w-[120px] truncate font-medium sm:inline">
-                {user.username}
-              </span>
-              <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+              >
+                <Avatar username={user.username} />
+                <span className="hidden max-w-[120px] truncate font-medium sm:inline">
+                  {user.username}
+                </span>
+                <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />
+              </Button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-64 p-0">

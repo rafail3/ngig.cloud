@@ -18,6 +18,7 @@ import { prefetchDrive, useDriveRealtime, useFolder } from "@/components/drive/u
 import { OfficeStatusProvider } from "@/components/drive/OfficeStatusProvider";
 import { Avatar } from "./Avatar";
 import { AppVersion } from "./AppVersion";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
@@ -138,12 +139,15 @@ export function AppShell({
         {/* left: menu button (all sizes) + logo */}
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger
-              aria-label="Meniu"
-              className="flex items-center gap-2 rounded-lg border border-zinc-800/80 bg-zinc-900/50 px-2.5 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:border-zinc-700 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
-            >
-              <Menu className="h-5 w-5" />
-              <span className="hidden font-medium sm:inline">Meniu</span>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                aria-label="Meniu"
+                className="h-auto gap-2 rounded-lg border-zinc-800/80 bg-zinc-900/50 px-2.5 py-2 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:border-zinc-700 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+              >
+                <Menu className="h-5 w-5" />
+                <span className="hidden font-medium sm:inline">Meniu</span>
+              </Button>
             </SheetTrigger>
 
             {/* The drawer sits under the navbar, as it always has. What is new
@@ -244,14 +248,19 @@ export function AppShell({
           <NotificationBell />
           <ThemeToggle />
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50">
-              <Avatar username={user.username} />
-              <span className="hidden max-w-[140px] truncate font-medium sm:inline">
-                {user.username}
-              </span>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+              >
+                <Avatar username={user.username} />
+                <span className="hidden max-w-[140px] truncate font-medium sm:inline">
+                  {user.username}
+                </span>
               {/* Rotates from the menu's own state rather than from a boolean we
                   keep in parallel — one source of truth for "open". */}
-              <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />
+                <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-data-[state=open]:rotate-180" />
+              </Button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-64 p-0">
