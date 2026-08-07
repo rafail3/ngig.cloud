@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { listMySharesAction, revokeShareAction } from "@/app/drive-actions";
+import { EmptyState } from "@/components/common/EmptyState";
 import { expiryLabel, type MyShareLinkView } from "@/lib/share";
 import { formatDateShort } from "@/lib/format-date";
 
@@ -96,24 +97,31 @@ export function SharedLinksBoard() {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-14 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/50 text-zinc-500">
-          <Link2 className="h-7 w-7" />
-        </div>
-        <p className="text-sm font-medium text-zinc-300">Niciun link activ</p>
-        <p className="mx-auto mt-1 max-w-sm text-sm text-zinc-500">
-          Partajează un fișier sau folder din drive („Partajează”) ca să
-          generezi un link public care apare aici.
-        </p>
-      </div>
+      <EmptyState
+        icon={Link2}
+        title="Niciun link activ"
+        description="Partajează un fișier sau folder din drive („Partajează”) ca să generezi un link public care apare aici."
+      />
     );
   }
 
+  const totalViews = rows.reduce((sum, r) => sum + r.accessCount, 0);
+
   return (
     <div>
-      <p className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
-        {rows.length} {rows.length === 1 ? "link activ" : "linkuri active"}
-      </p>
+      {/* Summary toolbar: what's on the page + how much it's used, in one calm
+          line — richer than the bare count label it replaces. */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-400">
+        <span className="font-medium text-zinc-200">
+          {rows.length} {rows.length === 1 ? "link activ" : "linkuri active"}
+        </span>
+        <span aria-hidden className="text-zinc-600">·</span>
+        <span className="inline-flex items-center gap-1.5">
+          <Eye className="h-3.5 w-3.5" aria-hidden />
+          <span className="tabular-nums">{totalViews}</span>
+          {totalViews === 1 ? "accesare în total" : "accesări în total"}
+        </span>
+      </div>
       <ul className="space-y-3">
         {rows.map((row) => (
           <li
