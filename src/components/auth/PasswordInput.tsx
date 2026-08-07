@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
@@ -36,7 +37,7 @@ export function PasswordInput({
 
   return (
     <div className="relative">
-      <input
+      <Input variant="unstyled"
         type={show ? "text" : "password"}
         name={name}
         required

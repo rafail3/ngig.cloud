@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { Link2, Wand2, Pencil, TriangleAlert } from "lucide-react";
@@ -118,7 +119,7 @@ export function OfficeServerUrl({ url, mode }: { url: string; mode: OfficeUrlMod
         </div>
 
         <div className="flex gap-2">
-          <input
+          <Input variant="unstyled"
             type="url"
             name="serverUrl"
             value={shown}

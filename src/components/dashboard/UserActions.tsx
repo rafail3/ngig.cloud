@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -157,7 +158,7 @@ export function UserActions({
                 <label htmlFor="reason" className={labelCls}>
                   Motiv <span className="text-zinc-500">(opțional)</span>
                 </label>
-                <input id="reason" name="reason" type="text" placeholder="ex: abuz" className={fieldCls} />
+                <Input variant="unstyled" id="reason" name="reason" type="text" placeholder="ex: abuz" className={fieldCls} />
               </div>
             </div>
             <Button variant="unstyled"
@@ -316,7 +317,7 @@ export function UserActions({
             <div>
               <label htmlFor="maxFile" className={labelCls}>Max / fișier</label>
               <div className="flex gap-2">
-                <input
+                <Input variant="unstyled"
                   id="maxFile"
                   name="maxFile"
                   type="text"
@@ -338,7 +339,7 @@ export function UserActions({
             <div>
               <label htmlFor="maxTotal" className={labelCls}>Max total</label>
               <div className="flex gap-2">
-                <input
+                <Input variant="unstyled"
                   id="maxTotal"
                   name="maxTotal"
                   type="text"

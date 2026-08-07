@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/drive/anim";
 import { useRef, useState, useTransition, type ReactNode } from "react";
@@ -214,7 +216,7 @@ function TemplateField({
         {multiline && "\n"}
       </div>
       {multiline ? (
-        <textarea
+        <Textarea variant="unstyled"
           {...common}
           rows={3}
           maxLength={1000}
@@ -223,7 +225,7 @@ function TemplateField({
           }}
         />
       ) : (
-        <input
+        <Input variant="unstyled"
           {...common}
           type="text"
           maxLength={200}
@@ -493,7 +495,7 @@ function ExistingTab({ types }: { types: NotificationTypeStatus[] }) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-          <input
+          <Input variant="unstyled"
             type="text"
             value={q}
             onChange={(e) => setQ(e.target.value)}

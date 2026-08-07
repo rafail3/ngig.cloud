@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -71,7 +72,7 @@ export function DeleteUser({ id, username }: { id: string; username: string }) {
               <label htmlFor="del-user-confirm" className="mb-1 block text-sm font-medium text-zinc-300">
                 Scrie <span className="font-mono text-zinc-100">{username}</span> ca să confirmi
               </label>
-              <input
+              <Input variant="unstyled"
                 id="del-user-confirm"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}

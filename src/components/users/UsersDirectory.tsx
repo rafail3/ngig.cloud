@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -76,7 +77,7 @@ export function UsersDirectory({ initialQuery }: { initialQuery: string }) {
     <div>
       <div className="relative mb-5">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-        <input
+        <Input variant="unstyled"
           value={query}
           onChange={(e) => onType(e.target.value)}
           placeholder="Caută după username…"

@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { AnimatePresence } from "motion/react";
@@ -114,7 +115,7 @@ export function DeleteAccount({ username }: { username: string }) {
                 <label htmlFor="del-confirm" className="mb-1 block text-sm font-medium text-zinc-300">
                   Scrie <span className="font-mono text-zinc-100">{username}</span> ca să confirmi
                 </label>
-                <input
+                <Input variant="unstyled"
                   id="del-confirm"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}

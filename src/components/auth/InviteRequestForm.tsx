@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -38,19 +40,19 @@ export function InviteRequestForm() {
     <form noValidate ref={formRef} onSubmit={onSubmit} action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
       <div>
         <label htmlFor="name" className={labelCls}>Nume</label>
-        <input id="name" name="name" type="text" required defaultValue={state.values?.name} className={inputCls} />
+        <Input variant="unstyled" id="name" name="name" type="text" required defaultValue={state.values?.name} className={inputCls} />
       </div>
 
       <div>
         <label htmlFor="email" className={labelCls}>Email</label>
-        <input id="email" name="email" type="email" required defaultValue={state.values?.email} autoComplete="email" className={inputCls} />
+        <Input variant="unstyled" id="email" name="email" type="email" required defaultValue={state.values?.email} autoComplete="email" className={inputCls} />
       </div>
 
       <div>
         <label htmlFor="message" className={labelCls}>
           Mesaj <span className="text-zinc-500">(opțional)</span>
         </label>
-        <textarea
+        <Textarea variant="unstyled"
           id="message"
           name="message"
           rows={4}

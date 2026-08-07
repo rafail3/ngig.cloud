@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useState } from "react";
 import { dashboardLogin } from "@/app/dashboard/login/actions";
@@ -28,7 +29,7 @@ export function DashboardLoginForm() {
         <label htmlFor="username" className={labelCls}>
           Username
         </label>
-        <input
+        <Input variant="unstyled"
           id="username"
           type="text"
           name="username"

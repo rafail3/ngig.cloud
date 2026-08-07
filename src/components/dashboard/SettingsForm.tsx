@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -113,7 +114,7 @@ function SettingRow({
             <form action={action} className="flex flex-col gap-3 pt-4 sm:pl-12">
               <input type="hidden" name="field" value={field} />
               <div className="flex gap-2 sm:max-w-md">
-                <input
+                <Input variant="unstyled"
                   name="value"
                   type="text"
                   inputMode={kind === "count" ? "numeric" : "decimal"}

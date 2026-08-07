@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { Search, Loader2, X, Star } from "lucide-react";
@@ -77,7 +78,7 @@ export function UserSearchInput({
     <div ref={boxRef} className="relative">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-        <input
+        <Input variant="unstyled"
           value={query}
           onChange={(e) => {
             const v = e.target.value;

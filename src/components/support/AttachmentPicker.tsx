@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRef } from "react";
 import { ImagePlus, X, Film, Image as ImageIcon } from "lucide-react";
@@ -52,7 +53,7 @@ export function AttachmentPicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <input
+      <Input variant="unstyled"
         ref={inputRef}
         type="file"
         multiple

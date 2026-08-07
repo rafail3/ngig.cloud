@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -123,7 +124,7 @@ export function UsernameForm({ currentUsername }: { currentUsername: string }) {
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor="username" className={labelCls}>Username nou</label>
-            <input
+            <Input variant="unstyled"
               id="username"
               name="username"
               type="text"
@@ -198,7 +199,7 @@ export function EmailForm({ currentEmail }: { currentEmail: string }) {
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor="email" className={labelCls}>Email nou</label>
-            <input
+            <Input variant="unstyled"
               id="email"
               name="email"
               type="email"

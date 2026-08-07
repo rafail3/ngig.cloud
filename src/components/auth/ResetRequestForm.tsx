@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -39,7 +40,7 @@ export function ResetRequestForm() {
     <form noValidate ref={formRef} onSubmit={onSubmit} action={formAction} className="flex flex-col gap-3.5 sm:gap-4">
       <div>
         <label htmlFor="email" className={labelCls}>Email</label>
-        <input
+        <Input variant="unstyled"
           id="email"
           name="email"
           type="email"

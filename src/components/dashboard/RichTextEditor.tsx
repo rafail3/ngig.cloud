@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { Bold, Italic, Underline, Link2, Check, X } from "lucide-react";
@@ -141,7 +142,7 @@ export function RichTextEditor({
 
         {linkOpen && (
           <div className="flex items-center gap-1">
-            <input
+            <Input variant="unstyled"
               autoFocus
               type="text"
               value={linkUrl}

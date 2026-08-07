@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -236,7 +237,7 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
               <div className="flex flex-wrap items-center gap-2.5">
                 <div className="relative min-w-0 flex-1 sm:max-w-[15rem]">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                  <input
+                  <Input variant="unstyled"
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -266,7 +267,7 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
 
                 {/* Add a custom extension into the grid */}
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <input
+                  <Input variant="unstyled"
                     type="text"
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}

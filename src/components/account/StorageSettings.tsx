@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -217,7 +218,7 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
             <div className="flex flex-wrap items-end gap-2">
               <div className="w-40">
                 <label htmlFor="selfMaxTotal" className={labelCls}>Plafon total</label>
-                <input
+                <Input variant="unstyled"
                   id="selfMaxTotal"
                   type="text"
                   inputMode="decimal"
@@ -297,7 +298,7 @@ export function StorageSettings({ settings }: { settings: MyStorageSettings }) {
               <label htmlFor="alertValue" className={labelCls}>
                 {mode === "percent" ? "Prag (%)" : "Prag"}
               </label>
-              <input
+              <Input variant="unstyled"
                 id="alertValue"
                 type="text"
                 inputMode="decimal"

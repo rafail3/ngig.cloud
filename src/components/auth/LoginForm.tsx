@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useState } from "react";
 import { login } from "@/app/login/actions";
@@ -30,7 +31,7 @@ export function LoginForm() {
         <label htmlFor="username" className={labelCls}>
           Username
         </label>
-        <input
+        <Input variant="unstyled"
           id="username"
           type="text"
           name="username"

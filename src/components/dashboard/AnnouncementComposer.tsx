@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { ModalShell } from "@/components/drive/anim";
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useRef, useState } from "react";
@@ -113,7 +114,7 @@ export function AnnouncementComposer() {
           <label htmlFor="ann-title" className={labelCls}>
             Titlu
           </label>
-          <input
+          <Input variant="unstyled"
             id="ann-title"
             name="title"
             type="text"
@@ -139,7 +140,7 @@ export function AnnouncementComposer() {
           <label htmlFor="ann-link" className={labelCls}>
             Link <span className="text-zinc-600">(opțional)</span>
           </label>
-          <input
+          <Input variant="unstyled"
             id="ann-link"
             name="link"
             type="text"

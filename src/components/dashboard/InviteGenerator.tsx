@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useState } from "react";
 import { Copy, Ticket } from "lucide-react";
@@ -139,14 +140,14 @@ export function InviteGenerator({
             <label htmlFor="email" className={labelCls}>
               Email <span className="text-zinc-500">(opțional — leagă codul de un email)</span>
             </label>
-            <input id="email" name="email" type="email" defaultValue={prefillEmail} placeholder="nume@exemplu.com" className={fieldCls} />
+            <Input variant="unstyled" id="email" name="email" type="email" defaultValue={prefillEmail} placeholder="nume@exemplu.com" className={fieldCls} />
           </div>
 
           <div>
             <label htmlFor="label" className={labelCls}>
               Notă <span className="text-zinc-500">(opțional)</span>
             </label>
-            <input id="label" name="label" type="text" placeholder="ex: pentru Andrei" className={fieldCls} />
+            <Input variant="unstyled" id="label" name="label" type="text" placeholder="ex: pentru Andrei" className={fieldCls} />
           </div>
         </div>
 

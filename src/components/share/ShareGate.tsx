@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
@@ -52,7 +53,7 @@ export function ShareGate({ token }: { token: string }) {
 
         <form onSubmit={submit} className="mt-6">
           <div className="relative">
-            <input
+            <Input variant="unstyled"
               autoFocus
               type={show ? "text" : "password"}
               value={password}

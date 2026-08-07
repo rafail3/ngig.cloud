@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -78,7 +80,7 @@ export function NewTicketForm() {
     >
       <div>
         <label htmlFor="subject" className={labelCls}>Subiect</label>
-        <input
+        <Input variant="unstyled"
           id="subject"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
@@ -113,7 +115,7 @@ export function NewTicketForm() {
 
       <div>
         <label htmlFor="body" className={labelCls}>Mesaj</label>
-        <textarea
+        <Textarea variant="unstyled"
           id="body"
           value={body}
           onChange={(e) => setBody(e.target.value)}

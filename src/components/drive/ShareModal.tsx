@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SettingSwitch } from "@/components/common/SettingSwitch";
 import { useId, useState } from "react";
@@ -244,7 +245,7 @@ export function ShareModal({
                   transition={{ duration: 0.2, ease: "easeOut" }}
                   className="overflow-hidden"
                 >
-                  <input
+                  <Input variant="unstyled"
                     type="datetime-local"
                     value={customValue}
                     onChange={(e) => setCustomValue(e.target.value)}
@@ -265,7 +266,7 @@ export function ShareModal({
               <SwitchRow icon={Lock} label="Protejează cu parolă" checked={pwOn} onChange={setPwOn} />
               <Reveal show={pwOn}>
                 <div className="relative mt-2.5">
-                  <input
+                  <Input variant="unstyled"
                     type={showPw ? "text" : "password"}
                     value={pw}
                     onChange={(e) => setPw(e.target.value)}
@@ -292,7 +293,7 @@ export function ShareModal({
                 onChange={setLimitOn}
               />
               <Reveal show={limitOn}>
-                <input
+                <Input variant="unstyled"
                   type="number"
                   min={1}
                   value={limit}
@@ -355,7 +356,7 @@ function GeneratedView({
   return (
     <div className="mt-4">
       <div className="flex items-stretch gap-2">
-        <input
+        <Input variant="unstyled"
           readOnly
           value={generated.absoluteUrl}
           onFocus={(e) => e.currentTarget.select()}

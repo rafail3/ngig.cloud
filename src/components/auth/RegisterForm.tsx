@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { registerWithInvite } from "@/app/register/actions";
@@ -78,7 +79,7 @@ export function RegisterForm({ initialCode }: { initialCode?: string }) {
         <label htmlFor="code" className={labelCls}>
           Cod de invitație
         </label>
-        <input
+        <Input variant="unstyled"
           id="code"
           type="text"
           name="code"
@@ -92,7 +93,7 @@ export function RegisterForm({ initialCode }: { initialCode?: string }) {
         <label htmlFor="username" className={labelCls}>
           Username
         </label>
-        <input
+        <Input variant="unstyled"
           id="username"
           type="text"
           name="username"
@@ -109,7 +110,7 @@ export function RegisterForm({ initialCode }: { initialCode?: string }) {
         <label htmlFor="email" className={labelCls}>
           Email
         </label>
-        <input
+        <Input variant="unstyled"
           id="email"
           type="email"
           name="email"
