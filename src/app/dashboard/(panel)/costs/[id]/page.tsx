@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   HardDrive,
@@ -12,6 +11,7 @@ import {
   FolderArchive,
   FilePenLine,
   Images,
+  UserX,
   type LucideIcon,
 } from "lucide-react";
 import { getUserCostDetail, resolveMonth } from "@/server/admin/costs";
@@ -19,6 +19,7 @@ import { formatBytes } from "@/lib/format";
 import { formatUsd } from "@/lib/pricing";
 import { COST_CARD } from "@/components/dashboard/costs/styles";
 import { UserEgressChart } from "@/components/dashboard/costs/UserEgressChart";
+import { MissingRecord } from "@/components/common/MissingRecord";
 
 export const metadata = { title: "Dashboard — Cost utilizator" };
 
@@ -65,7 +66,18 @@ async function DetailContent({ id, month }: { id: string; month: string }) {
   await connection();
   const period = resolveMonth(month);
   const d = await getUserCostDetail(id, period.from, period.to);
-  if (!d) notFound();
+  // Usually a deleted account: the cost rows go with it.
+  if (!d) {
+    return (
+      <MissingRecord
+        icon={UserX}
+        title="Utilizatorul nu există"
+        description="Contul a fost șters, așa că nu mai are costuri de arătat."
+        backHref="/costs"
+        backLabel="Înapoi la costuri"
+      />
+    );
+  }
 
   const maxSource = Math.max(...d.egressBySource.map((s) => s.bytes), 1);
   const initial = d.username?.[0]?.toUpperCase() ?? "?";

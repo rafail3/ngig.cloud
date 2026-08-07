@@ -1,8 +1,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, UserX } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { MissingRecord } from "@/components/common/MissingRecord";
+import { RealtimeRefresh } from "@/components/realtime/RealtimeRefresh";
 import { getUser, getManagerSections } from "@/server/admin/users";
 import { UserDetailBody } from "@/components/dashboard/UserDetailBody";
 import { UserDetailSkeleton } from "@/components/dashboard/UserDetailSkeleton";
@@ -13,7 +14,20 @@ import { SectionGate } from "@/components/dashboard/SectionGate";
 async function UserDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getUser(id);
-  if (!user) notFound();
+  // Not `notFound()`: an account that has just been deleted is the ordinary way
+  // to arrive here with nothing to show, and the honest answer to that is "this
+  // account is gone, here is the list", not a bare 404.
+  if (!user) {
+    return (
+      <MissingRecord
+        icon={UserX}
+        title="Utilizatorul nu există"
+        description="Contul a fost șters între timp sau linkul nu mai e valabil."
+        backHref="/users"
+        backLabel="Vezi toți userii"
+      />
+    );
+  }
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
@@ -52,6 +66,13 @@ export default function UserDetailPage({
 }) {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+      {/* Live: if another admin deletes this account — or blocks it, or changes
+          its role — while it is open here, the page re-renders on its own. The
+          deletion case is the one that matters: instead of sitting on a profile
+          that no longer exists until something makes you navigate, the page
+          turns into "utilizatorul nu există" the moment it happens. */}
+      <RealtimeRefresh tables={["profiles"]} />
+
       <div>
         <Link
           href="/users"

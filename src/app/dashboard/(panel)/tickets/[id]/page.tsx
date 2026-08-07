@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, UserRound } from "lucide-react";
+import { ArrowLeft, UserRound, TicketX } from "lucide-react";
 import { getTicketAsAdmin } from "@/server/tickets/service";
 import { ChatPanel } from "@/components/support/ChatPanel";
 import { CategoryBadge, StatusBadge } from "@/components/support/badges";
@@ -11,13 +10,26 @@ import { TicketStatusControls } from "@/components/dashboard/TicketStatusControl
 import { viewerIsSuperAdmin } from "@/server/admin/guard";
 import { TicketPrioritySelect } from "@/components/dashboard/TicketPrioritySelect";
 import { SectionGate } from "@/components/dashboard/SectionGate";
+import { MissingRecord } from "@/components/common/MissingRecord";
 
 export const metadata = { title: "Dashboard — Ticket" };
 
 async function TicketContent({ id }: { id: string }) {
   await connection();
   const [ticket, isSuper] = await Promise.all([getTicketAsAdmin(id), viewerIsSuperAdmin()]);
-  if (!ticket) notFound();
+  // A ticket deleted by another admin is an ordinary way to land here empty —
+  // say so and offer the list, rather than a bare 404.
+  if (!ticket) {
+    return (
+      <MissingRecord
+        icon={TicketX}
+        title="Ticketul nu există"
+        description="A fost șters între timp sau linkul nu mai e valabil."
+        backHref="/tickets"
+        backLabel="Vezi toate ticketele"
+      />
+    );
+  }
 
   return (
     <>
