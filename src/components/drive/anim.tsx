@@ -8,7 +8,8 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { motion, type Transition, type Variants } from "motion/react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { type Transition, type Variants } from "motion/react";
 
 export type ClickMods = { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean };
 
@@ -96,7 +97,6 @@ export function useIsTouch(): boolean {
    through the exit animation, so even stateful modals fade out cleanly. */
 
 export const panelSpring: Transition = { type: "spring", stiffness: 420, damping: 32, mass: 0.7 };
-const scrimTransition: Transition = { duration: 0.18, ease: "easeOut" };
 
 // Staggered list entrance (folder grid / file rows).
 export const listContainer: Variants = {
@@ -123,46 +123,42 @@ export const menuMotion = {
 export function ModalShell({
   onClose,
   children,
+  title,
   className = "max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl",
   scrim = "bg-black/70",
   lockScroll = true,
 }: {
   onClose: () => void;
   children: ReactNode;
+  /** Accessible name. Omit when the body already renders the same heading and
+   *  it would be read twice; it is then attached invisibly. */
+  title?: string;
   className?: string;
   scrim?: string;
   lockScroll?: boolean;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    if (lockScroll) document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      if (lockScroll) document.body.style.overflow = "";
-    };
-  }, [onClose, lockScroll]);
-
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={scrimTransition}
+    <Dialog
+      open
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+      // `lockScroll={false}` is how the nested modals ask not to fight the one
+      // underneath them; non-modal is the same request in Radix's words — no
+      // second scroll lock, no second focus trap competing with the first.
+      modal={lockScroll}
     >
-      <div className={`absolute inset-0 ${scrim} backdrop-blur-sm`} onClick={onClose} />
-      <motion.div
-        className={`relative w-full ${className}`}
-        initial={{ opacity: 0, scale: 0.96, y: 8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.97, y: 6 }}
-        transition={panelSpring}
+      <DialogContent
+        showCloseButton={false}
+        className={`w-full gap-0 p-0 ${className}`}
+        overlayClassName={`${scrim} backdrop-blur-sm`}
       >
+        {/* Radix requires a title: without one the dialog opens unnamed for a
+            screen reader. These panels print their own heading, so this one is
+            attached invisibly rather than duplicated on screen. */}
+        <DialogTitle className="sr-only">{title ?? "Fereastră de dialog"}</DialogTitle>
         {children}
-      </motion.div>
-    </motion.div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -49,15 +49,19 @@ function DialogOverlay({
 
 function DialogContent({
   className,
+  // Per-dialog scrim: these panels do not all dim the page by the same amount
+  // (a nested one must not double the darkness of the one beneath it).
+  overlayClassName,
   children,
   showCloseButton = true,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  overlayClassName?: string
 }) {
   return (
     <DialogPortal data-slot="dialog-portal">
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
