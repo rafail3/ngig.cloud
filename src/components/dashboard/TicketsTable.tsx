@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -74,14 +75,14 @@ export function TicketsTable({ tickets }: { tickets: AdminTicketRow[] }) {
             className="w-full rounded-lg border border-zinc-800 bg-zinc-950/50 py-2 pl-10 pr-9 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:border-indigo-500/60 focus:bg-zinc-950 focus:ring-2 focus:ring-indigo-500/15"
           />
           {query && (
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => setQuery("")}
               aria-label="Șterge căutarea"
               className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-zinc-500 transition hover:text-zinc-200"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           )}
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-2">
@@ -96,13 +97,13 @@ export function TicketsTable({ tickets }: { tickets: AdminTicketRow[] }) {
           <span>
             {filtered.length} din {tickets.length}
           </span>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={reset}
             className="text-indigo-400 transition hover:text-indigo-300"
           >
             Resetează
-          </button>
+          </Button>
         </div>
       )}
 

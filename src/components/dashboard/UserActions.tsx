@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { LogOut, ShieldAlert, ShieldCheck, HardDrive, UserCog, Crown, User } from "lucide-react";
@@ -128,12 +129,12 @@ export function UserActions({
             </p>
             <form action={unblockUserAction}>
               <input type="hidden" name="id" value={user.id} />
-              <button
+              <Button variant="unstyled"
                 type="submit"
                 className="inline-flex items-center gap-2 rounded-xl border border-emerald-800/60 px-4 py-2.5 text-sm text-emerald-200 transition hover:bg-emerald-900/30"
               >
                 <ShieldCheck className="h-4 w-4" /> Deblochează
-              </button>
+              </Button>
             </form>
           </div>
         ) : isSelf ? (
@@ -159,14 +160,14 @@ export function UserActions({
                 <input id="reason" name="reason" type="text" placeholder="ex: abuz" className={fieldCls} />
               </div>
             </div>
-            <button
+            <Button variant="unstyled"
               type="submit"
               disabled={blockPending}
               className="inline-flex items-center gap-2 self-start rounded-xl border border-red-900/60 px-4 py-2.5 text-sm text-red-200 transition hover:bg-red-950/40 disabled:opacity-60"
             >
               <ShieldAlert className="h-4 w-4" />
               {blockPending ? "Se blochează…" : "Blochează"}
-            </button>
+            </Button>
           </form>
         )}
       </section>
@@ -202,7 +203,7 @@ export function UserActions({
             <form action={roleAction}>
               <input type="hidden" name="id" value={user.id} />
               <input type="hidden" name="role" value={isAdmin ? "user" : "admin"} />
-              <button
+              <Button variant="unstyled"
                 type="submit"
                 disabled={rolePending}
                 className={`inline-flex items-center gap-2 self-start rounded-xl border px-4 py-2.5 text-sm transition disabled:opacity-60 ${
@@ -217,7 +218,7 @@ export function UserActions({
                   : isAdmin
                     ? "Retrogradează la utilizator"
                     : "Promovează la manager"}
-              </button>
+              </Button>
             </form>
           </div>
         )}
@@ -242,13 +243,13 @@ export function UserActions({
         </p>
         <form action={signOutAction} className="flex flex-col gap-2">
           <input type="hidden" name="id" value={user.id} />
-          <button
+          <Button variant="unstyled"
             type="submit"
             disabled={signOutPending}
             className="inline-flex items-center gap-2 self-start rounded-xl border border-zinc-800 px-4 py-2.5 text-sm text-zinc-300 transition hover:border-amber-900/60 hover:text-amber-200 disabled:opacity-60"
           >
             <LogOut className="h-4 w-4" /> {signOutPending ? "Se invalidează…" : "Sign out forțat"}
-          </button>
+          </Button>
         </form>
       </section>
 
@@ -261,7 +262,7 @@ export function UserActions({
             </span>
             <h3 className="text-sm font-semibold">Limite spațiu</h3>
           </div>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => {
               if (!limitsOpen) {
@@ -278,7 +279,7 @@ export function UserActions({
             }`}
           >
             {limitsOpen ? "Închide" : "Editează"}
-          </button>
+          </Button>
         </div>
 
         <dl className="mt-3 grid grid-cols-2 gap-3">
@@ -358,27 +359,27 @@ export function UserActions({
             </div>
           </div>
                 <div className="flex flex-wrap gap-2">
-                  <button
+                  <Button variant="unstyled"
                     type="submit"
                     disabled={limitsPending}
                     className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
                   >
                     {limitsPending ? "Se salvează…" : "Salvează"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button variant="unstyled"
                     type="submit"
                     formAction={resetUserLimitsAction}
                     className="rounded-lg border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
                   >
                     Reset
-                  </button>
-                  <button
+                  </Button>
+                  <Button variant="unstyled"
                     type="button"
                     onClick={() => setLimitsOpen(false)}
                     className="rounded-lg border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
                   >
                     Anulează
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>

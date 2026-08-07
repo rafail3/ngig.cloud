@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useState } from "react";
 import { ToggleRow } from "./SettingSwitch";
 import { AnimatePresence, motion } from "motion/react";
@@ -57,7 +58,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <span className="hidden text-sm sm:inline">{summary()}</span>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => (open ? cancel() : setOpen(true))}
             aria-expanded={open}
@@ -68,7 +69,7 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
             }`}
           >
             {open ? "Închide" : "Editează"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -119,13 +120,13 @@ export function UpdateNotifySettings({ settings }: { settings: Settings }) {
                 <input type="hidden" name="enabled" value={String(enabled)} />
                 <input type="hidden" name="aud_admin" value={String(admin)} />
                 <input type="hidden" name="aud_user" value={String(user)} />
-                <button
+                <Button variant="unstyled"
                   type="submit"
                   disabled={pending}
                   className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
                 >
                   {pending ? "Se salvează…" : "Salvează"}
-                </button>
+                </Button>
               </form>
             </div>
           </motion.div>

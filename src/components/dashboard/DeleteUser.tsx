@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
@@ -44,13 +45,13 @@ export function DeleteUser({ id, username }: { id: string; username: string }) {
         Șterge definitiv contul, toate fișierele din B2, ticketele de suport și tot
         istoricul acestui utilizator. Acțiunea nu poate fi anulată.
       </p>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 self-start rounded-xl border border-red-500/40 px-4 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/10"
       >
         <Trash2 className="h-4 w-4" /> Șterge contul
-      </button>
+      </Button>
 
       <AnimatePresence>
         {open && (
@@ -81,15 +82,15 @@ export function DeleteUser({ id, username }: { id: string; username: string }) {
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={close}
                 disabled={pending}
                 className="rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 disabled:opacity-60"
               >
                 Anulează
-              </button>
-              <button
+              </Button>
+              <Button variant="unstyled"
                 type="button"
                 onClick={remove}
                 disabled={confirm !== username || pending}
@@ -97,7 +98,7 @@ export function DeleteUser({ id, username }: { id: string; username: string }) {
               >
                 {pending && <Loader2 className="h-4 w-4 animate-spin" />}
                 {pending ? "Se șterge…" : "Șterge definitiv"}
-              </button>
+              </Button>
             </div>
           </ModalShell>
         )}

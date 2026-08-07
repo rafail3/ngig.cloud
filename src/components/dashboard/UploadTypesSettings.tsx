@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { FileCheck2, Search, ShieldBan, Plus, Loader2 } from "lucide-react";
@@ -203,7 +204,7 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
             </span>
           )}
           <span className="hidden text-sm sm:inline">{summary}</span>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => (open ? close() : setOpen(true))}
             aria-expanded={open}
@@ -214,7 +215,7 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
             }`}
           >
             {open ? "Închide" : "Editează"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -279,13 +280,13 @@ export function UploadTypesSettings({ cfg }: { cfg: UploadTypesConfig }) {
                     aria-label="Adaugă extensie custom"
                     className="w-28 rounded-xl border border-zinc-800 bg-zinc-950/50 px-3 py-2 font-mono text-xs text-zinc-50 outline-none transition placeholder:font-sans placeholder:text-zinc-500 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15"
                   />
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={addCustom}
                     className="flex items-center gap-1 rounded-lg border border-zinc-800 px-2.5 py-2 text-xs font-medium text-zinc-300 transition hover:border-red-900/60 hover:bg-red-950/30 hover:text-red-200"
                   >
                     <Plus className="h-3.5 w-3.5" /> Blochează
-                  </button>
+                  </Button>
                 </div>
               </div>
 

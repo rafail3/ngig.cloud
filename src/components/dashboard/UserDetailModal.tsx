@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
@@ -31,14 +32,14 @@ export function UserDetailModal({ children }: { children: React.ReactNode }) {
           style={{ animation: "panel-in 0.25s ease-out" }}
           className="relative my-auto flex w-full max-w-5xl flex-col gap-6 rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-2xl sm:p-7"
         >
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => router.back()}
             aria-label="Închide"
             className="absolute right-4 top-4 rounded-lg border border-zinc-800 p-1.5 text-zinc-400 transition hover:border-zinc-700 hover:text-zinc-100"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
           {children}
         </div>
       </div>

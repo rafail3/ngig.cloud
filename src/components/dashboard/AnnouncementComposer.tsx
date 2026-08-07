@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Megaphone, Send, X, Clock } from "lucide-react";
@@ -155,7 +156,7 @@ export function AnnouncementComposer() {
         <div>
           <span className={labelCls}>Livrare</span>
           <div className="inline-flex rounded-lg border border-zinc-800 bg-zinc-950 p-0.5 text-sm">
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => setMode("now")}
               className={`rounded-md px-3 py-1.5 transition ${
@@ -165,8 +166,8 @@ export function AnnouncementComposer() {
               }`}
             >
               Trimite acum
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled"
               type="button"
               onClick={() => setMode("schedule")}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
@@ -177,7 +178,7 @@ export function AnnouncementComposer() {
             >
               <Clock className="h-3.5 w-3.5" />
               Programează
-            </button>
+            </Button>
           </div>
 
           {mode === "schedule" && (
@@ -196,7 +197,7 @@ export function AnnouncementComposer() {
       </div>
 
       <div className="mt-5 flex justify-end">
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={openConfirm}
           disabled={pending}
@@ -204,7 +205,7 @@ export function AnnouncementComposer() {
         >
           {mode === "schedule" ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
           {mode === "schedule" ? "Programează anunțul" : "Trimite anunțul"}
-        </button>
+        </Button>
       </div>
 
       {confirm && (
@@ -276,15 +277,15 @@ function ConfirmSend({
           )}
         </p>
         <div className="mt-5 flex justify-end gap-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
           >
             <X className="h-4 w-4" />
             Anulează
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             disabled={pending}
             onClick={onConfirm}
@@ -292,7 +293,7 @@ function ConfirmSend({
           >
             {scheduled ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
             {scheduled ? "Programează" : "Trimite"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

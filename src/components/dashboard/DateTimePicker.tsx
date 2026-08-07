@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { ModalShell } from "@/components/drive/anim";
@@ -124,7 +125,7 @@ export function DateTimePicker({
 
   return (
     <div className="relative w-full sm:w-72">
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={toggle}
         aria-expanded={open}
@@ -134,7 +135,7 @@ export function DateTimePicker({
       >
         <Calendar className="h-4 w-4 shrink-0 text-zinc-500" />
         <span className="truncate">{label}</span>
-      </button>
+      </Button>
 
       {/* The panel was already a modal — a scrim over the page with the calendar
           centred on it — so it says so now: focus stays inside it, Escape
@@ -148,25 +149,25 @@ export function DateTimePicker({
         >
           {/* Month nav */}
           <div className="mb-2 flex items-center justify-between">
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => shiftMonth(-1)}
               className="rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
               aria-label="Luna anterioară"
             >
               <ChevronLeft className="h-4 w-4" />
-            </button>
+            </Button>
             <span className="text-sm font-medium capitalize text-zinc-100">
               {MONTHS[view.m]} {view.y}
             </span>
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => shiftMonth(1)}
               className="rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
               aria-label="Luna următoare"
             >
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
 
           {/* Weekday header */}
@@ -195,13 +196,13 @@ export function DateTimePicker({
               <span className="text-zinc-500">:</span>
               <TimeField value={mm} max={59} ariaLabel="Minutul" onCommit={(m) => setTime(hh, m)} />
             </div>
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => setOpen(false)}
               className="ml-auto rounded-md bg-indigo-600 px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500"
             >
               Gata
-            </button>
+            </Button>
           </div>
         </ModalShell>
       )}
@@ -241,7 +242,7 @@ function DayGrid({
         const isToday = sameDay(d, now);
         const isSel = selected != null && sameDay(d, selected);
         return (
-          <button
+          <Button variant="unstyled"
             key={i}
             type="button"
             disabled={past}
@@ -255,7 +256,7 @@ function DayGrid({
             }`}
           >
             {d.getDate()}
-          </button>
+          </Button>
         );
       })}
     </div>
