@@ -1,24 +1,28 @@
 import Link from "next/link";
-import { LifeBuoy, ChevronRight } from "lucide-react";
+import { LifeBuoy, ChevronRight, Plus } from "lucide-react";
 import { formatDateTime } from "@/lib/format-date";
 import type { TicketRow } from "@/server/tickets/service";
 import { StatusBadge, PriorityBadge, CategoryBadge } from "./badges";
+import { EmptyState } from "@/components/common/EmptyState";
 
 // The user's own tickets, each a row linking to its thread.
 export function TicketList({ tickets }: { tickets: TicketRow[] }) {
   if (tickets.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-800 px-6 py-14 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900">
-          <LifeBuoy className="h-5 w-5 text-zinc-500" aria-hidden="true" />
-        </span>
-        <div>
-          <p className="text-sm font-medium text-zinc-300">Niciun ticket încă</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Deschide un ticket și îți răspundem cât putem de repede.
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        icon={LifeBuoy}
+        title="Niciun ticket încă"
+        description="Deschide un ticket și îți răspundem cât putem de repede."
+        action={
+          <Link
+            href="/support/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-400"
+          >
+            <Plus className="h-4 w-4" />
+            Ticket nou
+          </Link>
+        }
+      />
     );
   }
 

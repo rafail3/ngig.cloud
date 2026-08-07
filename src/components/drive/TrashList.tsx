@@ -15,6 +15,7 @@ import { fileTypeShort } from "@/lib/file-type";
 import { listContainer, listItem, ModalShell } from "./anim";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { revalidateDrive } from "./useDriveData";
+import { EmptyState } from "@/components/common/EmptyState";
 
 export type TrashFile = {
   id: string;
@@ -86,17 +87,11 @@ export function TrashList({ files }: { files: TrashFile[] }) {
 
   if (files.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-800 px-6 py-14 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900">
-          <Trash className="h-5 w-5 text-zinc-500" aria-hidden="true" />
-        </span>
-        <div>
-          <p className="text-sm font-medium text-zinc-300">Coșul e gol</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Fișierele pe care le muți în coș apar aici.
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        icon={Trash}
+        title="Coșul e gol"
+        description="Fișierele pe care le muți în coș apar aici."
+      />
     );
   }
 

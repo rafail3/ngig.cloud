@@ -12,8 +12,10 @@ import {
   Clock,
   Gauge,
 } from "lucide-react";
+import Link from "next/link";
 import { useUploads, type UploadJob, type UploadStatus } from "./UploadProvider";
 import { formatBytes } from "@/lib/format";
+import { EmptyState } from "@/components/common/EmptyState";
 
 export function speedLabel(bytesPerSec: number): string {
   if (!bytesPerSec || bytesPerSec < 1) return "—";
@@ -61,16 +63,20 @@ export function UploadsBoard() {
 
   if (jobs.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-16 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950/50 text-zinc-400">
-          <UploadCloud className="h-7 w-7" />
-        </div>
-        <p className="text-sm text-zinc-300">Niciun upload în curs.</p>
-        <p className="mt-1 text-sm text-zinc-400">
-          Trage fișiere în drive sau folosește butonul de încărcare — progresul
-          apare aici.
-        </p>
-      </div>
+      <EmptyState
+        icon={UploadCloud}
+        title="Niciun upload în curs"
+        description="Trage fișiere în drive sau folosește butonul de încărcare — progresul apare aici."
+        action={
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50"
+          >
+            <UploadCloud className="h-4 w-4" />
+            Mergi la fișiere
+          </Link>
+        }
+      />
     );
   }
 

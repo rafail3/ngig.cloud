@@ -18,6 +18,7 @@ import { useContextMenu } from "./ContextMenu";
 import { ActionMenu, type MenuAction } from "./ActionMenu";
 import { PreviewModal, type PreviewFile } from "./PreviewModal";
 import { revalidateDrive } from "./useDriveData";
+import { EmptyState } from "@/components/common/EmptyState";
 
 export type ArchiveFile = PreviewFile & { archivedAt: string };
 
@@ -78,17 +79,11 @@ export function ArchiveList({ files }: { files: ArchiveFile[] }) {
 
   if (files.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-800 px-6 py-14 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900">
-          <Archive className="h-5 w-5 text-zinc-500" aria-hidden="true" />
-        </span>
-        <div>
-          <p className="text-sm font-medium text-zinc-300">Arhiva e goală</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Fișierele pe care le arhivezi din drive apar aici.
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        icon={Archive}
+        title="Arhiva e goală"
+        description="Fișierele pe care le arhivezi din drive apar aici."
+      />
     );
   }
 
