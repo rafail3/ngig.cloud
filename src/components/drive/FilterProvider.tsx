@@ -10,6 +10,7 @@ import {
 } from "react";
 import { fileCategory, type FileCategory } from "@/lib/file-type";
 import { fuzzyScore } from "@/lib/fuzzy";
+import { useDriveSearchOptional } from "./DriveSearchProvider";
 
 export type FolderInput = { id: string; name: string };
 export type FileInput = {
@@ -129,7 +130,14 @@ export function FilterProvider({
   files: FileInput[];
   children: ReactNode;
 }) {
-  const [query, setQuery] = useState("");
+  // The search term is owned by the app shell (the box lives in the header), so
+  // it survives navigation and can be typed from any page. The local fallback
+  // keeps this provider usable on its own, outside the shell.
+  const shellSearch = useDriveSearchOptional();
+  const [localQuery, setLocalQuery] = useState("");
+  const query = shellSearch ? shellSearch.query : localQuery;
+  const setQuery = shellSearch ? shellSearch.setQuery : setLocalQuery;
+
   const [types, setTypes] = useState<Set<FileCategory>>(() => new Set());
   const [date, setDateRaw] = useState<DateRange>("any");
   const [size, setSize] = useState<SizeRange>("any");
@@ -156,7 +164,7 @@ export function FilterProvider({
     setTypes(new Set());
     setDate("any");
     setSize("any");
-  }, [setDate]);
+  }, [setDate, setQuery]);
 
   const fileFiltersActive = types.size > 0 || date !== "any" || size !== "any";
   const q = query.trim();

@@ -111,7 +111,7 @@ function SidebarNav({
             >
               {item.icon}
               <span>{item.label}</span>
-              <span className="ml-auto rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
+              <span className="ml-auto rounded bg-zinc-800/70 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
                 soon
               </span>
             </span>
@@ -127,10 +127,13 @@ function SidebarNav({
             href={item.href}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
+            // Hover is zinc-800/60, not zinc-900: the nav sits on the chrome
+            // surface, which IS zinc-900 in light mode — the old hover would
+            // have been invisible there.
             className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
               active
                 ? "bg-indigo-500/10 font-medium text-indigo-300"
-                : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
+                : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
             }`}
           >
             {active && (
@@ -178,29 +181,84 @@ export function DashboardShell({
   const userMenu = useMenuModality();
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
-      {/* ===== Top navbar ===== */}
-      <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-zinc-900 bg-zinc-950/90 px-3 backdrop-blur-md sm:px-5">
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+    /* Same frame as the app shell: a full-height navigation column beside a
+       content column that owns its header, so the two never cross borders at
+       the corner. Chrome behind, content panel lifted one step off it — written
+       per theme because the light palette mirrors the zinc scale. */
+    <div className="flex min-h-screen bg-zinc-900 text-zinc-50 dark:bg-zinc-950">
+      {/* ===== Desktop navigation column ===== */}
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col md:flex">
+        <div className="flex h-16 shrink-0 items-center gap-2 px-5">
+          {/* White-wordmark logo for dark mode, black-wordmark for light.
+              Click → dashboard overview. select-none: it is chrome, not content,
+              so dragging across it must not highlight it. */}
+          <Link href="/" aria-label="Overview" className="flex shrink-0 select-none items-center">
+            <Image
+              src="/ngig-logo.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="hidden h-9 w-auto dark:block"
+            />
+            <Image
+              src="/ngig-logo-light.png"
+              alt="ngig.cloud"
+              width={352}
+              height={96}
+              priority
+              className="block h-9 w-auto dark:hidden"
+            />
+          </Link>
+        </div>
+        <div className="px-5 pb-2">
+          <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
+        </div>
+        <SidebarNav user={user} badges={badges} sections={sections} />
+      </aside>
+
+      {/* ===== Content column ===== */}
+      <div className="flex min-w-0 flex-1 flex-col">
+      <header className="sticky top-0 z-40 flex h-16 items-center gap-3 px-3 sm:px-5">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2 md:hidden">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Meniu"
-                className="-ml-1 text-zinc-300 hover:bg-zinc-900 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50 md:hidden"
+                className="-ml-1 text-zinc-300 hover:bg-zinc-800/60 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
               >
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
             <SheetContent
               side="left"
-              className="top-16 h-[calc(100%-4rem)] w-64 border-r border-zinc-900 bg-zinc-950 p-0 sm:max-w-64 md:hidden"
-              overlayClassName="top-16 md:hidden"
+              className="w-64 border-r border-zinc-800/60 bg-zinc-900 p-0 sm:max-w-64 md:hidden dark:bg-zinc-950"
+              overlayClassName="md:hidden"
             >
               <SheetHeader className="sr-only">
                 <SheetTitle>Administrare</SheetTitle>
               </SheetHeader>
+              <div className="flex h-16 shrink-0 items-center px-5">
+                <Image
+                  src="/ngig-logo.png"
+                  alt="ngig.cloud"
+                  width={352}
+                  height={96}
+                  className="hidden h-9 w-auto dark:block"
+                />
+                <Image
+                  src="/ngig-logo-light.png"
+                  alt="ngig.cloud"
+                  width={352}
+                  height={96}
+                  className="block h-9 w-auto dark:hidden"
+                />
+              </div>
+              <div className="px-5 pb-2">
+                <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
+              </div>
               <SidebarNav
                 user={user}
                 badges={badges}
@@ -209,10 +267,6 @@ export function DashboardShell({
               />
             </SheetContent>
           </Sheet>
-          {/* White-wordmark logo for dark mode, black-wordmark for light.
-              shrink-0 keeps its aspect ratio on narrow screens.
-              Click → dashboard overview. select-none: it is chrome, not content,
-              so dragging across the header must not highlight it. */}
           <Link href="/" aria-label="Overview" className="flex shrink-0 select-none items-center">
             <Image
               src="/ngig-logo.png"
@@ -220,7 +274,7 @@ export function DashboardShell({
               width={352}
               height={96}
               priority
-              className="hidden h-8 w-auto shrink-0 dark:block sm:h-10"
+              className="hidden h-8 w-auto shrink-0 dark:block"
             />
             <Image
               src="/ngig-logo-light.png"
@@ -228,25 +282,22 @@ export function DashboardShell({
               width={352}
               height={96}
               priority
-              className="block h-8 w-auto shrink-0 dark:hidden sm:h-10"
+              className="block h-8 w-auto shrink-0 dark:hidden"
             />
           </Link>
-          <span className="hidden sm:inline">
-            <RoleBadge role="admin" superAdmin={user.isSuperAdmin} />
-          </span>
         </div>
 
         {/* right: notifications + theme + user menu (logout lives inside). The
             marker lets the notification panel hang off this cluster's right
             edge rather than off the bell, which sits in the middle of it. */}
-        <div data-navbar-actions className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+        <div data-navbar-actions className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
           <NotificationBell />
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild {...userMenu.triggerProps}>
               <Button
                 variant="ghost"
-                className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+                className="group h-auto gap-2 rounded-lg py-1.5 pl-1.5 pr-2 text-zinc-300 hover:bg-zinc-800/60 hover:text-zinc-50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
               >
                 <Avatar username={user.username} />
                 <span className="hidden max-w-[120px] select-none truncate font-medium sm:inline">
@@ -301,15 +352,11 @@ export function DashboardShell({
         </div>
       </header>
 
-      {/* ===== Body: sidebar + content ===== */}
-      <div className="flex flex-1">
-        {/* Desktop keeps the column in the flow — it is navigation, not an
-            overlay, so it should not trap focus or dim the page. */}
-        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 flex-col border-r border-zinc-900 bg-zinc-950 md:flex">
-          <SidebarNav user={user} badges={badges} sections={sections} />
-        </aside>
-
-        <main className="min-w-0 flex-1">{children}</main>
+      {/* The lifted content panel — the rounded corner meeting the sidebar is
+          what makes this read as an application frame. */}
+      <main className="min-w-0 flex-1 border-zinc-200/70 bg-zinc-950 dark:border-zinc-800/60 dark:bg-zinc-900/60 md:rounded-tl-2xl md:border-l md:border-t">
+        {children}
+      </main>
       </div>
     </div>
   );

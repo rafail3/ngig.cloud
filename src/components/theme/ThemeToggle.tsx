@@ -43,7 +43,7 @@ export function ThemeToggle() {
           size="icon"
           aria-label="Schimbă tema"
           title="Temă"
-          className="text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50 data-[state=open]:bg-zinc-900 data-[state=open]:text-zinc-50"
+          className="text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
         >
           <TriggerIcon className="size-5" />
         </Button>

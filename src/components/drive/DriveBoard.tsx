@@ -73,13 +73,6 @@ export function DriveBoard() {
         thumbFailedAt: f.thumb_failed_at,
       }))}
     >
-      {/* Search + filters stick to the top (just under the navbar) as you
-          scroll. Solid background + hairline so scrolled content tucks cleanly
-          underneath without fading the content at rest. */}
-      <div className="sticky top-16 z-30 -mx-4 mb-6 border-b border-zinc-900 bg-zinc-950 px-4 pb-3 pt-3 sm:-mx-6 sm:px-6">
-        <FilterBar />
-      </div>
-
       <SelectionProvider items={selItems} folderId={folderId}>
         <DriveDndProvider folderId={folderId}>
           {/* Breadcrumb only inside folders — the root needs no path. */}
@@ -113,10 +106,17 @@ export function DriveBoard() {
                   <span aria-hidden="true"> · </span>
                   {roCount(files.length, "fișier", "fișiere")}
                 </span>
-                <ViewToggle />
               </div>
             </div>
             <StorageMeter used={used} quota={quota} />
+          </div>
+
+          {/* Refinements and the layout switch share one calm row: both change
+              how you look at the same contents, so they belong together and
+              above them. */}
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+            <FilterBar />
+            <ViewToggle />
           </div>
 
           <HiddenWhileSearching>
