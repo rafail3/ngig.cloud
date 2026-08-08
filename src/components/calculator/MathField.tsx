@@ -120,11 +120,35 @@ export function MathField({
           e.preventDefault();
           handlers.current.onEnter();
         }
+        if (e.key === "Delete") {
+          // The calculator's AC. A mathfield would forward-delete one item;
+          // on a calculator this key clears the lot.
+          e.preventDefault();
+          if (field) {
+            field.value = "";
+            handlers.current.onChange("");
+          }
+        }
         if (e.key === "Escape") {
           // The preview underneath closes on Escape too, and closing the
           // calculator is what the key meant while it was open.
           e.stopPropagation();
           handlers.current.onEscape();
+        }
+      });
+
+      /* Paste is the other way in, and the keydown filter cannot see it. The
+         clipboard is stripped to the same set of characters the keyboard is
+         allowed to produce, so a copied cell full of text arrives as whatever
+         digits it held and nothing else. */
+      field.addEventListener("paste", (e: ClipboardEvent) => {
+        e.preventDefault();
+        const clean = Array.from(e.clipboardData?.getData("text/plain") ?? "")
+          .filter((c) => TYPED.has(c))
+          .join("");
+        if (clean && field) {
+          field.insert(clean, { selectionMode: "after" });
+          handlers.current.onChange(field.value);
         }
       });
 

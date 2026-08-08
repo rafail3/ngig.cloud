@@ -141,7 +141,18 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
       const mf = field.current;
       if (!mf) return;
       if ("latex" in k) {
-        mf.insert(k.latex);
+        /* Where the caret ends up depends on whether anything was selected.
+
+           Wrapping a selection — select 6, press √ — is finished business, so
+           the caret goes AFTER the result. MathLive's default leaves the
+           inserted item selected instead, which is why a freshly wrapped 6 sat
+           there highlighted as if it were about to be overwritten.
+
+           With nothing selected the insert leaves an empty slot to fill, and
+           the caret belongs inside it. */
+        mf.insert(k.latex, {
+          selectionMode: mf.selectionIsCollapsed ? "placeholder" : "after",
+        });
         setExpr(mf.value);
         mf.focus();
         return;
