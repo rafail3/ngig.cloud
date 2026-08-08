@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useMenuModality } from "@/lib/useMenuModality";
-import { GlowBorder } from "@/components/common/GlowBorder";
+import { GlowBleed, GlowBorder } from "@/components/common/GlowBorder";
 import { morphPanel } from "@/components/common/morph";
 import { NotificationIsland } from "./NotificationIsland";
 import {
@@ -374,7 +374,16 @@ export function NotificationBell() {
               rides the outer edge rather than the inside of the border. */}
           <GlowBorder className="-inset-px rounded-[13px]" />
 
-          <div className="relative flex max-h-[70vh] flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
+          <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
+          {/* Above the background, below the content: this is the half of the
+              light that runs inward. `overflow-hidden` on this box discards its
+              outward half, which is the outer layer's job anyway. */}
+          <GlowBleed />
+
+          {/* Positioned, and after the bleed in source order, so the content
+              paints on top of it — an absolutely positioned sibling otherwise
+              covers static ones. */}
+          <div className="relative flex max-h-[70vh] flex-col">
           <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
             <p className="text-sm font-semibold text-zinc-100">Notificări</p>
             <div className="flex items-center gap-3">
@@ -455,6 +464,7 @@ export function NotificationBell() {
                 </div>
               ))
             )}
+          </div>
           </div>
           </div>
         </motion.div>
