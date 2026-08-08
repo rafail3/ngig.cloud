@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.49.0](https://github.com/rafail3/ngig.cloud/compare/v2.48.1...v2.49.0) (2026-08-08)
+
+
+### Features
+
+* **notifications:** the bell announces itself ([75b94b3](https://github.com/rafail3/ngig.cloud/commit/75b94b3226e5bf7321e748558a68aec1b74d85c4))
+* **notifications:** the bell announces itself ([261c51f](https://github.com/rafail3/ngig.cloud/commit/261c51f45b16c9c224c86116cabceb3d49813976))
+* **shell:** give the panel glow depth, and pull it toward the brand ([812e7f2](https://github.com/rafail3/ngig.cloud/commit/812e7f27d59b6f7a5a9b961ff43ff9c911a8dfdc))
+* **shell:** make the glow fall off like light, not like a border ([059c167](https://github.com/rafail3/ngig.cloud/commit/059c16756681f9a26c7e4b69b0f59a769323a5cb))
+* **shell:** panels unfold, and the notification panel catches the light ([eab113a](https://github.com/rafail3/ngig.cloud/commit/eab113a93302862ab491cc9266a405c5ad75ce6a))
+
 ## [2.48.1](https://github.com/rafail3/ngig.cloud/compare/v2.48.0...v2.48.1) (2026-08-07)
 
 
