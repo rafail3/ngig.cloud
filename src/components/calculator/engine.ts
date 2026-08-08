@@ -70,16 +70,31 @@ export function useCalculatorEngine() {
     }
   }, []);
 
-  /** The expression as typeset maths, or null while it cannot be parsed —
-   *  which is most of the time you are halfway through typing one. */
+  /* Typesetting has to work on a HALF-TYPED expression, which is the whole
+     point: pressing √ should draw a radical straight away, not wait until an
+     operand and a closing bracket have been typed into it. mathjs will not
+     parse `sqrt(`, so the gap is filled first — a trailing operator or open
+     bracket gets a placeholder, and unbalanced brackets are closed — and the
+     placeholder is swapped for KaTeX's empty box in the LaTeX afterwards. It
+     is a symbol mathjs is happy to parse and nobody would type. */
+  const PLACEHOLDER = "zzPLACEHOLDERzz";
+
   const typeset = useCallback((expression: string): string | null => {
     const [math, katex] = libs.current ?? [];
-    if (!math || !katex || !expression.trim()) return null;
+    const expr = expression.trim();
+    if (!math || !katex || !expr) return null;
+    // A bare number is already its own best rendering. Typesetting it would
+    // only print it twice, once above the input and once inside it.
+    if (/^-?\d*\.?\d+(e[+-]?\d+)?$/i.test(expr)) return null;
     try {
-      return katex.renderToString(math.parse(expression).toTex(), {
-        throwOnError: true,
-        output: "html",
-      });
+      let filled = expr;
+      if (/[+\-*/^(,]$/.test(filled)) filled += PLACEHOLDER;
+      const open = (filled.match(/\(/g) ?? []).length;
+      const close = (filled.match(/\)/g) ?? []).length;
+      if (close < open) filled += ")".repeat(open - close);
+
+      const tex = math.parse(filled).toTex().split(PLACEHOLDER).join("\square");
+      return katex.renderToString(tex, { throwOnError: true, output: "html" });
     } catch {
       return null;
     }

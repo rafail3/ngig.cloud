@@ -344,7 +344,11 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
             spellCheck={false}
             aria-label="Expresie"
             placeholder="0"
-            className={`w-full bg-transparent text-right tabular-nums outline-none placeholder:text-zinc-600 ${
+            // The primitive paints a focus ring, and the base layer draws an
+            // outline on every focused input. Neither belongs on a calculator
+            // display: it is the only field in the window, so a box around it
+            // marks nothing.
+            className={`w-full bg-transparent text-right tabular-nums outline-none placeholder:text-zinc-600 focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-0 ${
               math ? "text-xs text-zinc-500" : "text-lg font-medium text-zinc-100"
             }`}
           />
