@@ -16,6 +16,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useMenuModality } from "@/lib/useMenuModality";
+import { GlowBorder } from "@/components/common/GlowBorder";
+import { morphPanel } from "@/components/common/morph";
 import { NotificationIsland } from "./NotificationIsland";
 import {
   getNotificationsAction,
@@ -337,21 +339,42 @@ export function NotificationBell() {
         </Button>
       </PopoverTrigger>
 
+      <AnimatePresence>
+        {open && (
       <PopoverContent
+        forceMount
+        // asChild: the motion element BECOMES the Radix content node, so the
+        // spring and the positioner act on one box instead of two nested ones.
+        asChild
         align="end"
         // Enough to clear the rest of the header, so the panel starts at its
         // bottom edge the way it used to.
         sideOffset={12}
         collisionPadding={12}
-        // Radix's own origin would be this box's corner, which sits over the
-        // avatar. Overridden inline so the panel unfolds out of the bell, the
-        // same point the island erupts from.
-        style={{ transformOrigin: `${origin} top` }}
-        // Out in two thirds of the time it came in: a panel that lingers on the
-        // way out reads as lag.
-        className="flex max-h-[70vh] w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border-zinc-800 bg-zinc-900 p-0 shadow-xl data-[state=closed]:duration-150 data-[state=open]:duration-200"
+        // The primitive's own paint is stripped here and moved to the inner
+        // box below, so the glow can sit OUTSIDE the clipped panel: a blurred
+        // ring on an `overflow-hidden` element is cut in half by its own
+        // parent. animate-none because a CSS keyframe and the spring would
+        // otherwise fight over the same transform.
+        className="w-80 max-w-[calc(100vw-1.5rem)] border-0 bg-transparent p-0 shadow-none data-[state=closed]:animate-none data-[state=open]:animate-none"
         {...menu.contentProps}
       >
+        <motion.div
+          // Radix's own origin would be this box's corner, which sits over the
+          // avatar. Overridden so the panel unfolds out of the bell, the same
+          // point the island erupts from.
+          style={{ transformOrigin: `${origin} top` }}
+          variants={morphPanel}
+          initial="hidden"
+          animate="shown"
+          exit="gone"
+          className="relative"
+        >
+          {/* One pixel outside the panel, with a radius to match, so the light
+              rides the outer edge rather than the inside of the border. */}
+          <GlowBorder className="-inset-px rounded-[13px]" />
+
+          <div className="relative flex max-h-[70vh] flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl">
           <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
             <p className="text-sm font-semibold text-zinc-100">Notificări</p>
             <div className="flex items-center gap-3">
@@ -432,8 +455,12 @@ export function NotificationBell() {
                 </div>
               ))
             )}
-        </div>
+          </div>
+          </div>
+        </motion.div>
       </PopoverContent>
+        )}
+      </AnimatePresence>
     </Popover>
 
     <NotificationIsland
