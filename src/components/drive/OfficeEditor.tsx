@@ -6,6 +6,10 @@ import { X, Loader2, Save, Check } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { ModalShell } from "./anim";
+import {
+  CalculatorButton,
+  CalculatorWindow,
+} from "@/components/calculator/CalculatorWindow";
 import { forceSaveOfficeAction } from "@/app/drive-actions";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useOnlyOffice } from "./useOnlyOffice";
@@ -27,6 +31,7 @@ export function OfficeEditor({
 }) {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
   // Kept in a ref so a new inline `onClose` from the parent can't be read
   // stale by the callbacks below.
@@ -98,6 +103,11 @@ export function OfficeEditor({
       <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-zinc-900 px-3 sm:px-4">
         <p className="min-w-0 truncate text-sm font-medium text-zinc-200">{name}</p>
         <div className="flex shrink-0 items-center gap-2">
+          <CalculatorButton
+            open={calcOpen}
+            onToggle={() => setCalcOpen((v) => !v)}
+            className="flex items-center rounded-lg border border-zinc-800 p-2 text-zinc-300 transition hover:border-zinc-700 hover:text-zinc-50 aria-expanded:border-zinc-700 aria-expanded:bg-zinc-900 aria-expanded:text-zinc-50"
+          />
           <Button variant="unstyled"
             type="button"
             onClick={saveOnly}
@@ -162,6 +172,10 @@ export function OfficeEditor({
           </ModalShell>
         )}
       </AnimatePresence>
+
+      {/* Outside the editor's own scroll container and above it, so it floats
+          over the document rather than being clipped by it. */}
+      {calcOpen && <CalculatorWindow onClose={() => setCalcOpen(false)} />}
     </div>
   );
 }

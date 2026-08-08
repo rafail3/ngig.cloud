@@ -45,6 +45,10 @@ import { VideoPlayer } from "./VideoPlayer";
 import { PdfViewer } from "./PdfViewer";
 import { CodeViewer } from "./CodeViewer";
 import { ModalShell } from "./anim";
+import {
+  CalculatorButton,
+  CalculatorWindow,
+} from "@/components/calculator/CalculatorWindow";
 
 // CodeMirror is heavy — only load it when the user actually edits.
 const TextEditor = lazy(() => import("./TextEditor"));
@@ -96,6 +100,7 @@ export function PreviewModal({
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
 
@@ -397,6 +402,13 @@ export function PreviewModal({
                     {printing ? "Se pregătește…" : "Printează"}
                   </Button>
                 )}
+                {k === "office" && (
+                  <CalculatorButton
+                    open={calcOpen}
+                    onToggle={() => setCalcOpen((v) => !v)}
+                    className="flex items-center rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 aria-expanded:bg-zinc-800 aria-expanded:text-zinc-50"
+                  />
+                )}
                 {(canEdit || canEditOffice) && (
                   <Button variant="unstyled"
                     type="button"
@@ -566,6 +578,10 @@ export function PreviewModal({
           />
         )}
       </AnimatePresence>
+
+    {/* Outside the shell on purpose: the panel is `overflow-hidden`, so a
+        window rendered inside it could never be dragged past its edge. */}
+    {calcOpen && <CalculatorWindow onClose={() => setCalcOpen(false)} />}
     </ModalShell>
   );
 }
