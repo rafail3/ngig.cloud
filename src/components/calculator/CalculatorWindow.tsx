@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, useDragControls, useMotionValue } from "motion/react";
 import { Calculator, GripHorizontal, History, X } from "lucide-react";
+import type { MathfieldElement } from "mathlive";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useCalculatorEngine } from "./engine";
+import { MathField } from "./MathField";
 import { KEYS, isComputation, type Key } from "./keys";
 
 const WIDTH = 288; // w-72
@@ -37,7 +38,7 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
   const [dragging, setDragging] = useState(false);
 
   const panel = useRef<HTMLDivElement>(null);
-  const input = useRef<HTMLInputElement>(null);
+  const field = useRef<MathfieldElement | null>(null);
   // Drag limits in the window's OWN coordinate space. It is positioned against
   // whatever its offsetParent turns out to be, which differs per host: the
   // Office editor's root covers the viewport, while the preview's panel is a
@@ -103,117 +104,60 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
     return r.ok ? r.value : null;
   }, [ready, evaluate, expr]);
 
-  /* Every key edits AT THE CURSOR. The display is a real input — you can click
-     into it, select part of it, drag across it — so appending to the end would
-     be wrong the moment the caret is anywhere else. A selection is replaced,
-     the way typing does. */
-  const editAt = useCallback((make: (before: string, selected: string, after: string) => [string, number]) => {
-    const el = input.current;
-    const value = el?.value ?? "";
-    const start = el?.selectionStart ?? value.length;
-    const end = el?.selectionEnd ?? start;
-    const [next, caret] = make(value.slice(0, start), value.slice(start, end), value.slice(end));
-    setExpr(next);
-    // After React has written the new value: setting it first would put the
-    // caret at the end, which is exactly what this exists to avoid.
-    requestAnimationFrame(() => {
-      el?.focus();
-      el?.setSelectionRange(caret, caret);
-    });
-  }, []);
 
-  const insert = useCallback(
-    (text: string) => editAt((b, _s, a) => [b + text + a, b.length + text.length]),
-    [editAt],
-  );
-
-  const backspace = useCallback(
-    () =>
-      editAt((b, sel, a) =>
-        // A selection is what gets deleted, if there is one.
-        sel ? [b + a, b.length] : [b.slice(0, -1) + a, Math.max(0, b.length - 1)],
-      ),
-    [editAt],
-  );
-
+  /* Every key drives the mathfield, which owns the caret and the selection.
+     `insert` with `#0` puts whatever is selected inside the thing being
+     inserted — so selecting 16 and pressing √ gives a radical over 16 — and
+     `#?` leaves an empty slot the caret jumps into. None of that is ours to
+     implement; it is what a mathfield is for. */
   const commit = useCallback(() => {
-    const r = evaluate(expr);
+    const mf = field.current;
+    if (!mf) return;
+    const r = evaluate(mf.value);
     if (!r.ok) return;
-    setHistory((h) => [{ expr, value: r.value }, ...h].slice(0, 30));
+    setHistory((h) => [{ expr: mf.value, value: r.value }, ...h].slice(0, 30));
     // The result becomes the next starting point, the way a calculator does —
     // so you can keep operating on what you just worked out.
-    setExpr(r.value);
-    requestAnimationFrame(() => {
-      const el = input.current;
-      el?.focus();
-      el?.setSelectionRange(r.value.length, r.value.length);
-    });
-  }, [evaluate, expr]);
+    mf.value = r.value;
+    setExpr(mf.value);
+    mf.executeCommand("moveToMathfieldEnd");
+    mf.focus();
+  }, [evaluate]);
 
   const press = useCallback(
     (k: Key) => {
-      if ("insert" in k) {
-        insert(k.insert);
+      const mf = field.current;
+      if (!mf) return;
+      if ("latex" in k) {
+        mf.insert(k.latex);
+        setExpr(mf.value);
+        mf.focus();
         return;
       }
       if ("mem" in k) {
         // What goes into memory is the value of what is on screen, so M+ works
         // on a whole expression and not just on a number you typed.
-        const current = evaluate(expr);
+        const current = evaluate(mf.value);
         const n = current.ok ? Number(current.value) : NaN;
         if (k.mem === "MC") setMemory(null);
-        if (k.mem === "MR" && memory !== null) insert(String(memory));
+        if (k.mem === "MR" && memory !== null) mf.insert(String(memory));
         if (k.mem === "M+" && Number.isFinite(n)) setMemory((m) => (m ?? 0) + n);
         if (k.mem === "M-" && Number.isFinite(n)) setMemory((m) => (m ?? 0) - n);
+        setExpr(mf.value);
+        mf.focus();
         return;
       }
-      if (k.cmd === "clear") {
-        setExpr("");
-        input.current?.focus();
-      }
-      if (k.cmd === "back") backspace();
-      if (k.cmd === "equals") commit();
-      // These two wrap the WHOLE expression rather than hunting for the last
-      // operand — wrapping is unambiguous whatever you have typed.
-      // Written with the DISPLAY symbols, like every other key — a minus sign
-      // and a division sign, not a hyphen and a slash.
-      if (k.cmd === "sign") setExpr((e) => (e ? `−(${e})` : "−"));
-      if (k.cmd === "recip") setExpr((e) => (e ? `1÷(${e})` : e));
-    },
-    [backspace, commit, evaluate, expr, insert, memory],
-  );
-
-  /* The input does ordinary typing itself — that is the point of it being a
-     real input rather than a rendered line — so only the calculator's own keys
-     are intercepted here. Nothing is bound globally: the document underneath
-     is live, and a window-level listener would steal its keystrokes. */
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Escape") {
-        // The preview underneath closes on Escape too. Closing the calculator
-        // is what the key meant while it was open, so it stops here.
-        e.stopPropagation();
-        onClose();
-        return;
-      }
-      if (e.key === "Enter" || (e.key === "=" && !e.shiftKey)) {
-        e.preventDefault();
+      if (k.cmd === "clear") mf.value = "";
+      if (k.cmd === "back") mf.executeCommand("deleteBackward");
+      if (k.cmd === "equals") {
         commit();
         return;
       }
-      if (e.key === "Delete") {
-        // Delete is the calculator's "clear everything", the way AC is on a
-        // physical one — not the forward-delete a text field would give you.
-        e.preventDefault();
-        setExpr("");
-      }
+      setExpr(mf.value);
+      mf.focus();
     },
-    [commit, onClose],
+    [commit, evaluate, memory],
   );
-
-  useEffect(() => {
-    input.current?.focus();
-  }, []);
 
   return (
     <>
@@ -250,7 +194,6 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
         tabIndex={-1}
         role="dialog"
         aria-label="Calculator"
-        onKeyDown={onKeyDown}
         className="absolute left-0 top-0 z-[70] overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/50 outline-none"
       >
         {/* Title bar — the drag handle. `touch-none` so a drag on a tablet
@@ -318,35 +261,22 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* One line, and the symbols live in it.
+        {/* The display IS the maths. A MathLive field renders a real radical
+            over its operand, a raised exponent, a π, a fraction bar — and the
+            caret lives inside that rendering, so there is no second line to
+            keep in step and nothing on screen that looks like source code.
 
-            An earlier version typeset the expression on a second line above
-            this one. It read double, because the caret can only be in one of
-            the two — so whatever the other showed was either a duplicate or
-            one keystroke behind. The keypad writes `√`, `π`, `×`, `÷`, `−`,
-            `°` straight into the text instead, and they are translated to
-            mathjs syntax only at the moment of evaluation.
-
-            The row underneath appears only for an actual calculation. */}
-        <div className="px-3 pb-2.5 pt-3 text-right">
-          <Input
-            ref={input}
-            variant="unstyled"
-            value={expr}
-            onChange={(e) => setExpr(e.target.value)}
-            inputMode="text"
-            autoComplete="off"
-            spellCheck={false}
-            aria-label="Expresie"
-            placeholder="0"
-            // The primitive paints a focus ring, and the base layer draws an
-            // outline on every focused input. Neither belongs on a calculator
-            // display: it is the only field in the window, so a box around it
-            // marks nothing.
-            className="w-full bg-transparent text-right text-xl font-medium tabular-nums text-zinc-100 outline-none placeholder:text-zinc-600 focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-0"
+            The row underneath appears only for an actual calculation: a lone π
+            needs no line explaining what π is. */}
+        <div className="px-3 pb-2.5 pt-3">
+          <MathField
+            fieldRef={field}
+            onChange={setExpr}
+            onEnter={commit}
+            onEscape={onClose}
           />
-          <p className="mt-1 min-h-4 truncate text-xs tabular-nums text-zinc-500">
-            {!ready ? "Se încarcă…" : liveValue !== null && liveValue !== expr ? `= ${liveValue}` : ""}
+          <p className="mt-1 min-h-4 truncate text-right text-xs tabular-nums text-zinc-500">
+            {!ready ? "Se încarcă…" : liveValue !== null ? `= ${liveValue}` : ""}
           </p>
         </div>
 
