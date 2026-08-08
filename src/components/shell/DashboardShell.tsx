@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { MotionConfig } from "motion/react";
 import {
   LayoutDashboard,
   Ticket,
@@ -184,10 +185,14 @@ export function DashboardShell({
   const userMenu = useMenuModality();
 
   return (
-    /* Same frame as the app shell: a full-height navigation column beside a
-       content column that owns its header, so the two never cross borders at
-       the corner. Chrome behind, content panel lifted one step off it — written
-       per theme because the light palette mirrors the zinc scale. */
+    /* The app shell has always carried this; the dashboard had not, so the
+       shared chrome that lives in both — the notification bell — honoured the
+       system's reduced-motion setting on one host and ignored it on the other. */
+    <MotionConfig reducedMotion="user">
+    {/* Same frame as the app shell: a full-height navigation column beside a
+        content column that owns its header, so the two never cross borders at
+        the corner. Chrome behind, content panel lifted one step off it — written
+        per theme because the light palette mirrors the zinc scale. */}
     <div className="flex min-h-screen bg-[var(--surface-chrome)] text-zinc-50">
       {/* ===== Desktop navigation column ===== */}
       {/* w-72, not the app shell's w-64: the wordmark and the role badge share
@@ -327,5 +332,6 @@ export function DashboardShell({
       </main>
       </div>
     </div>
+    </MotionConfig>
   );
 }

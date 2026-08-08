@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { AnimatePresence, motion } from "motion/react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { NotificationRow } from "@/server/notifications/service";
 import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
@@ -15,6 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useMenuModality } from "@/lib/useMenuModality";
+import { NotificationIsland } from "./NotificationIsland";
 import {
   getNotificationsAction,
   markNotificationReadAction,
@@ -22,6 +24,28 @@ import {
   deleteNotificationAction,
   clearNotificationsAction,
 } from "@/app/notification-actions";
+
+/* Where the panel and the island grow from, as a CSS transform-origin x.
+
+   Both hang off the right edge of the navbar action cluster, but the bell sits
+   further left inside it, behind the theme toggle and the user menu. Left to
+   itself each would zoom out of its own top-right corner — out of the avatar,
+   not out of the bell. Measuring the gap between the cluster's right edge and
+   the centre of the bell turns that into `calc(100% - Npx)`, which lands the
+   growth point on the icon at any width, in either shell.
+
+   Read from the DOM at the moment of opening rather than from a ref: the bell
+   is a Radix trigger rendered through `asChild`, and a ref handed to that slot
+   has been empty here before. A marker attribute is read fresh, every time. */
+function growthOrigin(): string {
+  if (typeof document === "undefined") return "100%";
+  const bell = document.querySelector("[data-notification-bell]");
+  const cluster = document.querySelector("[data-navbar-actions]");
+  if (!bell || !cluster) return "100%";
+  const b = bell.getBoundingClientRect();
+  const c = cluster.getBoundingClientRect();
+  return `calc(100% - ${Math.round(c.right - (b.left + b.width / 2))}px)`;
+}
 
 // Compact Romanian relative time: "acum", "acum 5 min", "acum 3 h", "acum 2 z".
 function ago(iso: string): string {
@@ -36,10 +60,34 @@ function ago(iso: string): string {
   return new Date(iso).toLocaleDateString("ro-RO");
 }
 
+// Badge and glow share the app's damped pop — felt, not watched.
+const POP = { type: "spring", stiffness: 460, damping: 26, mass: 0.6 } as const;
+
+// How many live arrivals the island will hold on to. A burst should announce
+// itself, not queue up a minute of pills the user has to sit through.
+const ISLAND_BACKLOG = 3;
+
 export function NotificationBell() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const menu = useMenuModality();
+
+  // Live arrivals waiting for the island, oldest first.
+  const [queue, setQueue] = useState<NotificationRow[]>([]);
+  // Growth point shared by the panel and the island, measured when either opens.
+  const [origin, setOrigin] = useState("100%");
+  // Bumped on every live arrival; the ring remounts on the new key and pulses.
+  const [pulse, setPulse] = useState(0);
+
+  // The realtime subscription is set up once and must not be torn down every
+  // time the panel opens, so it reads "is the panel open" through a ref.
+  const openRef = useRef(open);
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  // Stable: the island's countdown effect depends on it.
+  const advance = useCallback(() => setQueue((q) => q.slice(1)), []);
 
   // The panel hangs off the whole navbar action cluster, not off the bell: the
   // bell sits to the left of the theme toggle and the user menu, so anchoring
@@ -104,6 +152,16 @@ export function NotificationBell() {
                 },
                 { revalidate: false },
               );
+              // Announce it: the bell glows once, and the island carries the
+              // notification out of the icon — unless the panel is already
+              // open, where the same row is appearing in the list anyway.
+              setPulse((n) => n + 1);
+              if (!openRef.current) {
+                setOrigin(growthOrigin());
+                setQueue((q) =>
+                  q.some((n) => n.id === row.id) ? q : [...q, row].slice(-ISLAND_BACKLOG),
+                );
+              }
             } else {
               void mutate();
             }
@@ -163,6 +221,23 @@ export function NotificationBell() {
     if (n.link) navigate(n.link);
   }
 
+  // Clicking the island does what clicking the same row in the panel does: it
+  // marks the notification read and goes where it points. Only a notification
+  // with nowhere to go falls back to opening the panel, so the click is never
+  // wasted — and the rest of the queue is dropped, since the panel lists it.
+  function activateIsland() {
+    const n = queue[0];
+    if (!n) return;
+    markRead(n);
+    if (n.link) {
+      navigate(n.link);
+      return;
+    }
+    setOrigin(growthOrigin());
+    setQueue([]);
+    setOpen(true);
+  }
+
   async function markAll() {
     void mutate(
       items.map((it) => ({ ...it, read_at: it.read_at ?? new Date().toISOString() })),
@@ -187,25 +262,78 @@ export function NotificationBell() {
   }
 
   return (
-    // The panel used to be pinned to a fixed corner and closed by a listener on
-    // the document. Anchored to the bell instead, it stays put on any viewport,
-    // closes on Escape as well as on an outside click, and hands focus back.
-    <Popover open={open} onOpenChange={setOpen}>
+    <>
+    {/* The panel used to be pinned to a fixed corner and closed by a listener on
+        the document. Anchored to the bell instead, it stays put on any viewport,
+        closes on Escape as well as on an outside click, and hands focus back. */}
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        if (next) setOrigin(growthOrigin());
+        setOpen(next);
+      }}
+    >
       <PopoverAnchor virtualRef={anchor} />
       <PopoverTrigger asChild {...menu.triggerProps}>
         <Button
+          data-notification-bell
           variant="unstyled"
           type="button"
           aria-label={unread > 0 ? `Notificări (${unread} necitite)` : "Notificări"}
           title="Notificări"
           className="relative rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-800/60 hover:text-zinc-50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-50"
         >
-          <Bell className="h-5 w-5" />
-          {unread > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-semibold leading-none text-white">
-              {unread > 9 ? "9+" : unread}
-            </span>
+          {/* The glow. Keyed by the arrival counter, so each new notification
+              mounts a fresh ring that runs its one-shot pulse and then sits
+              invisible until the next one replaces it. Decorative and inert:
+              the arrival is already announced in words by the island. */}
+          {pulse > 0 && (
+            <motion.span
+              key={pulse}
+              aria-hidden
+              // border, not ring: Tailwind's ring IS a box-shadow, and the
+              // inline boxShadow animated below would overwrite it — leaving
+              // the soft halo with no contour to sit on.
+              className="pointer-events-none absolute inset-0 rounded-md border-2 border-indigo-400"
+              initial={{ opacity: 0, scale: 0.75 }}
+              animate={{
+                opacity: [0, 1, 0],
+                scale: [0.75, 1.2, 1.45],
+                boxShadow: [
+                  "0 0 0 0 rgba(129,140,248,0)",
+                  "0 0 16px 3px rgba(129,140,248,0.55)",
+                  "0 0 22px 6px rgba(129,140,248,0)",
+                ],
+              }}
+              transition={{ duration: 1.2, times: [0, 0.22, 1], ease: "easeOut" }}
+            />
           )}
+
+          <Bell className="h-5 w-5" />
+
+          <AnimatePresence>
+            {unread > 0 && (
+              <motion.span
+                key="badge"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0, transition: { duration: 0.12 } }}
+                transition={POP}
+                className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-semibold leading-none text-white"
+              >
+                {/* Keyed by the label so the digit itself pops when it changes
+                    — but not when 10 becomes 11 and both still read "9+". */}
+                <motion.span
+                  key={unread > 9 ? "9+" : unread}
+                  initial={{ scale: 0.4 }}
+                  animate={{ scale: 1 }}
+                  transition={POP}
+                >
+                  {unread > 9 ? "9+" : unread}
+                </motion.span>
+              </motion.span>
+            )}
+          </AnimatePresence>
         </Button>
       </PopoverTrigger>
 
@@ -215,7 +343,13 @@ export function NotificationBell() {
         // bottom edge the way it used to.
         sideOffset={12}
         collisionPadding={12}
-        className="flex max-h-[70vh] w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border-zinc-800 bg-zinc-900 p-0 shadow-xl"
+        // Radix's own origin would be this box's corner, which sits over the
+        // avatar. Overridden inline so the panel unfolds out of the bell, the
+        // same point the island erupts from.
+        style={{ transformOrigin: `${origin} top` }}
+        // Out in two thirds of the time it came in: a panel that lingers on the
+        // way out reads as lag.
+        className="flex max-h-[70vh] w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border-zinc-800 bg-zinc-900 p-0 shadow-xl data-[state=closed]:duration-150 data-[state=open]:duration-200"
         {...menu.contentProps}
       >
           <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
@@ -301,5 +435,14 @@ export function NotificationBell() {
         </div>
       </PopoverContent>
     </Popover>
+
+    <NotificationIsland
+      item={queue[0] ?? null}
+      pending={Math.max(0, queue.length - 1)}
+      originX={origin}
+      onDone={advance}
+      onActivate={activateIsland}
+    />
+    </>
   );
 }
