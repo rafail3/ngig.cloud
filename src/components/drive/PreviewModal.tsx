@@ -297,7 +297,12 @@ export function PreviewModal({
       onClose={dismiss}
       title={file.name}
       scrim="bg-black/80"
-      className={`relative flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
+      // No `relative` here. The shell is `fixed`, and tailwind-merge treats the
+      // two as the same conflict, so a `relative` passed in silently DELETED
+      // the fixed positioning — the panel dropped out of the centred overlay
+      // and flowed to the bottom of the portal. `fixed` is a containing block
+      // for absolutely positioned children anyway, which is all it was for.
+      className={`flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
         selectable ? "" : "select-none"
       } ${
         big
