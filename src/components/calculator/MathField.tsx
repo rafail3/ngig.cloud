@@ -83,14 +83,11 @@ export function MathField({
 
       field = new ml.MathfieldElement();
       // No on-screen keyboard: this calculator has its own keypad, and the
-      // virtual one would cover the document the window floats over.
+      // virtual one would cover the document the window floats over. These two
+      // are plain options — they are stored on the element and applied when it
+      // connects, so they are safe to set before it is in the DOM.
       field.mathVirtualKeyboardPolicy = "manual";
       field.smartFence = true;
-      // No context menu. The window has a keypad and a close button; a second
-      // menu offering matrix editing and MathML export is not this product.
-      // The keyboard toggle beside it is hidden in CSS — `manual` stops the
-      // keyboard opening but still leaves the button.
-      field.menuItems = [];
 
       field.style.width = "100%";
       field.style.border = "none";
@@ -118,6 +115,22 @@ export function MathField({
       });
 
       mount.appendChild(field);
+
+      /* Only NOW. `menuItems` is not a stored option — its setter reaches into
+         the live mathfield, and on an element that is not in the DOM yet it
+         throws "Mathfield not mounted". Setting it before appendChild killed
+         the whole effect, so the field never mounted at all and the calculator
+         came up with no caret and no input.
+
+         The menu is also hidden in CSS; this is what stops it opening on a
+         right-click, which CSS cannot do. */
+      try {
+        field.menuItems = [];
+      } catch {
+        // A future version could move this again. A context menu we did not
+        // want is not worth taking the field down for.
+      }
+
       fieldRef.current = field;
       field.focus();
     });
