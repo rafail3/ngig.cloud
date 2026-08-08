@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.50.0](https://github.com/rafail3/ngig.cloud/compare/v2.49.0...v2.50.0) (2026-08-08)
+
+
+### Features
+
+* **calculator:** filter the clipboard, drop the selection, clear on Delete ([d3250a8](https://github.com/rafail3/ngig.cloud/commit/d3250a8972cb5c95ca74fa3e85feb44f06473b0c))
+* **calculator:** only maths gets typed, and the degree key reads like a function ([ce669e6](https://github.com/rafail3/ngig.cloud/commit/ce669e6c75290a21eb9894f5d9572c88bd4e8fc4))
+* **calculator:** real maths on screen, and a caret you can put where you want ([94a1be3](https://github.com/rafail3/ngig.cloud/commit/94a1be3aacc76e30897cdb0188fcbe00a00d6f83))
+* **calculator:** the display is a real mathfield now ([a6aeb09](https://github.com/rafail3/ngig.cloud/commit/a6aeb09afbdaeb3d016979f27097219b5530232c))
+* **office:** a calculator that floats over the document ([c14de55](https://github.com/rafail3/ngig.cloud/commit/c14de55dc67559118cc832f7852570820f7499fb))
+* **office:** a floating calculator, and the preview panel is centred again ([ffeb99c](https://github.com/rafail3/ngig.cloud/commit/ffeb99c8781cbecfd7e20a8ab91066f7f9090b49))
+
+
+### Bug Fixes
+
+* **calculator:** draw the radical as you type it, and lose the blue box ([9369e0d](https://github.com/rafail3/ngig.cloud/commit/9369e0dc8eca4f86c49d367c7dda3f0723e876cc))
+* **calculator:** set menuItems after the field is in the DOM ([a7d94eb](https://github.com/rafail3/ngig.cloud/commit/a7d94ebf24c7c69c019a4f48b9198af747050f1b))
+* **calculator:** the field is bare, right-aligned, and the pad speaks maths ([6f8c6f1](https://github.com/rafail3/ngig.cloud/commit/6f8c6f1d794f82c821367798f7f1a77b7542ffe7))
+* **office:** the calculator actually opens in the preview, and the toolbar regroups ([fee823a](https://github.com/rafail3/ngig.cloud/commit/fee823aa4991d5212cc6027f5256a33dd972287b))
+* **ui:** the preview panel is centred again, and modals get the width they ask for ([0f51f55](https://github.com/rafail3/ngig.cloud/commit/0f51f55ae355b20000c54f1fb22484778b545385))
+
 ## [2.49.0](https://github.com/rafail3/ngig.cloud/compare/v2.48.1...v2.49.0) (2026-08-08)
 
 
