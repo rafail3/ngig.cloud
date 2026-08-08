@@ -35,8 +35,15 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
   const [memory, setMemory] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  const bounds = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  // Drag limits in the window's OWN coordinate space. It is positioned against
+  // whatever its offsetParent turns out to be, which differs per host: the
+  // Office editor's root covers the viewport, while the preview's panel is a
+  // box in the middle of it (a Dialog carries a `translate`, and a translated
+  // element becomes the containing block for everything positioned inside it).
+  // Measuring the offsetParent means the same window works in both without
+  // being told where it is.
+  const [limits, setLimits] = useState({ left: 0, top: 0, right: 0, bottom: 0 });
   const controls = useDragControls();
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -45,25 +52,44 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
   // remembered at the edge of a wide monitor must not open off-screen on a
   // laptop. Default is the bottom-right corner, out of the way of a toolbar.
   useLayoutEffect(() => {
-    const h = panel.current?.offsetHeight ?? 420;
-    const maxX = Math.max(0, window.innerWidth - WIDTH - MARGIN);
-    const maxY = Math.max(0, window.innerHeight - h - MARGIN);
-    let startX = maxX;
-    let startY = maxY;
+    const el = panel.current;
+    if (!el) return;
+    const h = el.offsetHeight || 420;
+    // Origin of this window's coordinate space, in viewport terms.
+    const host = (el.offsetParent as HTMLElement | null)?.getBoundingClientRect();
+    const ox = host?.left ?? 0;
+    const oy = host?.top ?? 0;
+
+    // Viewport-space box the window is allowed to occupy, then shifted into
+    // local space. Negative values are normal and correct: they are how the
+    // window reaches the parts of the screen outside its host.
+    const box = {
+      left: MARGIN - ox,
+      top: MARGIN - oy,
+      right: window.innerWidth - WIDTH - MARGIN - ox,
+      bottom: window.innerHeight - h - MARGIN - oy,
+    };
+    setLimits(box);
+
+    // Stored in viewport coordinates so the position survives being reopened
+    // from a different host, and clamped on the way in — a window remembered
+    // at the edge of a wide monitor must not open off-screen on a laptop.
+    let vx = window.innerWidth - WIDTH - MARGIN;
+    let vy = window.innerHeight - h - MARGIN;
     try {
       const saved = localStorage.getItem(POS_KEY);
       if (saved) {
         const p = JSON.parse(saved) as { x: number; y: number };
         if (Number.isFinite(p.x) && Number.isFinite(p.y)) {
-          startX = Math.min(Math.max(MARGIN - WIDTH / 2, p.x), maxX);
-          startY = Math.min(Math.max(0, p.y), maxY);
+          vx = Math.min(Math.max(MARGIN, p.x), window.innerWidth - WIDTH - MARGIN);
+          vy = Math.min(Math.max(MARGIN, p.y), window.innerHeight - h - MARGIN);
         }
       }
     } catch {
       // A corrupt entry is not worth failing to open over.
     }
-    x.set(startX);
-    y.set(startY);
+    x.set(vx - ox);
+    y.set(vy - oy);
   }, [x, y]);
 
   const preview = useMemo(() => (ready ? evaluate(expr) : null), [ready, evaluate, expr]);
@@ -109,6 +135,9 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
+        // The preview underneath closes on Escape too. Closing the calculator
+        // is what this key meant here, so it stops at this window.
+        e.stopPropagation();
         onClose();
         return;
       }
@@ -135,10 +164,10 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
   }, []);
 
   return (
-    <div ref={bounds} className="pointer-events-none fixed inset-0 z-[70]">
+    <>
       {/* The sheet that keeps a drag alive across the Office iframe. Only
           present while dragging, so it never blocks the document. */}
-      {dragging && <div className="pointer-events-auto absolute inset-0 cursor-grabbing" />}
+      {dragging && <div className="fixed inset-0 z-[69] cursor-grabbing" />}
 
       <motion.div
         ref={panel}
@@ -146,14 +175,18 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
         dragControls={controls}
         // Only the title bar starts a drag; the keypad must stay clickable.
         dragListener={false}
-        dragConstraints={bounds}
+        dragConstraints={limits}
         dragMomentum={false}
         dragElastic={0}
         onDragStart={() => setDragging(true)}
         onDragEnd={() => {
           setDragging(false);
           try {
-            localStorage.setItem(POS_KEY, JSON.stringify({ x: x.get(), y: y.get() }));
+            const host = (panel.current?.offsetParent as HTMLElement | null)?.getBoundingClientRect();
+            localStorage.setItem(
+              POS_KEY,
+              JSON.stringify({ x: x.get() + (host?.left ?? 0), y: y.get() + (host?.top ?? 0) }),
+            );
           } catch {
             // Private mode — the window simply will not be remembered.
           }
@@ -166,7 +199,7 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-label="Calculator"
         onKeyDown={onKeyDown}
-        className="pointer-events-auto absolute left-0 top-0 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/50 outline-none"
+        className="absolute left-0 top-0 z-[70] overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/50 outline-none"
       >
         {/* Title bar — the drag handle. `touch-none` so a drag on a tablet
             moves the window instead of scrolling the page behind it. */}
@@ -272,7 +305,7 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
           ))}
         </div>
       </motion.div>
-    </div>
+    </>
   );
 }
 

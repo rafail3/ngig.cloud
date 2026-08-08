@@ -307,7 +307,7 @@ export function PreviewModal({
       // the fixed positioning — the panel dropped out of the centred overlay
       // and flowed to the bottom of the portal. `fixed` is a containing block
       // for absolutely positioned children anyway, which is all it was for.
-      className={`flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
+      className={`flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
         selectable ? "" : "select-none"
       } ${
         big
@@ -322,7 +322,10 @@ export function PreviewModal({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col">
+      {/* The clip lives here rather than on the panel: it has to round off
+          the header and the document, but it must not swallow the calculator
+          window, which is a sibling and needs to leave the panel. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-3">
           <p className="min-w-0 max-w-[min(60vw,32rem)] truncate text-sm font-medium text-zinc-100">
             {file.name}
@@ -371,6 +374,30 @@ export function PreviewModal({
                 {canPrintOffice && (
                   <Button variant="unstyled"
                     type="button"
+                    onClick={printOffice}
+                    disabled={printing}
+                    className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-60"
+                  >
+                    {printing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Printer className="h-3.5 w-3.5" />
+                    )}
+                    {printing ? "Se pregătește…" : "Printează"}
+                  </Button>
+                )}
+                {(canEdit || canEditOffice) && (
+                  <Button variant="unstyled"
+                    type="button"
+                    onClick={canEditOffice ? openOfficeEditor : startEdit}
+                    className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Editează
+                  </Button>
+                )}
+                {canPrintOffice && (
+                  <Button variant="unstyled"
+                    type="button"
                     onClick={() =>
                       setThemeOverride(officeTheme === "dark" ? "light" : "dark")
                     }
@@ -387,37 +414,6 @@ export function PreviewModal({
                     )}
                   </Button>
                 )}
-                {canPrintOffice && (
-                  <Button variant="unstyled"
-                    type="button"
-                    onClick={printOffice}
-                    disabled={printing}
-                    className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-60"
-                  >
-                    {printing ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Printer className="h-3.5 w-3.5" />
-                    )}
-                    {printing ? "Se pregătește…" : "Printează"}
-                  </Button>
-                )}
-                {k === "office" && (
-                  <CalculatorButton
-                    open={calcOpen}
-                    onToggle={() => setCalcOpen((v) => !v)}
-                    className="flex items-center rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 aria-expanded:bg-zinc-800 aria-expanded:text-zinc-50"
-                  />
-                )}
-                {(canEdit || canEditOffice) && (
-                  <Button variant="unstyled"
-                    type="button"
-                    onClick={canEditOffice ? openOfficeEditor : startEdit}
-                    className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800"
-                  >
-                    <Pencil className="h-3.5 w-3.5" /> Editează
-                  </Button>
-                )}
                 <Button variant="unstyled"
                   type="button"
                   onClick={() => setShowInfo(true)}
@@ -426,6 +422,13 @@ export function PreviewModal({
                 >
                   <Info className="h-4 w-4" />
                 </Button>
+                {k === "office" && (
+                  <CalculatorButton
+                    open={calcOpen}
+                    onToggle={() => setCalcOpen((v) => !v)}
+                    className="flex items-center rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 aria-expanded:bg-zinc-800 aria-expanded:text-zinc-50"
+                  />
+                )}
                 <Button variant="unstyled"
                   type="button"
                   onClick={onClose}
@@ -579,9 +582,13 @@ export function PreviewModal({
         )}
       </AnimatePresence>
 
-    {/* Outside the shell on purpose: the panel is `overflow-hidden`, so a
-        window rendered inside it could never be dragged past its edge. */}
-    {calcOpen && <CalculatorWindow onClose={() => setCalcOpen(false)} />}
+      {/* Inside the panel, but a sibling of the clipped box above, and
+          positioned against the panel rather than the viewport — a Dialog
+          carries a `translate`, which makes it the containing block for
+          everything inside it. The window measures that and works out the rest.
+          It cannot live outside the Dialog: a modal one traps focus and
+          disables pointer events everywhere else. */}
+      {calcOpen && <CalculatorWindow onClose={() => setCalcOpen(false)} />}
     </ModalShell>
   );
 }
