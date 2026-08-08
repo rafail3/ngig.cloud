@@ -256,6 +256,20 @@ html.light {
   }
 }
 
+/* The travelling light on GlowBorder. Registered through @theme rather than
+   written as an arbitrary class, because the duration is per-instance: a class
+   built by template literal is invisible to Tailwind's scanner, which only
+   reads literal strings. The duration arrives as --glow-duration instead. */
+@theme {
+  --animate-shine: shine var(--glow-duration, 7s) linear infinite;
+
+  @keyframes shine {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+  }
+}
+
 /* Overlay/modal entrance animations (used by the user-detail intercept). */
 @keyframes overlay-in {
   from { opacity: 0; }

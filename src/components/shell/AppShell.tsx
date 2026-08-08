@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MotionConfig } from "motion/react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
+import { morphPanel } from "@/components/common/morph";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Folder, LayoutDashboard, LogOut, Menu, ChevronDown, ShieldCheck, UserRound, Trash2, Archive, LifeBuoy, Link2, Send, UsersRound, UploadCloud } from "lucide-react";
@@ -192,6 +193,8 @@ export function AppShell({
   // same nav sits in a persistent sidebar column. Controlled (rather than left
   // to the Sheet) only because a nav link has to close it on click.
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Controlled so the profile menu can animate out instead of vanishing.
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenu = useMenuModality();
   const items = NAV.filter((i) => !i.adminOnly || user.role === "admin").map((i) =>
     i.href === "/transfers" ? { ...i, badge: pendingTransfers } : i,
@@ -292,7 +295,9 @@ export function AppShell({
         <div data-navbar-actions className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
           <NotificationBell />
           <ThemeToggle />
-          <DropdownMenu>
+          {/* Controlled only so AnimatePresence can hold the menu in the tree
+              long enough to animate out; the trigger still drives it. */}
+          <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
             <DropdownMenuTrigger asChild {...userMenu.triggerProps}>
               <Button
                 variant="ghost"
@@ -308,7 +313,28 @@ export function AppShell({
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-64 p-0" {...userMenu.contentProps}>
+            <AnimatePresence>
+              {userMenuOpen && (
+            <DropdownMenuContent
+              forceMount
+              // asChild: the motion element IS the menu, so the spring and the
+              // positioner act on one box. animate-none strips the primitive's
+              // CSS keyframe, which would fight the spring for the transform.
+              asChild
+              align="end"
+              className="w-64 p-0 data-[state=closed]:animate-none data-[state=open]:animate-none"
+              {...userMenu.contentProps}
+            >
+              <motion.div
+                // Radix computes this from the side and alignment it actually
+                // resolved to, so the menu unfolds from the corner nearest the
+                // avatar even when a collision flips it.
+                style={{ transformOrigin: "var(--radix-dropdown-menu-content-transform-origin)" }}
+                variants={morphPanel}
+                initial="hidden"
+                animate="shown"
+                exit="gone"
+              >
               <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3.5">
                 <Avatar username={user.username} className="h-9 w-9 text-sm" />
                 <div className="min-w-0">
@@ -367,7 +393,10 @@ export function AppShell({
               <div className="border-t border-zinc-800 px-4 py-2 text-center">
                 <AppVersion />
               </div>
+              </motion.div>
             </DropdownMenuContent>
+              )}
+            </AnimatePresence>
           </DropdownMenu>
         </div>
       </header>

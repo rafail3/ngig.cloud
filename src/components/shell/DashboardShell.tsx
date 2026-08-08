@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
+import { morphPanel } from "@/components/common/morph";
 import {
   LayoutDashboard,
   Ticket,
@@ -181,13 +183,19 @@ export function DashboardShell({
 }) {
   // Controlled only so a nav link can close the drawer behind it.
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Controlled so the profile menu can animate out instead of vanishing.
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenu = useMenuModality();
 
   return (
-    /* Same frame as the app shell: a full-height navigation column beside a
-       content column that owns its header, so the two never cross borders at
-       the corner. Chrome behind, content panel lifted one step off it — written
-       per theme because the light palette mirrors the zinc scale. */
+    /* The app shell has always carried this; the dashboard had not, so the
+       shared chrome that lives in both — the notification bell — honoured the
+       system's reduced-motion setting on one host and ignored it on the other. */
+    <MotionConfig reducedMotion="user">
+    {/* Same frame as the app shell: a full-height navigation column beside a
+        content column that owns its header, so the two never cross borders at
+        the corner. Chrome behind, content panel lifted one step off it — written
+        per theme because the light palette mirrors the zinc scale. */}
     <div className="flex min-h-screen bg-[var(--surface-chrome)] text-zinc-50">
       {/* ===== Desktop navigation column ===== */}
       {/* w-72, not the app shell's w-64: the wordmark and the role badge share
@@ -261,7 +269,9 @@ export function DashboardShell({
         <div data-navbar-actions className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
           <NotificationBell />
           <ThemeToggle />
-          <DropdownMenu>
+          {/* Controlled only so AnimatePresence can hold the menu in the tree
+              long enough to animate out; the trigger still drives it. */}
+          <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
             <DropdownMenuTrigger asChild {...userMenu.triggerProps}>
               <Button
                 variant="ghost"
@@ -275,7 +285,28 @@ export function DashboardShell({
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-64 p-0" {...userMenu.contentProps}>
+            <AnimatePresence>
+              {userMenuOpen && (
+            <DropdownMenuContent
+              forceMount
+              // asChild: the motion element IS the menu, so the spring and the
+              // positioner act on one box. animate-none strips the primitive's
+              // CSS keyframe, which would fight the spring for the transform.
+              asChild
+              align="end"
+              className="w-64 p-0 data-[state=closed]:animate-none data-[state=open]:animate-none"
+              {...userMenu.contentProps}
+            >
+              <motion.div
+                // Radix computes this from the side and alignment it actually
+                // resolved to, so the menu unfolds from the corner nearest the
+                // avatar even when a collision flips it.
+                style={{ transformOrigin: "var(--radix-dropdown-menu-content-transform-origin)" }}
+                variants={morphPanel}
+                initial="hidden"
+                animate="shown"
+                exit="gone"
+              >
               <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3.5">
                 <Avatar username={user.username} className="h-9 w-9 text-sm" />
                 <div className="min-w-0">
@@ -315,7 +346,10 @@ export function DashboardShell({
               <div className="border-t border-zinc-800 px-4 py-2 text-center">
                 <AppVersion />
               </div>
+              </motion.div>
             </DropdownMenuContent>
+              )}
+            </AnimatePresence>
           </DropdownMenu>
         </div>
       </header>
@@ -327,5 +361,6 @@ export function DashboardShell({
       </main>
       </div>
     </div>
+    </MotionConfig>
   );
 }
