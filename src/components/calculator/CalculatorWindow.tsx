@@ -6,10 +6,7 @@ import { Calculator, GripHorizontal, History, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCalculatorEngine } from "./engine";
-import { KEYS, type Key } from "./keys";
-// KaTeX ships its own stylesheet; without it the typeset line renders as a
-// pile of unpositioned spans.
-import "katex/dist/katex.min.css";
+import { KEYS, isComputation, type Key } from "./keys";
 
 const WIDTH = 288; // w-72
 const MARGIN = 24;
@@ -32,7 +29,7 @@ type Entry = { expr: string; value: string };
      reopens where you last put it rather than jumping back to the corner. */
 
 export function CalculatorWindow({ onClose }: { onClose: () => void }) {
-  const { ready, evaluate, typeset } = useCalculatorEngine();
+  const { ready, evaluate } = useCalculatorEngine();
   const [expr, setExpr] = useState("");
   const [history, setHistory] = useState<Entry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -97,9 +94,14 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
     y.set(vy - oy);
   }, [x, y]);
 
-  const preview = useMemo(() => (ready ? evaluate(expr) : null), [ready, evaluate, expr]);
-  const liveValue = preview?.ok ? preview.value : null;
-  const math = useMemo(() => (ready ? typeset(expr) : null), [ready, typeset, expr]);
+  // The live line is for a CALCULATION. A lone `π` does not need a second row
+  // underneath telling you what π is — that was three rows on screen for one
+  // keypress.
+  const liveValue = useMemo(() => {
+    if (!ready || !isComputation(expr)) return null;
+    const r = evaluate(expr);
+    return r.ok ? r.value : null;
+  }, [ready, evaluate, expr]);
 
   /* Every key edits AT THE CURSOR. The display is a real input — you can click
      into it, select part of it, drag across it — so appending to the end would
@@ -173,8 +175,10 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
       if (k.cmd === "equals") commit();
       // These two wrap the WHOLE expression rather than hunting for the last
       // operand — wrapping is unambiguous whatever you have typed.
-      if (k.cmd === "sign") setExpr((e) => (e ? `-(${e})` : "-"));
-      if (k.cmd === "recip") setExpr((e) => (e ? `1/(${e})` : e));
+      // Written with the DISPLAY symbols, like every other key — a minus sign
+      // and a division sign, not a hyphen and a slash.
+      if (k.cmd === "sign") setExpr((e) => (e ? `−(${e})` : "−"));
+      if (k.cmd === "recip") setExpr((e) => (e ? `1÷(${e})` : e));
     },
     [backspace, commit, evaluate, expr, insert, memory],
   );
@@ -314,26 +318,17 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Three lines, and each earns its place.
+        {/* One line, and the symbols live in it.
 
-            Typeset: the expression as real mathematics — a radical drawn over
-            its operand, a raised exponent, π, a fraction bar, a degree sign.
-            mathjs emits the LaTeX from its own parse tree and KaTeX draws it,
-            so nothing here is a hand-written symbol substitution. It appears
-            only once the expression parses, which is not while you are halfway
-            through typing one.
+            An earlier version typeset the expression on a second line above
+            this one. It read double, because the caret can only be in one of
+            the two — so whatever the other showed was either a duplicate or
+            one keystroke behind. The keypad writes `√`, `π`, `×`, `÷`, `−`,
+            `°` straight into the text instead, and they are translated to
+            mathjs syntax only at the moment of evaluation.
 
-            Source: a real input. You can click into it, select part of it,
-            drag across it, and every key on the pad edits at the caret.
-
-            Result: dim, because it is a preview and not a committed answer. */}
+            The row underneath appears only for an actual calculation. */}
         <div className="px-3 pb-2.5 pt-3 text-right">
-          {math && (
-            <div
-              className="mb-1 max-w-full overflow-x-auto overflow-y-hidden text-lg leading-tight text-zinc-100 [&_.katex]:text-[1em]"
-              dangerouslySetInnerHTML={{ __html: math }}
-            />
-          )}
           <Input
             ref={input}
             variant="unstyled"
@@ -348,16 +343,10 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
             // outline on every focused input. Neither belongs on a calculator
             // display: it is the only field in the window, so a box around it
             // marks nothing.
-            className={`w-full bg-transparent text-right tabular-nums outline-none placeholder:text-zinc-600 focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-0 ${
-              math ? "text-xs text-zinc-500" : "text-lg font-medium text-zinc-100"
-            }`}
+            className="w-full bg-transparent text-right text-xl font-medium tabular-nums text-zinc-100 outline-none placeholder:text-zinc-600 focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-0"
           />
-          <p className="mt-0.5 min-h-4 truncate text-xs tabular-nums text-zinc-500">
-            {!ready
-              ? "Se încarcă…"
-              : liveValue !== null && liveValue !== expr
-                ? `= ${liveValue}`
-                : ""}
+          <p className="mt-1 min-h-4 truncate text-xs tabular-nums text-zinc-500">
+            {!ready ? "Se încarcă…" : liveValue !== null && liveValue !== expr ? `= ${liveValue}` : ""}
           </p>
         </div>
 

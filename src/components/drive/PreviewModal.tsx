@@ -386,13 +386,6 @@ export function PreviewModal({
                     {printing ? "Se pregătește…" : "Printează"}
                   </Button>
                 )}
-                {k === "office" && (
-                  <CalculatorButton
-                    open={calcOpen}
-                    onToggle={() => setCalcOpen((v) => !v)}
-                    className="flex items-center rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 aria-expanded:bg-zinc-800 aria-expanded:text-zinc-50"
-                  />
-                )}
                 {(canEdit || canEditOffice) && (
                   <Button variant="unstyled"
                     type="button"
@@ -401,6 +394,13 @@ export function PreviewModal({
                   >
                     <Pencil className="h-3.5 w-3.5" /> Editează
                   </Button>
+                )}
+                {k === "office" && (
+                  <CalculatorButton
+                    open={calcOpen}
+                    onToggle={() => setCalcOpen((v) => !v)}
+                    className="flex items-center rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 aria-expanded:bg-zinc-800 aria-expanded:text-zinc-50"
+                  />
                 )}
                 {canPrintOffice && (
                   <Button variant="unstyled"
