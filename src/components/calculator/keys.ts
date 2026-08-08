@@ -37,7 +37,7 @@ export const KEYS: Key[] = [
   { label: "tan", tex: "\\tan", latex: "\\tan(#0)", kind: "fn" },
   // A degree sign, not a mode toggle: the unit rides along with the number, so
   // sin(45°) still means 45 degrees when you read it back out of the history.
-  { label: "°", tex: "^\\circ", latex: "\\degree", kind: "fn", title: "Grade (ex. sin(45°))" },
+  { label: "deg", tex: "\\mathrm{deg}", latex: "\\degree", kind: "fn", title: "Grade (ex. sin(45°))" },
   { label: "⌫", cmd: "back", kind: "op", title: "Șterge un caracter" },
 
   { label: "ln", tex: "\\ln", latex: "\\ln(#0)", kind: "fn", title: "Logaritm natural" },
@@ -105,3 +105,12 @@ export function isComputation(latex: string): boolean {
     latex.trim().slice(1),
   );
 }
+
+/* What may be typed straight into the field.
+
+   A mathfield is a general maths editor — type `x` and you get the variable x
+   — but this is a calculator, where a letter is never something that can be
+   evaluated. It would sit there looking like maths and then fail silently at
+   the equals. Constants and functions come from the keypad instead, one press
+   each, so nothing is lost by refusing them from the keyboard. */
+export const TYPED = new Set("0123456789.,+-*/^()".split(""));

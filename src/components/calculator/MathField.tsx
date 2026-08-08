@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { MathfieldElement } from "mathlive";
+import { TYPED } from "./keys";
 
 /* MathLive's editable maths field, wrapped so the rest of the calculator never
    has to know it is a web component.
@@ -102,6 +103,19 @@ export function MathField({
 
       field.addEventListener("input", () => handlers.current.onChange(field?.value ?? ""));
       field.addEventListener("keydown", (e: KeyboardEvent) => {
+        /* A mathfield is a general maths editor: type `x` and you get the
+           variable x, type `abc` and you get a product of three of them. This
+           is a calculator, so a letter is never something it can evaluate —
+           it would sit there looking like maths and fail silently at the
+           equals. Only what a calculator can actually work with gets through.
+
+           Modifier combinations are left alone so copy, paste, select-all and
+           undo keep working, and named constants come from the keypad, where
+           π and the functions are one press each. */
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1 && !TYPED.has(e.key)) {
+          e.preventDefault();
+          return;
+        }
         if (e.key === "Enter") {
           e.preventDefault();
           handlers.current.onEnter();
