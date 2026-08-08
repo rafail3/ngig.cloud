@@ -30,7 +30,7 @@ type Entry = { expr: string; value: string };
      reopens where you last put it rather than jumping back to the corner. */
 
 export function CalculatorWindow({ onClose }: { onClose: () => void }) {
-  const { ready, evaluate } = useCalculatorEngine();
+  const { ready, evaluate, markup } = useCalculatorEngine();
   const [expr, setExpr] = useState("");
   const [history, setHistory] = useState<Entry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -98,6 +98,18 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
   // The live line is for a CALCULATION. A lone `π` does not need a second row
   // underneath telling you what π is — that was three rows on screen for one
   // keypress.
+  // Typeset once per key, not per render: the labels never change.
+  const labels = useMemo(() => {
+    if (!ready) return null;
+    const out = new Map<string, string>();
+    for (const k of KEYS) {
+      if (!k.tex) continue;
+      const html = markup(k.tex);
+      if (html) out.set(k.label, html);
+    }
+    return out;
+  }, [ready, markup]);
+
   const liveValue = useMemo(() => {
     if (!ready || !isComputation(expr)) return null;
     const r = evaluate(expr);
@@ -299,7 +311,15 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
                       : "text-zinc-300"
               }`}
             >
-              {k.label}
+              {labels?.get(k.label) ? (
+                <span
+                  aria-label={k.label}
+                  className="[&_.ML__latex]:text-[15px]"
+                  dangerouslySetInnerHTML={{ __html: labels.get(k.label)! }}
+                />
+              ) : (
+                k.label
+              )}
             </Button>
           ))}
         </div>

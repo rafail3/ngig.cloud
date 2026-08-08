@@ -513,3 +513,23 @@ html.light .code-preview .shiki {
   font-size: 0.8rem;
   color: var(--color-zinc-500);
 }
+
+/* The calculator's maths field. `::part` reaches into MathLive's shadow DOM,
+   which is the only way to get at these — they are not our elements.
+
+   The two buttons it puts inside the field have to go: the window already has
+   its own keypad and its own chrome, and MathLive's context menu offers matrix
+   editing and MathML export, which is not what this is. `manual` keyboard
+   policy stops the keyboard OPENING but still leaves the button sitting there.
+
+   Right-aligned, because that is where a calculator puts its digits. */
+math-field {
+  text-align: right;
+}
+math-field::part(menu-toggle),
+math-field::part(virtual-keyboard-toggle) {
+  display: none;
+}
+math-field::part(content) {
+  text-align: right;
+}

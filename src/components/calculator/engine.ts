@@ -78,5 +78,17 @@ export function useCalculatorEngine() {
     }
   }, []);
 
-  return { ready, evaluate };
+  /** Typeset a fragment for display OUTSIDE the field — the keypad labels.
+   *  Needs /mathlive/mathlive-static.css, which MathField injects. */
+  const markup = useCallback((tex: string): string | null => {
+    const ml = libs.current?.[1];
+    if (!ml) return null;
+    try {
+      return ml.convertLatexToMarkup(tex);
+    } catch {
+      return null;
+    }
+  }, []);
+
+  return { ready, evaluate, markup };
 }

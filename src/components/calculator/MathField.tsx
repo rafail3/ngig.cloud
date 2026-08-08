@@ -23,6 +23,22 @@ import type { MathfieldElement } from "mathlive";
 
 let configured = false;
 
+/* The stylesheet is linked from public/ rather than imported, because its
+   @font-face rules point at `fonts/...` relative to themselves. Served from
+   /mathlive/ they resolve to /mathlive/fonts/, which is where the install step
+   puts them; run through Next's CSS pipeline the file moves and the URLs
+   break. It is also what makes `convertLatexToMarkup` render correctly on the
+   keypad labels, which live outside the field's shadow DOM. */
+const STYLESHEET = "/mathlive/mathlive-static.css";
+
+function linkStylesheet() {
+  if (document.querySelector(`link[href="${STYLESHEET}"]`)) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = STYLESHEET;
+  document.head.appendChild(link);
+}
+
 export type MathFieldHandle = MathfieldElement;
 
 export function MathField({
@@ -61,6 +77,7 @@ export function MathField({
       if (!configured) {
         ml.MathfieldElement.fontsDirectory = "/mathlive/fonts";
         ml.MathfieldElement.soundsDirectory = null;
+        linkStylesheet();
         configured = true;
       }
 
@@ -69,6 +86,11 @@ export function MathField({
       // virtual one would cover the document the window floats over.
       field.mathVirtualKeyboardPolicy = "manual";
       field.smartFence = true;
+      // No context menu. The window has a keypad and a close button; a second
+      // menu offering matrix editing and MathML export is not this product.
+      // The keyboard toggle beside it is hidden in CSS — `manual` stops the
+      // keyboard opening but still leaves the button.
+      field.menuItems = [];
 
       field.style.width = "100%";
       field.style.border = "none";

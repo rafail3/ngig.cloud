@@ -11,8 +11,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const from = join(root, "node_modules", "mathlive", "fonts");
+const pkg = join(root, "node_modules", "mathlive");
+const from = join(pkg, "fonts");
 const to = join(root, "public", "mathlive", "fonts");
+// The stylesheet goes next to them on purpose: its @font-face rules point at
+// `fonts/...` RELATIVE to itself, so served from /mathlive/ they resolve to
+// /mathlive/fonts/ — exactly where the copy above lands. Run it through Next's
+// CSS pipeline instead and those URLs break.
+const cssFrom = join(pkg, "mathlive-static.css");
+const cssTo = join(root, "public", "mathlive", "mathlive-static.css");
 
 try {
   await access(from);
@@ -26,4 +33,5 @@ try {
 await rm(to, { recursive: true, force: true });
 await mkdir(dirname(to), { recursive: true });
 await cp(from, to, { recursive: true });
-console.log(`mathlive fonts -> ${to}`);
+await cp(cssFrom, cssTo);
+console.log(`mathlive fonts + stylesheet -> ${dirname(to)}`);

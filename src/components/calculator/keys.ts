@@ -10,7 +10,15 @@
    something selected puts it under the radical; `#?` is an empty slot the
    caret jumps into. */
 
-type Base = { label: string; kind?: "num" | "op" | "fn"; title?: string };
+type Base = {
+  label: string;
+  /** Rendered on the key itself, so the radical on the pad is the same one the
+   *  field draws rather than a lookalike character. Digits have none: a plain
+   *  tabular glyph is crisper at this size than a typeset one. */
+  tex?: string;
+  kind?: "num" | "op" | "fn";
+  title?: string;
+};
 
 export type Key =
   | (Base & { latex: string })
@@ -24,19 +32,23 @@ export const KEYS: Key[] = [
   { label: "M−", mem: "M-", kind: "op", title: "Scade din memorie" },
   { label: "C", cmd: "clear", kind: "op", title: "Șterge tot" },
 
-  { label: "sin", latex: "\\sin(#0)", kind: "fn" },
-  { label: "cos", latex: "\\cos(#0)", kind: "fn" },
-  { label: "tan", latex: "\\tan(#0)", kind: "fn" },
+  { label: "sin", tex: "\\sin", latex: "\\sin(#0)", kind: "fn" },
+  { label: "cos", tex: "\\cos", latex: "\\cos(#0)", kind: "fn" },
+  { label: "tan", tex: "\\tan", latex: "\\tan(#0)", kind: "fn" },
   // A degree sign, not a mode toggle: the unit rides along with the number, so
   // sin(45°) still means 45 degrees when you read it back out of the history.
-  { label: "°", latex: "\\degree", kind: "fn", title: "Grade (ex. sin(45°))" },
+  { label: "°", tex: "^\\circ", latex: "\\degree", kind: "fn", title: "Grade (ex. sin(45°))" },
   { label: "⌫", cmd: "back", kind: "op", title: "Șterge un caracter" },
 
-  { label: "ln", latex: "\\ln(#0)", kind: "fn", title: "Logaritm natural" },
-  { label: "log", latex: "\\log_{10}(#0)", kind: "fn", title: "Logaritm în bază 10" },
-  { label: "√", latex: "\\sqrt{#0}", kind: "fn", title: "Radical" },
-  { label: "xʸ", latex: "#0^{#?}", kind: "fn", title: "Ridicare la putere" },
-  { label: "¹⁄ₓ", latex: "\\frac{1}{#0}", kind: "fn", title: "Inversul valorii" },
+  { label: "ln", tex: "\\ln", latex: "\\ln(#0)", kind: "fn", title: "Logaritm natural" },
+  { label: "log", tex: "\\log_{10}", latex: "\\log_{10}(#0)", kind: "fn", title: "Logaritm în bază 10" },
+  { label: "√", tex: "\\sqrt{\\square}", latex: "\\sqrt{#0}", kind: "fn", title: "Radical" },
+// `^{#?}` alone, NOT `#0^{#?}`: the base is already there, to the left of
+  // the caret. Wrapping it in `#0` when nothing is selected inserts an empty
+  // box first and raises the exponent off THAT — which is the stray square
+  // that appeared next to a typed 6.
+  { label: "xʸ", tex: "x^y", latex: "^{#?}", kind: "fn", title: "Ridicare la putere" },
+  { label: "1/x", tex: "\\frac{1}{x}", latex: "\\frac{1}{#0}", kind: "fn", title: "Inversul valorii" },
 
   { label: "7", latex: "7", kind: "num" },
   { label: "8", latex: "8", kind: "num" },
@@ -47,8 +59,8 @@ export const KEYS: Key[] = [
   { label: "4", latex: "4", kind: "num" },
   { label: "5", latex: "5", kind: "num" },
   { label: "6", latex: "6", kind: "num" },
-  { label: "×", latex: "\\times", kind: "op" },
-  { label: "÷", latex: "\\div", kind: "op" },
+  { label: "×", tex: "\\times", latex: "\\times", kind: "op" },
+  { label: "÷", tex: "\\div", latex: "\\div", kind: "op" },
 
   { label: "1", latex: "1", kind: "num" },
   { label: "2", latex: "2", kind: "num" },
@@ -58,8 +70,8 @@ export const KEYS: Key[] = [
 
   { label: "0", latex: "0", kind: "num" },
   { label: ".", latex: ".", kind: "num" },
-  { label: "π", latex: "\\pi", kind: "fn" },
-  { label: "±", latex: "-(#0)", kind: "fn", title: "Schimbă semnul" },
+  { label: "π", tex: "\\pi", latex: "\\pi", kind: "fn" },
+  { label: "±", tex: "\\pm", latex: "-(#0)", kind: "fn", title: "Schimbă semnul" },
   { label: "=", cmd: "equals", kind: "op" },
 ];
 
