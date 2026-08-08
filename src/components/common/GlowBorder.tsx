@@ -25,11 +25,12 @@ import { cn } from "@/lib/utils";
    the content, where `overflow-hidden` throws away its outward half and leaves
    only the half that fades in. */
 
-/* Indigo carries the loop — it bookends the gradient and appears twice more —
-   with the Siri hues passing through as accents. Deliberately no green or
-   yellow: skipping the middle of the spectrum is what keeps this reading as
-   one light shifting hue rather than as a rainbow. */
-const SIRI = ["#6366f1", "#818cf8", "#a855f7", "#e879f9", "#fb7185", "#38bdf8", "#6366f1"];
+/* The brand's own half of the spectrum: indigo through sky to cyan and back.
+   The magenta end is gone — pink and purple were what made it read as a
+   decorative rainbow instead of as light. What is left still shifts hue as it
+   travels, which is what keeps it alive, but every stop is a colour this app
+   already uses. */
+const SIRI = ["#4f46e5", "#6366f1", "#818cf8", "#38bdf8", "#22d3ee", "#818cf8", "#6366f1"];
 
 const RING = (width: number) =>
   ({
@@ -72,18 +73,40 @@ export function GlowBorder({
     >
       {/* The spill. Thick and heavily blurred, so the panel looks lit from
           behind rather than outlined. */}
-      <span style={RING(8)} className={cn("absolute inset-0 rounded-[inherit] opacity-70 blur-[14px]", SPIN)} />
+      <span style={RING(10)} className={cn("absolute inset-0 rounded-[inherit] opacity-55 blur-[20px]", SPIN)} />
+      {/* The same bridge the inside needs: without it the crisp edge steps
+          straight down into the spill and the eye reads the step as a second
+          line. */}
+      <span style={RING(3)} className={cn("absolute inset-0 rounded-[inherit] opacity-50 blur-[6px]", SPIN)} />
       {/* The edge. One pixel, crisp, so the panel keeps a defined outline while
-          the light moves around it. */}
-      <span style={RING(1)} className={cn("absolute inset-0 rounded-[inherit] opacity-90", SPIN)} />
+          the light moves around it. Held just under full strength so the drop
+          into the bridge is a slope rather than a cliff. */}
+      <span style={RING(1)} className={cn("absolute inset-0 rounded-[inherit] opacity-80", SPIN)} />
     </div>
   );
 }
 
-/** The inside of the panel: the same light, blurred far enough that it runs in
- *  from the border and dissolves. Render as the first child of the clipped
- *  box, with the content after it in a positioned wrapper so the content still
- *  paints on top. Kept dim on purpose — this passes underneath text. */
+/* One blurred ring cannot be the whole falloff. A single layer has one peak
+   and one rate of decay, so next to a crisp 90%-opacity edge it starts as a
+   visible step down — the seam between "line" and "glow". Real light falls off
+   in a continuous ramp.
+
+   Three rings with growing blur and shrinking opacity add up to that ramp: the
+   tight one starts bright right against the edge and hands over to the next
+   before it has finished decaying, and so on outward. It is the same reason a
+   good box-shadow is written as several shadows rather than one. The numbers
+   are chosen so each layer's falloff still overlaps the one after it — that
+   overlap IS the smoothness. */
+const BLEED = [
+  { width: 1, blur: 4, opacity: 0.5 }, // bridges the crisp edge
+  { width: 2, blur: 14, opacity: 0.36 }, // the body of the glow
+  { width: 3, blur: 36, opacity: 0.24 }, // the long tail into the surface
+];
+
+/** The inside of the panel: the same light, running in from the border and
+ *  dissolving. Render as the first child of the clipped box, with the content
+ *  after it in a positioned wrapper so the content still paints on top. Kept
+ *  dim on purpose — this passes underneath text. */
 export function GlowBleed({
   className,
   seconds = 7,
@@ -94,12 +117,16 @@ export function GlowBleed({
   return (
     <span
       aria-hidden
-      style={{ ...RING(3), ...duration(seconds) }}
-      className={cn(
-        "pointer-events-none absolute inset-0 rounded-[inherit] opacity-35 blur-[22px]",
-        SPIN,
-        className,
-      )}
-    />
+      style={duration(seconds)}
+      className={cn("pointer-events-none absolute inset-0 rounded-[inherit]", className)}
+    >
+      {BLEED.map((l) => (
+        <span
+          key={l.blur}
+          style={{ ...RING(l.width), opacity: l.opacity, filter: `blur(${l.blur}px)` }}
+          className={cn("absolute inset-0 rounded-[inherit]", SPIN)}
+        />
+      ))}
+    </span>
   );
 }
