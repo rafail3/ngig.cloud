@@ -414,6 +414,13 @@ export function PreviewModal({
                     )}
                   </Button>
                 )}
+                {k === "office" && (
+                  <CalculatorButton
+                    open={calcOpen}
+                    onToggle={() => setCalcOpen((v) => !v)}
+                    className="flex items-center rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 aria-expanded:bg-zinc-800 aria-expanded:text-zinc-50"
+                  />
+                )}
                 <Button variant="unstyled"
                   type="button"
                   onClick={() => setShowInfo(true)}
@@ -422,13 +429,6 @@ export function PreviewModal({
                 >
                   <Info className="h-4 w-4" />
                 </Button>
-                {k === "office" && (
-                  <CalculatorButton
-                    open={calcOpen}
-                    onToggle={() => setCalcOpen((v) => !v)}
-                    className="flex items-center rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 aria-expanded:bg-zinc-800 aria-expanded:text-zinc-50"
-                  />
-                )}
                 <Button variant="unstyled"
                   type="button"
                   onClick={onClose}

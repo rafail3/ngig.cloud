@@ -4,8 +4,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { motion, useDragControls, useMotionValue } from "motion/react";
 import { Calculator, GripHorizontal, History, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useCalculatorEngine } from "./engine";
-import { KEYS, TYPED, type Key } from "./keys";
+import { KEYS, type Key } from "./keys";
+// KaTeX ships its own stylesheet; without it the typeset line renders as a
+// pile of unpositioned spans.
+import "katex/dist/katex.min.css";
 
 const WIDTH = 288; // w-72
 const MARGIN = 24;
@@ -28,7 +32,7 @@ type Entry = { expr: string; value: string };
      reopens where you last put it rather than jumping back to the corner. */
 
 export function CalculatorWindow({ onClose }: { onClose: () => void }) {
-  const { ready, evaluate } = useCalculatorEngine();
+  const { ready, evaluate, typeset } = useCalculatorEngine();
   const [expr, setExpr] = useState("");
   const [history, setHistory] = useState<Entry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -36,6 +40,7 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
   const [dragging, setDragging] = useState(false);
 
   const panel = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLInputElement>(null);
   // Drag limits in the window's OWN coordinate space. It is positioned against
   // whatever its offsetParent turns out to be, which differs per host: the
   // Office editor's root covers the viewport, while the preview's panel is a
@@ -94,6 +99,40 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
 
   const preview = useMemo(() => (ready ? evaluate(expr) : null), [ready, evaluate, expr]);
   const liveValue = preview?.ok ? preview.value : null;
+  const math = useMemo(() => (ready ? typeset(expr) : null), [ready, typeset, expr]);
+
+  /* Every key edits AT THE CURSOR. The display is a real input — you can click
+     into it, select part of it, drag across it — so appending to the end would
+     be wrong the moment the caret is anywhere else. A selection is replaced,
+     the way typing does. */
+  const editAt = useCallback((make: (before: string, selected: string, after: string) => [string, number]) => {
+    const el = input.current;
+    const value = el?.value ?? "";
+    const start = el?.selectionStart ?? value.length;
+    const end = el?.selectionEnd ?? start;
+    const [next, caret] = make(value.slice(0, start), value.slice(start, end), value.slice(end));
+    setExpr(next);
+    // After React has written the new value: setting it first would put the
+    // caret at the end, which is exactly what this exists to avoid.
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(caret, caret);
+    });
+  }, []);
+
+  const insert = useCallback(
+    (text: string) => editAt((b, _s, a) => [b + text + a, b.length + text.length]),
+    [editAt],
+  );
+
+  const backspace = useCallback(
+    () =>
+      editAt((b, sel, a) =>
+        // A selection is what gets deleted, if there is one.
+        sel ? [b + a, b.length] : [b.slice(0, -1) + a, Math.max(0, b.length - 1)],
+      ),
+    [editAt],
+  );
 
   const commit = useCallback(() => {
     const r = evaluate(expr);
@@ -102,65 +141,74 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
     // The result becomes the next starting point, the way a calculator does —
     // so you can keep operating on what you just worked out.
     setExpr(r.value);
+    requestAnimationFrame(() => {
+      const el = input.current;
+      el?.focus();
+      el?.setSelectionRange(r.value.length, r.value.length);
+    });
   }, [evaluate, expr]);
 
   const press = useCallback(
     (k: Key) => {
       if ("insert" in k) {
-        setExpr((e) => e + k.insert);
+        insert(k.insert);
         return;
       }
       if ("mem" in k) {
+        // What goes into memory is the value of what is on screen, so M+ works
+        // on a whole expression and not just on a number you typed.
         const current = evaluate(expr);
         const n = current.ok ? Number(current.value) : NaN;
         if (k.mem === "MC") setMemory(null);
-        if (k.mem === "MR" && memory !== null) setExpr((e) => e + String(memory));
+        if (k.mem === "MR" && memory !== null) insert(String(memory));
         if (k.mem === "M+" && Number.isFinite(n)) setMemory((m) => (m ?? 0) + n);
         if (k.mem === "M-" && Number.isFinite(n)) setMemory((m) => (m ?? 0) - n);
         return;
       }
-      if (k.cmd === "clear") setExpr("");
-      if (k.cmd === "back") setExpr((e) => e.slice(0, -1));
+      if (k.cmd === "clear") {
+        setExpr("");
+        input.current?.focus();
+      }
+      if (k.cmd === "back") backspace();
       if (k.cmd === "equals") commit();
-      // Both of these wrap what is already there, rather than trying to find
-      // the last operand — wrapping is unambiguous whatever you have typed.
+      // These two wrap the WHOLE expression rather than hunting for the last
+      // operand — wrapping is unambiguous whatever you have typed.
       if (k.cmd === "sign") setExpr((e) => (e ? `-(${e})` : "-"));
       if (k.cmd === "recip") setExpr((e) => (e ? `1/(${e})` : e));
     },
-    [commit, evaluate, expr, memory],
+    [backspace, commit, evaluate, expr, insert, memory],
   );
 
-  // Typing is scoped to the window: the Office editor underneath is a live
-  // document, and a global listener would steal its keystrokes.
+  /* The input does ordinary typing itself — that is the point of it being a
+     real input rather than a rendered line — so only the calculator's own keys
+     are intercepted here. Nothing is bound globally: the document underneath
+     is live, and a window-level listener would steal its keystrokes. */
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
         // The preview underneath closes on Escape too. Closing the calculator
-        // is what this key meant here, so it stops at this window.
+        // is what the key meant while it was open, so it stops here.
         e.stopPropagation();
         onClose();
         return;
       }
-      if (e.key === "Enter" || e.key === "=") {
+      if (e.key === "Enter" || (e.key === "=" && !e.shiftKey)) {
         e.preventDefault();
         commit();
         return;
       }
-      if (e.key === "Backspace") {
+      if (e.key === "Delete") {
+        // Delete is the calculator's "clear everything", the way AC is on a
+        // physical one — not the forward-delete a text field would give you.
         e.preventDefault();
-        setExpr((v) => v.slice(0, -1));
-        return;
-      }
-      if (e.key.length === 1 && TYPED.has(e.key)) {
-        e.preventDefault();
-        setExpr((v) => v + e.key);
+        setExpr("");
       }
     },
     [commit, onClose],
   );
 
   useEffect(() => {
-    panel.current?.focus();
+    input.current?.focus();
   }, []);
 
   return (
@@ -266,18 +314,46 @@ export function CalculatorWindow({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Display: what you typed on top, what it comes to underneath. The
-            live line is dim because it is a preview, not a committed answer. */}
-        <div className="px-3 py-3 text-right">
-          <p
-            dir="ltr"
-            className="min-h-6 truncate text-lg font-medium tabular-nums text-zinc-100"
-            title={expr}
-          >
-            {expr || <span className="text-zinc-600">0</span>}
-          </p>
+        {/* Three lines, and each earns its place.
+
+            Typeset: the expression as real mathematics — a radical drawn over
+            its operand, a raised exponent, π, a fraction bar, a degree sign.
+            mathjs emits the LaTeX from its own parse tree and KaTeX draws it,
+            so nothing here is a hand-written symbol substitution. It appears
+            only once the expression parses, which is not while you are halfway
+            through typing one.
+
+            Source: a real input. You can click into it, select part of it,
+            drag across it, and every key on the pad edits at the caret.
+
+            Result: dim, because it is a preview and not a committed answer. */}
+        <div className="px-3 pb-2.5 pt-3 text-right">
+          {math && (
+            <div
+              className="mb-1 max-w-full overflow-x-auto overflow-y-hidden text-lg leading-tight text-zinc-100 [&_.katex]:text-[1em]"
+              dangerouslySetInnerHTML={{ __html: math }}
+            />
+          )}
+          <Input
+            ref={input}
+            variant="unstyled"
+            value={expr}
+            onChange={(e) => setExpr(e.target.value)}
+            inputMode="text"
+            autoComplete="off"
+            spellCheck={false}
+            aria-label="Expresie"
+            placeholder="0"
+            className={`w-full bg-transparent text-right tabular-nums outline-none placeholder:text-zinc-600 ${
+              math ? "text-xs text-zinc-500" : "text-lg font-medium text-zinc-100"
+            }`}
+          />
           <p className="mt-0.5 min-h-4 truncate text-xs tabular-nums text-zinc-500">
-            {!ready ? "Se încarcă…" : liveValue !== null && liveValue !== expr ? `= ${liveValue}` : ""}
+            {!ready
+              ? "Se încarcă…"
+              : liveValue !== null && liveValue !== expr
+                ? `= ${liveValue}`
+                : ""}
           </p>
         </div>
 
