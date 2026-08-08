@@ -1,0 +1,184 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import type { MathfieldElement } from "mathlive";
+import { TYPED } from "./keys";
+
+/* MathLive's editable maths field, wrapped so the rest of the calculator never
+   has to know it is a web component.
+
+   Built imperatively rather than as JSX. `<math-field>` is a custom element,
+   which means it does not exist during server rendering and cannot be
+   type-checked as a React intrinsic; constructing it inside an effect sidesteps
+   both, and the element is only ever touched on the client.
+
+   Two static settings have to be made before the first field is constructed:
+
+   - `fontsDirectory` — MathLive renders with its own fonts, and Next cannot
+     serve anything out of node_modules. They are copied to public/ on install
+     (see scripts/copy-mathlive-fonts.mjs). Point this at the wrong place and
+     the maths renders in a fallback font, subtly wrong rather than obviously
+     broken.
+   - `soundsDirectory = null` — otherwise it fetches keypress sounds nobody
+     asked for. */
+
+let configured = false;
+
+/* The stylesheet is linked from public/ rather than imported, because its
+   @font-face rules point at `fonts/...` relative to themselves. Served from
+   /mathlive/ they resolve to /mathlive/fonts/, which is where the install step
+   puts them; run through Next's CSS pipeline the file moves and the URLs
+   break. It is also what makes `convertLatexToMarkup` render correctly on the
+   keypad labels, which live outside the field's shadow DOM. */
+const STYLESHEET = "/mathlive/mathlive-static.css";
+
+function linkStylesheet() {
+  if (document.querySelector(`link[href="${STYLESHEET}"]`)) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = STYLESHEET;
+  document.head.appendChild(link);
+}
+
+export type MathFieldHandle = MathfieldElement;
+
+export function MathField({
+  onChange,
+  onEnter,
+  onEscape,
+  fieldRef,
+}: {
+  /** Fires on every edit, with the field's LaTeX. */
+  onChange: (latex: string) => void;
+  onEnter: () => void;
+  onEscape: () => void;
+  /** Filled with the element once it exists, so the keypad can drive it. */
+  fieldRef: React.RefObject<MathfieldElement | null>;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  // Handlers change every render; the element is built once, so it reads them
+  // through a ref rather than being rebuilt to capture new ones.
+  const handlers = useRef({ onChange, onEnter, onEscape });
+  // Written in an effect, not during render: a ref mutated while rendering is
+  // a lint error here and a real hazard under concurrent rendering, where a
+  // render can be thrown away after it has already changed something outside.
+  useEffect(() => {
+    handlers.current = { onChange, onEnter, onEscape };
+  });
+
+  useEffect(() => {
+    const mount = host.current;
+    if (!mount) return;
+    let field: MathfieldElement | null = null;
+    let cancelled = false;
+
+    void import("mathlive").then((ml) => {
+      if (cancelled || !mount) return;
+
+      if (!configured) {
+        ml.MathfieldElement.fontsDirectory = "/mathlive/fonts";
+        ml.MathfieldElement.soundsDirectory = null;
+        linkStylesheet();
+        configured = true;
+      }
+
+      field = new ml.MathfieldElement();
+      // No on-screen keyboard: this calculator has its own keypad, and the
+      // virtual one would cover the document the window floats over. These two
+      // are plain options — they are stored on the element and applied when it
+      // connects, so they are safe to set before it is in the DOM.
+      field.mathVirtualKeyboardPolicy = "manual";
+      field.smartFence = true;
+
+      field.style.width = "100%";
+      field.style.border = "none";
+      field.style.outline = "none";
+      field.style.background = "transparent";
+      field.style.fontSize = "22px";
+      field.style.color = "#f4f4f5";
+      field.style.setProperty("--caret-color", "#818cf8");
+      field.style.setProperty("--selection-background-color", "rgba(99,102,241,0.35)");
+      field.style.setProperty("--placeholder-color", "#52525b");
+      field.style.setProperty("--smart-fence-color", "#a1a1aa");
+
+      field.addEventListener("input", () => handlers.current.onChange(field?.value ?? ""));
+      field.addEventListener("keydown", (e: KeyboardEvent) => {
+        /* A mathfield is a general maths editor: type `x` and you get the
+           variable x, type `abc` and you get a product of three of them. This
+           is a calculator, so a letter is never something it can evaluate —
+           it would sit there looking like maths and fail silently at the
+           equals. Only what a calculator can actually work with gets through.
+
+           Modifier combinations are left alone so copy, paste, select-all and
+           undo keep working, and named constants come from the keypad, where
+           π and the functions are one press each. */
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1 && !TYPED.has(e.key)) {
+          e.preventDefault();
+          return;
+        }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handlers.current.onEnter();
+        }
+        if (e.key === "Delete") {
+          // The calculator's AC. A mathfield would forward-delete one item;
+          // on a calculator this key clears the lot.
+          e.preventDefault();
+          if (field) {
+            field.value = "";
+            handlers.current.onChange("");
+          }
+        }
+        if (e.key === "Escape") {
+          // The preview underneath closes on Escape too, and closing the
+          // calculator is what the key meant while it was open.
+          e.stopPropagation();
+          handlers.current.onEscape();
+        }
+      });
+
+      /* Paste is the other way in, and the keydown filter cannot see it. The
+         clipboard is stripped to the same set of characters the keyboard is
+         allowed to produce, so a copied cell full of text arrives as whatever
+         digits it held and nothing else. */
+      field.addEventListener("paste", (e: ClipboardEvent) => {
+        e.preventDefault();
+        const clean = Array.from(e.clipboardData?.getData("text/plain") ?? "")
+          .filter((c) => TYPED.has(c))
+          .join("");
+        if (clean && field) {
+          field.insert(clean, { selectionMode: "after" });
+          handlers.current.onChange(field.value);
+        }
+      });
+
+      mount.appendChild(field);
+
+      /* Only NOW. `menuItems` is not a stored option — its setter reaches into
+         the live mathfield, and on an element that is not in the DOM yet it
+         throws "Mathfield not mounted". Setting it before appendChild killed
+         the whole effect, so the field never mounted at all and the calculator
+         came up with no caret and no input.
+
+         The menu is also hidden in CSS; this is what stops it opening on a
+         right-click, which CSS cannot do. */
+      try {
+        field.menuItems = [];
+      } catch {
+        // A future version could move this again. A context menu we did not
+        // want is not worth taking the field down for.
+      }
+
+      fieldRef.current = field;
+      field.focus();
+    });
+
+    return () => {
+      cancelled = true;
+      field?.remove();
+      fieldRef.current = null;
+    };
+  }, [fieldRef]);
+
+  return <div ref={host} className="min-h-9 w-full" />;
+}

@@ -118,7 +118,11 @@ export function ModalShell({
   onClose,
   children,
   title,
-  className = "max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl",
+  // `sm:max-w-lg` used to come from the Dialog primitive, where no caller
+  // could override it. It belongs here instead: this default keeps the modals
+  // that pass no className looking exactly as they did, and a caller that
+  // passes its own replaces the whole string — so its width finally applies.
+  className = "max-w-sm sm:max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl",
   scrim = "bg-black/70",
   lockScroll = true,
 }: {

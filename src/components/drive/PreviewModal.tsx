@@ -45,6 +45,10 @@ import { VideoPlayer } from "./VideoPlayer";
 import { PdfViewer } from "./PdfViewer";
 import { CodeViewer } from "./CodeViewer";
 import { ModalShell } from "./anim";
+import {
+  CalculatorButton,
+  CalculatorWindow,
+} from "@/components/calculator/CalculatorWindow";
 
 // CodeMirror is heavy — only load it when the user actually edits.
 const TextEditor = lazy(() => import("./TextEditor"));
@@ -96,6 +100,7 @@ export function PreviewModal({
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
 
@@ -297,7 +302,12 @@ export function PreviewModal({
       onClose={dismiss}
       title={file.name}
       scrim="bg-black/80"
-      className={`relative flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
+      // No `relative` here. The shell is `fixed`, and tailwind-merge treats the
+      // two as the same conflict, so a `relative` passed in silently DELETED
+      // the fixed positioning — the panel dropped out of the centred overlay
+      // and flowed to the bottom of the portal. `fixed` is a containing block
+      // for absolutely positioned children anyway, which is all it was for.
+      className={`flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl ${
         selectable ? "" : "select-none"
       } ${
         big
@@ -312,7 +322,10 @@ export function PreviewModal({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col">
+      {/* The clip lives here rather than on the panel: it has to round off
+          the header and the document, but it must not swallow the calculator
+          window, which is a sibling and needs to leave the panel. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-3">
           <p className="min-w-0 max-w-[min(60vw,32rem)] truncate text-sm font-medium text-zinc-100">
             {file.name}
@@ -361,25 +374,6 @@ export function PreviewModal({
                 {canPrintOffice && (
                   <Button variant="unstyled"
                     type="button"
-                    onClick={() =>
-                      setThemeOverride(officeTheme === "dark" ? "light" : "dark")
-                    }
-                    aria-label={
-                      officeTheme === "dark" ? "Fundal deschis" : "Fundal întunecat"
-                    }
-                    title={officeTheme === "dark" ? "Fundal deschis" : "Fundal întunecat"}
-                    className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800"
-                  >
-                    {officeTheme === "dark" ? (
-                      <Sun className="h-4 w-4" />
-                    ) : (
-                      <Moon className="h-4 w-4" />
-                    )}
-                  </Button>
-                )}
-                {canPrintOffice && (
-                  <Button variant="unstyled"
-                    type="button"
                     onClick={printOffice}
                     disabled={printing}
                     className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800 disabled:opacity-60"
@@ -399,6 +393,32 @@ export function PreviewModal({
                     className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 transition hover:bg-zinc-800"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Editează
+                  </Button>
+                )}
+                {k === "office" && (
+                  <CalculatorButton
+                    open={calcOpen}
+                    onToggle={() => setCalcOpen((v) => !v)}
+                    className="flex items-center rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800 aria-expanded:bg-zinc-800 aria-expanded:text-zinc-50"
+                  />
+                )}
+                {canPrintOffice && (
+                  <Button variant="unstyled"
+                    type="button"
+                    onClick={() =>
+                      setThemeOverride(officeTheme === "dark" ? "light" : "dark")
+                    }
+                    aria-label={
+                      officeTheme === "dark" ? "Fundal deschis" : "Fundal întunecat"
+                    }
+                    title={officeTheme === "dark" ? "Fundal deschis" : "Fundal întunecat"}
+                    className="rounded-md border border-zinc-700 p-1.5 text-zinc-300 transition hover:bg-zinc-800"
+                  >
+                    {officeTheme === "dark" ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
                   </Button>
                 )}
                 <Button variant="unstyled"
@@ -561,6 +581,14 @@ export function PreviewModal({
           />
         )}
       </AnimatePresence>
+
+      {/* Inside the panel, but a sibling of the clipped box above, and
+          positioned against the panel rather than the viewport — a Dialog
+          carries a `translate`, which makes it the containing block for
+          everything inside it. The window measures that and works out the rest.
+          It cannot live outside the Dialog: a modal one traps focus and
+          disables pointer events everywhere else. */}
+      {calcOpen && <CalculatorWindow onClose={() => setCalcOpen(false)} />}
     </ModalShell>
   );
 }
